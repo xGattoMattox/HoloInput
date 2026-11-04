@@ -1,0 +1,46 @@
+# HoloInput - file da non versionare (Delphi / RAD Studio)
+
+# --- risultati della compilazione ---
+*.dcu
+*.exe
+*.dll
+*.bpl
+*.dcp
+*.map
+*.drc
+*.rsm
+*.tds
+*.o
+Win32/
+Win64/
+Debug/
+Release/
+
+# --- file personali / temporanei dell'IDE ---
+__history/
+__recovery/
+*.local
+*.identcache
+*.projdata
+*.stat
+*.dsk
+*.~*
+*.tvsconfig
+ModelSupport_*/
+
+# --- configurazione personale dell'utente (creata accanto all'exe) ---
+HoloInput.ini
+
+# --- strumenti Python ---
+__pycache__/
+*.pyc
+
+# --- file di lavoro e anteprime ---
+TESTOUTPUT/
+_lin.rc
+
+# --- script personale per aggiornare il repository ---
+updaterepository.bat
+
+# --- workflow ComfyUI personale per generare i modelli 3D (privato) ---
+TOOLS/holo_trellis2_ologramma.json

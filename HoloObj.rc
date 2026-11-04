@@ -1,0 +1,18 @@
+/* Modelli 3D olografici incorporati nell'eseguibile (RCDATA).
+   Il file HoloObj.res (gia' compilato, collegato da HoloInput.dpr) si
+   rigenera con TOOLS\build_res.bat dopo aver cambiato i modelli.
+   Un file con lo stesso nome nella cartella OBJ accanto all'eseguibile ha la
+   precedenza: si possono sostituire senza ricompilare.
+   Le lingue (LANG\*.ini) seguono la stessa regola (vedi Holo.Lang). */
+WARBRD_HOLO_OBJ  RCDATA "OBJ\\warbrd_holo.obj"
+VPAP_R_HOLO_OBJ  RCDATA "OBJ\\vpap_r_holo.obj"
+VPAP_R_HOLO_INI  RCDATA "OBJ\\vpap_r_holo.ini"
+VPAP_L_HOLO_OBJ  RCDATA "OBJ\\vpap_l_holo.obj"
+VPAP_L_HOLO_INI  RCDATA "OBJ\\vpap_l_holo.ini"
+XBOX_HOLO_OBJ    RCDATA "OBJ\\xbox_holo.obj"
+XBOX_HOLO_INI    RCDATA "OBJ\\xbox_holo.ini"
+ZAXIS_HOLO_OBJ   RCDATA "OBJ\\zaxis_holo.obj"
+ZAXIS_HOLO_INI   RCDATA "OBJ\\zaxis_holo.ini"
+AVATAR_PNG       RCDATA "ARTWORK\\avatar.png"
+LANG_ITALIANO    RCDATA "LANG\\italiano.ini"
+LANG_ENGLISH     RCDATA "LANG\\english.ini"

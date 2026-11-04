@@ -1,0 +1,14 @@
+object frmSetup: TfrmSetup
+  Left = 0
+  Top = 0
+  Caption = 'HoloInput - Setup'
+  BorderStyle = None
+  ClientHeight = 720
+  ClientWidth = 1140
+  FormStyle = StayOnTop
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+end
