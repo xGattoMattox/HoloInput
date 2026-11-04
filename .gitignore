@@ -37,6 +37,10 @@ __pycache__/
 
 # --- file di lavoro e anteprime ---
 TESTOUTPUT/
+
+# --- release: script personale e zip creati (si pubblicano su GitHub > Releases) ---
+TOOLS/make_release.bat
+RELEASE/
 _lin.rc
 
 # --- script personale per aggiornare il repository ---
