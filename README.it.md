@@ -90,6 +90,8 @@ Applicazione FireMonkey (Delphi 13 CE) che mostra in 3D, con look da ologramma, 
 
 GNU GPL v3 con termini aggiuntivi della sezione 7 (file [LICENSE](LICENSE)): obbligo di mantenere inalterate la menzione dell'autore e la pagina **Info** in ogni copia o versione modificata (7b); le versioni modificate vanno indicate come tali e non possono presentarsi come l'originale (7c); nessun diritto su nome HoloInput, pseudonimo e avatar dell'autore, le versioni modificate ridistribuite devono usare un altro nome (7e). L'avatar è escluso dalla GPL: tutti i diritti riservati.
 
+**Marchi di terzi**: HoloInput è un progetto amatoriale di un appassionato, non affiliato, sponsorizzato né approvato da Cloud Imperium Games, Roberts Space Industries o da alcun produttore di hardware. *Star Citizen®* e *Roberts Space Industries®* sono marchi di Cloud Imperium Rights LLC. I nomi dei costruttori usati per le skin, Virpil Controls, Alpha Prime e WarBRD (Virpil) e Xbox® (Microsoft) appartengono ai rispettivi proprietari. Tutti gli altri marchi, nomi di prodotti e loghi citati appartengono ai legittimi proprietari e sono usati a solo scopo identificativo.
+
 ## Aggiungere un dispositivo o una skin
 
 1. Creare la unit nella cartella giusta, derivando da `TKeyboardModel`, `TMouseModel`, `TObjPadModel` (vedi "Gamepad 3D da file OBJ"), `TObjStickModel` (vedi "Joystick 3D da file OBJ"), `TButtonBoxModel` (o da `TSkin`).

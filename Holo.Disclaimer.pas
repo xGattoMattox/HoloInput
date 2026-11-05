@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Disclaimer
 //** Scopo: Avviso legale mostrato al primo avvio (finche' non viene accettato).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: stessa grafica dell'applicazione: finestra senza bordi con pannello dagli
 //** angoli smussati nei colori della skin, titoli in Bahnschrift, testi in
@@ -293,7 +293,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Scrivere tutti i testi dell'avviso nella lingua corrente.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: legge ogni testo con Tr (chiavi disclaimer.*); viene
 //** richiamata quando si cambia lingua, cosi' l'avviso si traduce subito.
@@ -319,12 +319,13 @@ begin
         'non risponde di danni diretti o indiretti derivanti dall''uso del software.');
 
     FHeads[1].Text := Tr('disclaimer.trademarks.title', 'MARCHI DI TERZI');
-    FTexts[1].Text := Tr('disclaimer.trademarks.text', 'Tutti i marchi, i marchi registrati, i nomi ' +
-        'commerciali, i nomi di prodotti e i loghi citati nel software (tra cui Star Citizen' + #$00AE +
-        ', Roberts Space Industries' + #$00AE + ', Cloud Imperium Games, i costruttori delle skin, ' +
-        'Virpil Controls, Xbox' + #$00AE + ') appartengono ai legittimi proprietari e sono usati a solo ' +
-        'scopo descrittivo e identificativo. Il software non e'' affiliato, sponsorizzato ne'' approvato ' +
-        'da tali titolari.');
+    FTexts[1].Text := Tr('disclaimer.trademarks.text', 'HoloInput e'' un progetto amatoriale di un ' +
+        'appassionato, non affiliato, sponsorizzato ne'' approvato da Cloud Imperium Games, Roberts Space ' +
+        'Industries o da alcun produttore di hardware. Star Citizen' + #$00AE + ' e Roberts Space ' +
+        'Industries' + #$00AE + ' sono marchi di Cloud Imperium Rights LLC. I nomi dei costruttori usati ' +
+        'per le skin, Virpil Controls, Alpha Prime e WarBRD (Virpil) e Xbox' + #$00AE + ' (Microsoft) ' +
+        'appartengono ai rispettivi proprietari. Tutti gli altri marchi, nomi di prodotti e loghi citati ' +
+        'appartengono ai legittimi proprietari e sono usati a solo scopo descrittivo e identificativo.');
 
     FHeads[2].Text := Tr('disclaimer.performance.title', 'IMPATTO SULLE PRESTAZIONI');
     FTexts[2].Text := Tr('disclaimer.performance.text', 'L''overlay esegue in tempo reale il ' +

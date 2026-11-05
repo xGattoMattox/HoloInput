@@ -4,7 +4,7 @@
 //** Nome unit: Holo.About
 //** Scopo: Contenuto della pagina "Info" del Setup, disegnato interamente da codice con i colori della skin
 //**        (nessuna immagine esterna).
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: THoloDossierCard  scheda "Citizen Dossier" dell'autore (dati del profilo
 //**                     pubblico RSI) in stile ologramma: ritratto (logo
@@ -472,7 +472,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Disegnare le informazioni sul software (con copyright e licenza).
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure THoloInfoCard.Paint;
@@ -523,11 +523,12 @@ begin
     Line(TrBuiltin('about.info.hotkeys.line1', 'Ctrl+Alt+F12 blocca/sblocca layout   ' + #$00B7 +
         '   Ctrl+Alt+F11 setup'), 11, False, FColors.Text, 18);
     Line(TrBuiltin('about.info.hotkeys.line2', 'Ctrl+Alt+F10 mostra/nasconde   ' + #$00B7 +
-        '   Ctrl+Alt+F9 modalita'' streamer'), 11, False, FColors.Text, 26);
+        '   Ctrl+Alt+F9 modalita'' streamer'), 11, False, FColors.Text, 24);
 
-    Line(TrBuiltin('about.info.disclaimer', 'Progetto amatoriale di un appassionato, non affiliato a ' +
-        'Cloud Imperium Games o Roberts Space Industries. Star Citizen' + #$00AE + ' e'' un ' +
-        'marchio di Cloud Imperium Rights LLC.'), 9, False, WithAlpha(FColors.Text, $A0), 38);
+    Line(TrBuiltin('about.info.disclaimer', 'Progetto amatoriale non affiliato a Cloud Imperium Games, ' +
+        'Roberts Space Industries o produttori di hardware. Star Citizen' + #$00AE + ' e Roberts Space ' +
+        'Industries' + #$00AE + ' sono marchi di Cloud Imperium Rights LLC; tutti gli altri marchi ' +
+        'appartengono ai rispettivi proprietari.'), 9, False, WithAlpha(FColors.Text, $A0), 40);
     Line(TrBuiltin('about.info.license', #$00A9 + ' 2026 Citizen GattoMatto  ' + #$00B7 +
         '  Licenza GNU GPL v3 con termini aggiuntivi (file LICENSE)'), 9, False,
         WithAlpha(FColors.Text, $A0), 16);

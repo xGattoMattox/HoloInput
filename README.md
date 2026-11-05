@@ -120,7 +120,7 @@ The Italian README ([README.it.md](README.it.md)) documents the source layout, t
 HoloInput is a **hobby project**, developed in my spare time:
 - **Free version:** this version is distributed free of charge, "as is", without warranty of any kind.
 - **Game performance:** the overlay renders in 3D on top of the game and may affect game performance to some degree.
-- **Trademarks:** *Star Citizen®*, *Roberts Space Industries®* and *Cloud Imperium Games* are trademarks of Cloud Imperium Rights LLC. The manufacturer names used for the skins, Virpil Controls and Xbox® belong to their respective owners. HoloInput is not affiliated with, sponsored or endorsed by any of them.
+- **Trademarks:** HoloInput is a fan-made hobby project, not affiliated with, sponsored or endorsed by Cloud Imperium Games, Roberts Space Industries or any hardware manufacturer. *Star Citizen®* and *Roberts Space Industries®* are trademarks of Cloud Imperium Rights LLC. The ship manufacturer names used for the skins, Virpil Controls, Alpha Prime and WarBRD (Virpil) and Xbox® (Microsoft) belong to their respective owners. All other trademarks, product names and logos mentioned belong to their respective owners and are used for identification purposes only.
 
 ## License
 
