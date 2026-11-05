@@ -30,6 +30,16 @@ Applicazione FireMonkey (Delphi 13 CE) che mostra in 3D, con look da ologramma, 
 | `ARTWORK\` | avatar dell'autore (`avatar.png`, incorporato come risorsa `AVATAR_PNG`; non sostituibile: la pagina Info usa solo la risorsa incorporata; escluso dalla licenza GPL, tutti i diritti riservati) |
 | `LANG\` | lingue dell'interfaccia: `italiano.ini`, `english.ini` (incorporate anche come risorse `LANG_ITALIANO` / `LANG_ENGLISH`) |
 
+## Avvisi di sicurezza di Windows (exe non firmato)
+
+`HoloInput.exe` **non è firmato digitalmente** (i certificati di firma del codice sono costosi per un progetto amatoriale gratuito), quindi al primo avvio Windows può mostrare un avviso:
+
+- **SmartScreen** ("Windows ha protetto il PC"): fare clic su **Ulteriori informazioni → Esegui comunque**.
+- **Smart App Control** (Windows 11) può bloccare le app non firmate senza l'opzione "Esegui comunque": per usare HoloInput va disattivato in *Sicurezza di Windows → Controllo app e browser → Smart App Control*. Prima di farlo leggere le note di Microsoft: a seconda della versione di Windows, riattivarlo può non essere immediato.
+- **Falsi positivi degli antivirus**: HoloInput legge tastiera, mouse e controller in background (è così che l'overlay continua a funzionare mentre il gioco è in primo piano) e alcune euristiche degli antivirus lo trattano come un keylogger. HoloInput **mostra soltanto** gli input: non li registra, non li salva e non li invia da nessuna parte; l'unico servizio di rete è la pagina opzionale per OBS su `127.0.0.1` (il proprio PC).
+
+**Verifica del download**: ogni release riporta lo **SHA-256** dello zip. Si controlla con `certutil -hashfile HoloInput-v<versione>-win64.zip SHA256` (oppure `Get-FileHash` in PowerShell): il valore deve coincidere con quello della pagina della release. In alternativa si può compilare l'exe dal codice sorgente (vedi *Compilazione*).
+
 ## Uso
 
 - **Primo avvio**: compare l'**avviso legale** (software amatoriale fornito "così com'è", marchi di terzi, possibile impatto sulle prestazioni del gioco, software in continuo sviluppo) con la scelta di **lingua** e **skin**, che si applicano subito all'avviso. Con **Accetto** l'accettazione, la lingua e la skin si salvano nel `.ini` (`AvvisoAccettato`, `Lingua`, `Skin`) e l'avviso non viene più mostrato; con **Rifiuto** l'applicazione termina. Per rivederlo basta togliere `AvvisoAccettato=1` dal `.ini`.

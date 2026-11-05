@@ -46,6 +46,16 @@
 
 Nothing is installed in the system and there is no registry entry. To uninstall, delete the folder.
 
+### Windows security warnings
+
+`HoloInput.exe` is **not digitally signed** (code-signing certificates are expensive for a free hobby project), so Windows may warn you the first time you run it:
+
+- **SmartScreen** ("Windows protected your PC"): click **More info → Run anyway**.
+- **Smart App Control** (Windows 11) may block unsigned apps with no "Run anyway" option. To use HoloInput you have to turn it off in *Windows Security → App & browser control → Smart App Control*. Read Microsoft's notes before you do: depending on your Windows version, turning it back on may not be immediate.
+- **Antivirus false positives**: HoloInput reads keyboard, mouse and controllers in the background (that is how the overlay keeps working while the game has focus). Some antivirus heuristics treat this like a keylogger. HoloInput **only displays** your inputs: it never records, saves or sends them anywhere, and the only network service is the optional OBS page on `127.0.0.1` (your own PC).
+
+**Verify your download:** every release lists the **SHA-256** of the zip. Check it with `certutil -hashfile HoloInput-v<version>-win64.zip SHA256` (or `Get-FileHash` in PowerShell): the value must match the one on the release page. If you prefer, build the exe yourself from the source code (see *Building from source*).
+
 ## Quick start
 
 | Hotkey | Action |
