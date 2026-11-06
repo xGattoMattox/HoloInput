@@ -3,18 +3,19 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Setup
 //** Scopo: Schermata di configurazione (Setup) dell'applicazione.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: lavora su una COPIA della configurazione:
 //**   SALVA   -> chiude con mrOk (la form principale applica e scrive il .ini)
 //**   CHIUDI  -> chiude con mrCancel senza applicare nulla (le modifiche vanno perse)
 //** La finestra e' divisa in pagine (pulsanti in alto):
 //**   GENERALE    skin, lingua, layout (Orizzontale Basso/Alto, Verticale
-//**               Destra/Sinistra, Personalizzato), margine, spaziatura, opzioni,
+//**               Destra/Sinistra, Personalizzato), margine, spaziatura, opzioni
+//**               (tra cui "nascondi i widget inattivi" dopo N secondi, contrassegnato
+//**               "SOLO BLOCCATO"),
 //**               stile dei widget (pannello / solo dispositivo) ed effetti di base;
-//**   DISPOSITIVI per ogni widget: visibilita', modello 3D, posizione,
-//**               dimensioni, assi (il dispositivo sorgente e' nascosto e mantiene
-//**               il valore salvato nel .ini);
+//**   DISPOSITIVI per ogni widget: visibilita', modello 3D, dispositivo
+//**               sorgente (scelto tra quelli rilevati), posizione, dimensioni, assi;
 //**   AMPIEZZA    ampiezza del movimento (gradi) e inversione (Si/No) di ogni asse
 //**               dei due joystick;
 //**   MODALITA'   modalita' streamer (barra senza pulsanti) e modalita'
@@ -27,15 +28,14 @@
 //**               escluso il principale, su cui gira l'overlay), indirizzo da copiare,
 //**               stato e pulsanti "Avvia il servizio" / "Ferma il servizio" (ObsAction dice
 //**               alla finestra principale cosa fare dopo la chiusura);
-//**   INFO        Citizen Dossier dell'autore e informazioni sul software.
+//**   INFO        Citizen Dossier dell'autore e informazioni sul software;
+//**               pulsante "Controlla aggiornamenti" (UpdateRequested) e casella
+//**               "Controlla all'avvio".
 //** Le coordinate X/Y si modificano solo con il layout Personalizzato; con gli
 //** altri layout vengono ricalcolate (al salvataggio) secondo la voce scelta.
 //** L'interfaccia e' costruita da codice (il .fmx contiene solo la form vuota).
 //** Tutte le scritte passano da Tr (Holo.Lang); cambiando lingua il setup si
 //** chiude con mrRetry e la finestra principale lo riapre nella nuova lingua.
-//** Con l'opzione di avvio "-o DebugDevices" nella pagina Dispositivi ricompare
-//** la colonna "Dispositivo sorgente" (scelta manuale del dispositivo, per il
-//** debug); altrimenti resta nascosta e vale l'ID salvato nel .ini.
 //** La finestra e' senza barra del titolo di Windows: si sposta trascinando la
 //** fascia in alto (titolo "HOLOINPUT - SETUP") e si chiude con Salva/Chiudi.
 //***********************************************************************************************************
@@ -56,6 +56,9 @@ uses
 type
     /// Azione sul servizio OBS chiesta dal Setup (eseguita dalla finestra principale).
     TObsAction = (oaNone, oaStart, oaStop);
+    /// Cambio dei fotogrammi al secondo di OBS con il servizio attivo (eseguito subito
+    /// dalla finestra principale, senza attendere Salva).
+    TObsFpsChangeEvent = procedure(Sender: TObject; AFps: Integer) of object;
 
     TWidgetRow = record
         Visible: TCheckBox;
@@ -82,6 +85,10 @@ type
         FLegends, FOnTop, FStartLocked, FStreamer, FPrivacy: TCheckBox;
         FWidgetStyle: TComboBox;                 // stile dei widget (pannello / solo dispositivo)
         FBaseEffects: TCheckBox;                 // effetti di base (anelli e scanline)
+        FAutoHide: TCheckBox;                    // nascondi i widget inattivi
+        FAutoHideSecs: TNumberBox;               // secondi di inattivita' prima di nasconderli
+        FCheckUpdates: TCheckBox;                // pagina Info: controlla gli aggiornamenti all'avvio
+        FUpdateRequested: Boolean;               // chiuso con "Controlla aggiornamenti"
         FPage: TFmxObject;                       // contenitore dei controlli creati da Add*
         FPages: array[0..6] of TLayout;
         FPageBtns: array[0..6] of THoloButton;
@@ -96,7 +103,6 @@ type
         FRangeInfo: TLabel;                      // riepilogo delle ampiezze nella pagina Ampiezza
         FLoading: Boolean;
         FInLegendsPrompt: Boolean;
-        FDebugDevices: Boolean;                  // avvio con "-o DebugDevices": colonna dispositivo visibile
         FObsPort, FObsWidth, FObsHeight: TNumberBox;   // pagina OBS: parametri del servizio
         FObsHide: TComboBox;                     // pagina OBS: occultamento della finestra
         FObsFps: TComboBox;                      // pagina OBS: fotogrammi al secondo (OBS_FPS_CHOICES)
@@ -107,6 +113,9 @@ type
         FObsStateFrame: THoloFrame;              // pagina OBS: cornice "Stato del servizio" (colore = stato)
         FObsAuto: TCheckBox;                     // pagina OBS: avvio automatico del servizio
         FObsAction: TObsAction;                  // azione chiesta alla chiusura (vedi ObsAction)
+        FObsRunning: Boolean;                    // servizio OBS attivo (da SetObsState)
+        FInFpsPrompt: Boolean;                   // avviso di riavvio per il cambio degli FPS aperto
+        FOnObsFpsChange: TObsFpsChangeEvent;     // cambio degli FPS con il servizio attivo
         procedure BuildUI;
         procedure LoadValues;
         procedure ReadValues;
@@ -122,11 +131,13 @@ type
         function AddText(X, Y, W, H: Single; const S: string): TLabel;
         function AddFrame(X, Y, W, H: Single): THoloFrame;
         function AddButton(X, Y, W: Single; const S: string; AClick: TNotifyEvent): THoloButton;
+        function AddLockBadge(X, Y: Single): THoloButton;
         procedure SkinChange(Sender: TObject);
         procedure LangChange(Sender: TObject);
         procedure RowChange(Sender: TObject);
         procedure LayoutChange(Sender: TObject);
         procedure LegendsChange(Sender: TObject);
+        procedure AutoHideChange(Sender: TObject);
         procedure PageClick(Sender: TObject);
         procedure ShowPage(AIndex: Integer);
         function NewPage(AIndex: Integer; const ACaption: string): TLayout;
@@ -143,12 +154,14 @@ type
         procedure RunScan;
         procedure LogLine(const S: string);
         procedure BtnDossierClick(Sender: TObject);
+        procedure BtnUpdateClick(Sender: TObject);
         procedure BtnObsNativeClick(Sender: TObject);
         procedure BtnObsCopyClick(Sender: TObject);
         procedure BtnObsStartClick(Sender: TObject);
         procedure BtnObsStopClick(Sender: TObject);
         procedure ObsPortChange(Sender: TObject);
         procedure ObsHideChange(Sender: TObject);
+        procedure ObsFpsChange(Sender: TObject);
         procedure UpdateObsUrl;
     public
         constructor CreateSetup(AOwner: TComponent; AConfig: TAppConfig; AInput: TInputManager);
@@ -157,6 +170,11 @@ type
         procedure SetObsState(ARunning: Boolean; const AStatus: string);
         /// Azione sul servizio OBS chiesta con i pulsanti della pagina OBS (oaNone se nessuna).
         property ObsAction: TObsAction read FObsAction;
+        /// True se il Setup e' stato chiuso con "Controlla aggiornamenti" (pagina Info).
+        property UpdateRequested: Boolean read FUpdateRequested;
+        /// Chiamato quando si cambiano gli FPS di OBS con il servizio attivo: la finestra
+        /// principale ferma e riavvia subito il servizio con i nuovi FPS.
+        property OnObsFpsChange: TObsFpsChangeEvent read FOnObsFpsChange write FOnObsFpsChange;
     end;
 
 implementation
@@ -188,12 +206,11 @@ const
 //** Parametri di ingresso: AOwner: TComponent; AConfig: TAppConfig; AInput: TInputManager
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare il setup collegato alla copia della configurazione.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
-//** Funzionamento: carica il .fmx (form vuota), legge l'opzione di avvio
-//** "-o DebugDevices", costruisce i controlli, esegue la prima scansione dei
-//** dispositivi (scritta nella pagina Log) e popola i campi con i valori
-//** correnti.
+//** Funzionamento: carica il .fmx (form vuota), costruisce i controlli, esegue
+//** la prima scansione dei dispositivi (scritta nella pagina Log) e popola i
+//** campi con i valori correnti.
 //***********************************************************************************************************
 //***********************************************************************************************************
 constructor TfrmSetup.CreateSetup(AOwner: TComponent; AConfig: TAppConfig;
@@ -205,7 +222,6 @@ begin
     FTexts := TList<TPresentedTextControl>.Create;
     FButtons := TList<THoloButton>.Create;
     FFrames := TList<THoloFrame>.Create;
-    FDebugDevices := HasStartOption(OPT_DEBUG_DEVICES);
     Caption := Tr('setup.caption', 'HoloInput - Setup');   // nome nella barra delle applicazioni
     BuildUI;
     RunScan;
@@ -435,6 +451,32 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
+//** Nome funzione: TfrmSetup.AddLockBadge
+//** Parametri di ingresso: X, Y: Single
+//** Parametri di uscita: Result: THoloButton
+//** Scopo: Creare il contrassegno "SOLO BLOCCATO" accanto ai comandi che agiscono solo con il
+//**        layout bloccato.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: piccola etichetta nello stile dei pulsanti, evidenziata
+//** (bordo e testo nel colore accento della skin), che non riceve i click.
+//** Tutti i comandi senza contrassegno funzionano sia con il layout bloccato
+//** sia con quello sbloccato (la legenda e' in basso, accanto a Default).
+//***********************************************************************************************************
+//***********************************************************************************************************
+function TfrmSetup.AddLockBadge(X, Y: Single): THoloButton;
+begin
+    Result := AddButton(X, Y, 118, Tr('setup.badge.locked', 'Solo bloccato'), nil);
+    Result.Height := 20;
+    Result.Passive := True;
+    Result.Highlight := True;
+    Result.FontSize := 9;
+    Result.HitTest := False;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
 //** Nome funzione: TfrmSetup.NewPage
 //** Parametri di ingresso: AIndex: Integer; ACaption: string
 //** Parametri di uscita: Result: TLayout
@@ -500,16 +542,18 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Costruire tutta l'interfaccia del setup.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: cornice attorno alla finestra (che non ha la barra del
 //** titolo di Windows), titolo e pulsanti delle pagine in alto, sette pagine
 //** (Generale, Dispositivi, Ampiezza, Modalita', Log, OBS, Info) al centro, pulsanti
 //** di comando in basso. Le zone dal significato contiguo sono raccolte in
-//** riquadri (THoloFrame) nei colori della skin.
+//** riquadri (THoloFrame) nei colori della skin. I comandi che agiscono solo
+//** con il layout bloccato (nascondi i widget inattivi, servizio OBS) hanno il
+//** contrassegno "SOLO BLOCCATO" (AddLockBadge), spiegato dalla legenda in basso.
 //** I controlli sono creati dentro la pagina corrente (FPage).
-//** Con l'opzione di avvio "-o DebugDevices" nella pagina Dispositivi compare
-//** la colonna "Dispositivo sorgente" (e il titolo lo segnala).
+//** Nella pagina Dispositivi la colonna "Dispositivo sorgente" e' sempre
+//** visibile: ogni widget sceglie il dispositivo tra quelli rilevati.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmSetup.BuildUI;
@@ -529,11 +573,7 @@ begin
     FPage := Self;
     // finestra senza barra del titolo: cornice attorno a tutta la form
     AddFrame(0, 0, ClientWidth, ClientHeight);
-    if FDebugDevices then
-        AddLabel(20, 12, 900, Tr('setup.title', 'HOLOINPUT  ' + #$00B7 + '  SETUP') +
-            Tr('setup.title.debug', '   [DEBUG DEVICES]'), 20, True).Height := 32
-    else
-        AddLabel(20, 12, 700, Tr('setup.title', 'HOLOINPUT  ' + #$00B7 + '  SETUP'), 20, True).Height := 32;
+    AddLabel(20, 12, 700, Tr('setup.title', 'HOLOINPUT  ' + #$00B7 + '  SETUP'), 20, True).Height := 32;
     // fascia del titolo trasparente: trascinandola si sposta la finestra
     DragBar := TLayout.Create(Self);
     DragBar.Parent := Self;
@@ -586,9 +626,17 @@ begin
     FLegends.OnChange := LegendsChange;
     FOnTop := AddCheck(185, 216, 200, Tr('setup.gen.ontop', 'Sempre in primo piano'));
     FStartLocked := AddCheck(390, 216, 240, Tr('setup.gen.startlocked', 'Avvia bloccato (click-through)'));
+    // nascondi i widget dei dispositivi inattivi dopo N secondi (da bloccato)
+    FAutoHide := AddCheck(650, 254, 250, Tr('setup.gen.autohide', 'Nascondi i widget inattivi dopo'));
+    FAutoHide.OnChange := AutoHideChange;
+    FAutoHideSecs := AddNumber(905, 252, 60, AUTOHIDE_MIN, AUTOHIDE_MAX);
+    AddLabel(972, 254, 140, Tr('setup.gen.autohide.secs', 'secondi'));
+    // prima riga: contrassegno "solo bloccato"; seconda riga: la casella con i secondi
+    AddLockBadge(650, 214);
+    AddLabel(778, 216, 340, Tr('setup.gen.autohide.hint', 'ricompaiono al primo input'), 10);
     AddLabel(20, 254, 100, Tr('setup.gen.mouserange', 'Corsa mouse'));
     FMouseRange := AddNumber(120, 252, 85, 200, 50000);
-    AddLabel(215, 254, 600, Tr('setup.gen.mouserange.hint', 'count del mouse per percorrere tutto il tappetino'), 10);
+    AddLabel(215, 254, 420, Tr('setup.gen.mouserange.hint', 'count del mouse per percorrere tutto il tappetino'), 10);
 
     // stile dei widget: subito dopo le opzioni
     AddFrame(8, 300, FW, 100);
@@ -615,14 +663,8 @@ begin
     AddFrame(8, 0, FW, ROW_Y0 + 7 * ROW_DY + 8);
     Y := 10;
     AddLabel(20, Y, 170, Tr('setup.dev.col.visible', 'Visibile / tipo'), 10);
-    // con "-o DebugDevices" il modello si restringe e ricompare la colonna del dispositivo
-    if FDebugDevices then
-    begin
-        AddLabel(200, Y, 190, Tr('setup.dev.col.model', 'Modello 3D'), 10);
-        AddLabel(400, Y, 230, Tr('setup.dev.col.device', 'Dispositivo sorgente'), 10);
-    end
-    else
-        AddLabel(200, Y, 430, Tr('setup.dev.col.model', 'Modello 3D'), 10);
+    AddLabel(200, Y, 240, Tr('setup.dev.col.model', 'Modello 3D'), 10);
+    AddLabel(450, Y, 230, Tr('setup.dev.col.device', 'Dispositivo sorgente'), 10);
     AddLabel(690, Y, 60, 'X', 10);
     AddLabel(755, Y, 60, 'Y', 10);
     AddLabel(820, Y, 60, Tr('setup.dev.col.width', 'Largh.'), 10);
@@ -636,19 +678,14 @@ begin
         R := Default(TWidgetRow);
         R.Visible := AddCheck(20, Y + 1, 175, KindText(K));
         R.Visible.OnChange := RowChange;
-        if FDebugDevices then
-            R.Model := AddCombo(200, Y, 190)
-        else
-            R.Model := AddCombo(200, Y, 470);
+        R.Model := AddCombo(200, Y, 240);
         R.Models := ModelsOfKind(K);
         for I := 0 to High(R.Models) do
             R.Model.Items.Add(R.Models[I].DisplayName);
         R.Model.Tag := Ord(K);
         R.Model.OnChange := ModelChange;
-        // dispositivo sorgente: visibile solo con "-o DebugDevices"; nascosta, la combo
-        // resta comunque per leggere/scrivere il valore salvato
-        R.Device := AddCombo(400, Y, 230);
-        R.Device.Visible := FDebugDevices;
+        // dispositivo sorgente: scelto tra quelli rilevati dall'ultima scansione
+        R.Device := AddCombo(450, Y, 230);
         R.X := AddNumber(690, Y, 60, -20000, 20000);
         R.Y := AddNumber(755, Y, 60, -20000, 20000);
         R.W := AddNumber(820, Y, 60, 80, 4000);
@@ -776,7 +813,9 @@ begin
     NewPage(5, Tr('setup.page.obs', 'OBS'));
     // parametri del servizio Browser Source
     AddFrame(8, 0, FW, 176);
-    AddLabel(20, 10, 600, Tr('setup.obs.service.title', 'SERVIZIO BROWSER SOURCE PER OBS'), 13, True);
+    AddLabel(20, 10, 340, Tr('setup.obs.service.title', 'SERVIZIO BROWSER SOURCE PER OBS'), 13, True);
+    // il servizio funziona solo con il layout bloccato (all'avvio lo blocca da solo)
+    AddLockBadge(370, 10);
     AddLabel(20, 46, 60, Tr('setup.obs.port', 'Porta'));
     FObsPort := AddNumber(80, 44, 90, OBS_PORT_MIN, OBS_PORT_MAX);
     FObsPort.OnChange := ObsPortChange;
@@ -809,6 +848,7 @@ begin
     FObsFps := AddCombo(895, 132, 120);
     for I := 0 to High(OBS_FPS_CHOICES) do
         FObsFps.Items.Add(Format('%d fps', [OBS_FPS_CHOICES[I]]));
+    FObsFps.OnChange := ObsFpsChange;
 
     // stato del servizio e comandi
     FObsStateFrame := AddFrame(8, 188, FW, 138);
@@ -843,11 +883,18 @@ begin
     FInfoCard.Parent := FPage;
     FInfoCard.SetBounds(640, 10, 480, 340);
     AddButton(20, 364, 300, Tr('setup.info.btn.dossier', 'Apri il Citizen Dossier su RSI'), BtnDossierClick);
+    // aggiornamenti dalla pagina delle release su GitHub
+    AddButton(640, 364, 260, Tr('setup.info.btn.update', 'Controlla aggiornamenti'), BtnUpdateClick);
+    FCheckUpdates := AddCheck(915, 370, 210, Tr('setup.info.checkupdates', 'Controlla all''avvio'));
 
     //** comandi in basso ***********************************************************************************
     FPage := Self;
     Y := ClientHeight - 52;
     AddButton(20, Y, 130, Tr('setup.btn.default', 'Default'), BtnDefaultsClick);
+    // legenda del contrassegno "SOLO BLOCCATO"
+    AddLockBadge(170, Y + 7);
+    AddLabel(296, Y + 8, ClientWidth - 296 - 300, Tr('setup.badge.legend', 'funziona solo con il layout ' +
+        'bloccato (Ctrl+Alt+F12); tutto il resto vale sia bloccato sia sbloccato'), 10);
     AddButton(ClientWidth - 290, Y, 130, Tr('setup.btn.save', 'Salva'), BtnSaveClick);
     AddButton(ClientWidth - 150, Y, 130, Tr('setup.btn.close', 'Chiudi'), BtnCloseClick);
 
@@ -911,7 +958,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Copiare i valori della configurazione nei controlli.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmSetup.LoadValues;
@@ -933,6 +980,10 @@ begin
     FMouseRange.Value := FConfig.MouseRange;
     FWidgetStyle.ItemIndex := Ord(FConfig.WidgetStyle);
     FBaseEffects.IsChecked := FConfig.BaseEffects;
+    FAutoHide.IsChecked := FConfig.AutoHide;
+    FAutoHideSecs.Value := FConfig.AutoHideSecs;
+    FCheckUpdates.IsChecked := FConfig.CheckUpdates;
+    AutoHideChange(nil);
     FLegends.IsChecked := FConfig.ShowLegends;
     FOnTop.IsChecked := FConfig.StayOnTop;
     FStartLocked.IsChecked := FConfig.StartLocked;
@@ -998,10 +1049,40 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Copiare i valori dei controlli nella configurazione.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: converte il campo testuale degli assi ("0,1,3") ignorando
 //** i valori non validi; l'inversione viene dai dropdown della pagina Ampiezza.
+//** I campi numerici si leggono con NumValue (testo scritto, anche se non
+//** ancora confermato con Invio).
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: NumValue
+//** Parametri di ingresso: ABox: TNumberBox
+//** Parametri di uscita: Result: Single
+//** Scopo: Valore di un campo numerico come lo vede l'utente, anche se non e' ancora stato
+//**        confermato.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: TNumberBox aggiorna Value solo quando il campo perde il
+//** fuoco o si preme Invio; i pulsanti del Setup non prendono il fuoco, quindi
+//** premendo Salva subito dopo aver scritto un numero si leggerebbe il valore
+//** vecchio (o quello intermedio, ad esempio il minimo dopo aver cancellato il
+//** testo). Si legge quindi il testo del campo, riportato tra Min e Max; se
+//** non e' un numero valido si usa Value.
+//***********************************************************************************************************
+//***********************************************************************************************************
+function NumValue(ABox: TNumberBox): Single;
+var
+    V: Double;
+begin
+    if TryStrToFloat(Trim(ABox.Text), V) then
+        Result := EnsureRange(V, ABox.Min, ABox.Max)
+    else
+        Result := ABox.Value;
+end;
+
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmSetup.ReadValues;
@@ -1016,21 +1097,24 @@ begin
         FConfig.Language := FLangs[FLang.ItemIndex].Id;
     // con un layout predefinito le posizioni vengono ricalcolate all'applicazione
     FConfig.SetLayout(TLayoutMode(EnsureRange(FLayout.ItemIndex, 0, Ord(High(TLayoutMode)))));
-    FConfig.Margin := Round(FMargin.Value);
-    FConfig.Spacing := Round(FSpacing.Value);
-    FConfig.MouseRange := Round(FMouseRange.Value);
+    FConfig.Margin := Round(NumValue(FMargin));
+    FConfig.Spacing := Round(NumValue(FSpacing));
+    FConfig.MouseRange := Round(NumValue(FMouseRange));
     if FWidgetStyle.ItemIndex >= 0 then
         FConfig.WidgetStyle := TWidgetStyle(EnsureRange(FWidgetStyle.ItemIndex, 0, Ord(High(TWidgetStyle))));
     FConfig.BaseEffects := FBaseEffects.IsChecked;
+    FConfig.AutoHide := FAutoHide.IsChecked;
+    FConfig.AutoHideSecs := EnsureRange(Round(NumValue(FAutoHideSecs)), AUTOHIDE_MIN, AUTOHIDE_MAX);
+    FConfig.CheckUpdates := FCheckUpdates.IsChecked;
     FConfig.ShowLegends := FLegends.IsChecked;
     FConfig.StayOnTop := FOnTop.IsChecked;
     FConfig.StartLocked := FStartLocked.IsChecked;
     FConfig.StreamerMode := FStreamer.IsChecked;
     FConfig.PrivacyMode := FPrivacy.IsChecked;
     FConfig.Opacity := FOpacity.Value / 100;
-    FConfig.ObsPort := EnsureRange(Round(FObsPort.Value), OBS_PORT_MIN, OBS_PORT_MAX);
-    FConfig.ObsWidth := EnsureRange(Round(FObsWidth.Value), OBS_SIZE_MIN, OBS_SIZE_MAX);
-    FConfig.ObsHeight := EnsureRange(Round(FObsHeight.Value), OBS_SIZE_MIN, OBS_SIZE_MAX);
+    FConfig.ObsPort := EnsureRange(Round(NumValue(FObsPort)), OBS_PORT_MIN, OBS_PORT_MAX);
+    FConfig.ObsWidth := EnsureRange(Round(NumValue(FObsWidth)), OBS_SIZE_MIN, OBS_SIZE_MAX);
+    FConfig.ObsHeight := EnsureRange(Round(NumValue(FObsHeight)), OBS_SIZE_MIN, OBS_SIZE_MAX);
     if FObsHide.ItemIndex >= 0 then
         FConfig.ObsHideMode := FObsHide.ItemIndex;
     if FObsFps.ItemIndex >= 0 then
@@ -1050,10 +1134,10 @@ begin
             W.ModelId := FRows[K].Models[FRows[K].Model.ItemIndex].ModelId;
         if FRows[K].Device.Enabled and (FRows[K].Device.ItemIndex >= 0) then
             W.DeviceIndex := FRows[K].Device.ItemIndex;
-        W.X := Round(FRows[K].X.Value);
-        W.Y := Round(FRows[K].Y.Value);
-        W.W := Round(FRows[K].W.Value);
-        W.H := Round(FRows[K].H.Value);
+        W.X := Round(NumValue(FRows[K].X));
+        W.Y := Round(NumValue(FRows[K].Y));
+        W.W := Round(NumValue(FRows[K].W));
+        W.H := Round(NumValue(FRows[K].H));
         Parts := FRows[K].Axes.Text.Split([',', ';', ' '], TStringSplitOptions.ExcludeEmpty);
         if Length(Parts) >= 3 then
         begin
@@ -1061,12 +1145,12 @@ begin
             W.AxisY := EnsureRange(StrToIntDef(Parts[1], W.AxisY), 0, 5);
             W.AxisZ := EnsureRange(StrToIntDef(Parts[2], W.AxisZ), 0, 5);
         end;
-        W.ButtonOffset := EnsureRange(Round(FRows[K].Offset.Value) - 1, 0, 31);
+        W.ButtonOffset := EnsureRange(Round(NumValue(FRows[K].Offset)) - 1, 0, 31);
         if FRows[K].RangeX <> nil then
         begin
-            W.RangeX := EnsureRange(Round(FRows[K].RangeX.Value), JOY_RANGE_MIN, JOY_RANGE_MAX);
-            W.RangeY := EnsureRange(Round(FRows[K].RangeY.Value), JOY_RANGE_MIN, JOY_RANGE_MAX);
-            W.RangeZ := EnsureRange(Round(FRows[K].RangeZ.Value), JOY_RANGE_MIN, JOY_RANGE_MAX);
+            W.RangeX := EnsureRange(Round(NumValue(FRows[K].RangeX)), JOY_RANGE_MIN, JOY_RANGE_MAX);
+            W.RangeY := EnsureRange(Round(NumValue(FRows[K].RangeY)), JOY_RANGE_MIN, JOY_RANGE_MAX);
+            W.RangeZ := EnsureRange(Round(NumValue(FRows[K].RangeZ)), JOY_RANGE_MIN, JOY_RANGE_MAX);
             W.InvertX := FRows[K].InvX.ItemIndex = 1;
             W.InvertY := FRows[K].InvY.ItemIndex = 1;
             W.InvertZ := FRows[K].InvZ.ItemIndex = 1;
@@ -1273,11 +1357,26 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmSetup.AutoHideChange
+//** Parametri di ingresso: Sender: TObject
+//** Parametri di uscita: nessuno
+//** Scopo: Abilitare il campo dei secondi solo con "Nascondi i widget inattivi" attivo.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmSetup.AutoHideChange(Sender: TObject);
+begin
+    FAutoHideSecs.Enabled := FAutoHide.IsChecked;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmSetup.ModelChange
 //** Parametri di ingresso: Sender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Quando l'utente sceglie un altro modello, proporre la mappatura assi suggerita dal
-//**        modello (es. Virpil in modalita' manetta: "0,2,3").
+//**        modello (es. joystick Virpil: "0,1,2"; senza suggerimento: "0,1,3").
 //** Data Ultima Modifica: 02/10/2026
 //***********************************************************************************************************
 //** Funzionamento: ignorato durante il caricamento dei valori, per non
@@ -1463,6 +1562,27 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmSetup.BtnUpdateClick
+//** Parametri di ingresso: Sender: TObject
+//** Parametri di uscita: nessuno
+//** Scopo: Chiudere il Setup e chiedere alla finestra principale di controllare gli aggiornamenti.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: come i pulsanti del servizio OBS, applica e salva le
+//** modifiche fatte nel Setup (mrOk); il controllo, l'eventuale download con
+//** la barra di progresso e il riavvio li esegue la finestra principale.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmSetup.BtnUpdateClick(Sender: TObject);
+begin
+    ReadValues;
+    FUpdateRequested := True;
+    ModalResult := mrOk;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmSetup.BtnDossierClick
 //** Parametri di ingresso: Sender: TObject
 //** Parametri di uscita: nessuno
@@ -1482,19 +1602,21 @@ end;
 //** Parametri di ingresso: ARunning: Boolean; AStatus: string
 //** Parametri di uscita: nessuno
 //** Scopo: Mostrare nella pagina OBS lo stato del servizio (chiamata prima di ShowModal).
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: "Avvia il servizio" e' attivo solo con il servizio fermo,
 //** "Ferma il servizio" solo con il servizio attivo (il pulsante non
 //** disponibile e' attenuato); con il servizio attivo il Setup si apre
 //** direttamente sulla pagina OBS. La cornice "Stato del servizio" e' verde tenue
-//** con il servizio attivo e rosso sbiadito con il servizio fermo.
+//** con il servizio attivo e rosso sbiadito con il servizio fermo. Viene
+//** richiamata anche dopo il riavvio per il cambio degli FPS (ObsFpsChange).
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmSetup.SetObsState(ARunning: Boolean; const AStatus: string);
 const
     OFF_OPACITY = 0.35;   // pulsante non disponibile
 begin
+    FObsRunning := ARunning;
     FObsStatus.Text := AStatus;
     if ARunning then
         FObsStateFrame.SetStateColor(OBS_ON_COLOR)
@@ -1513,6 +1635,59 @@ begin
         FObsBtnStart.Opacity := 1;
         FObsBtnStop.Opacity := OFF_OPACITY;
     end;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmSetup.ObsFpsChange
+//** Parametri di ingresso: Sender: TObject
+//** Parametri di uscita: nessuno
+//** Scopo: Con il servizio OBS attivo, fermarlo e riavviarlo subito con i nuovi fotogrammi al secondo.
+//** Data Ultima Modifica: 05/11/2026
+//***********************************************************************************************************
+//** Funzionamento: ignorato durante il caricamento dei valori, con il servizio
+//** fermo (allora gli FPS valgono al prossimo avvio, dopo Salva) e se il valore
+//** non cambia. Prima mostra un avviso (HoloConfirm) che dice che il servizio
+//** verra' fermato e riavviato: con Annulla il menu torna agli FPS in uso
+//** (FInFpsPrompt evita che il ripristino richiami l'avviso). Con Riavvia
+//** aggiorna la copia della configurazione e chiede alla finestra principale
+//** (OnObsFpsChange) di fermare e riavviare il servizio: il cambio e' applicato
+//** e salvato subito, anche se poi il Setup si chiude con Chiudi. Lo stato
+//** mostrato nella pagina OBS viene aggiornato dalla finestra principale
+//** (SetObsState).
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmSetup.ObsFpsChange(Sender: TObject);
+var
+    Fps, I: Integer;
+begin
+    if FLoading or FInFpsPrompt or not FObsRunning or (FObsFps.ItemIndex < 0) then
+        Exit;
+    Fps := OBS_FPS_CHOICES[FObsFps.ItemIndex];
+    if Fps = FConfig.ObsFps then
+        Exit;
+    FInFpsPrompt := True;
+    try
+        if not HoloConfirm(Tr('setup.obs.fps.restart.title', 'Riavvio del servizio OBS'),
+            Format(Tr('setup.obs.fps.restart.text', 'Il servizio OBS e'' attivo: per passare a %d fps ' +
+            'verra'' fermato e riavviato subito (OBS si ricollega da solo). Imposta gli stessi fps ' +
+            'nella fonte Browser di OBS.' + sLineBreak + sLineBreak + 'Riavviare il servizio?'), [Fps]),
+            FColors,
+            Tr('setup.obs.fps.restart.ok', 'Riavvia')) then
+        begin
+            // Annulla: il menu torna agli FPS in uso
+            for I := 0 to High(OBS_FPS_CHOICES) do
+                if OBS_FPS_CHOICES[I] = FConfig.ObsFps then
+                    FObsFps.ItemIndex := I;
+            Exit;
+        end;
+    finally
+        FInFpsPrompt := False;
+    end;
+    FConfig.ObsFps := Fps;
+    if Assigned(FOnObsFpsChange) then
+        FOnObsFpsChange(Self, Fps);
 end;
 
 //***********************************************************************************************************
@@ -1686,7 +1861,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Eseguire la scansione dei dispositivi e scriverne il resoconto nel log.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: legge i 16 id WinMM (joystick e pulsantiere, con nome, assi,
 //** pulsanti e POV), interroga i 4 slot XInput (gamepad), ricorda che tastiera e
@@ -1706,9 +1881,6 @@ begin
     FLog.Lines.BeginUpdate;
     try
         LogLine(Format(Tr('log.start', '[%s] Avvio scansione dispositivi'), [FormatDateTime('hh:nn:ss', Now)]));
-        if FDebugDevices then
-            LogLine(Format(Tr('log.debugdevices', 'Opzione di avvio -o %s: colonna "Dispositivo ' +
-                'sorgente" visibile nella pagina Dispositivi.'), [OPT_DEBUG_DEVICES]));
         LogLine('');
 
         // joystick e pulsantiere: id WinMM 0..15

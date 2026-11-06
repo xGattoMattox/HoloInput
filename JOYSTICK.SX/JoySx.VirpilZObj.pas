@@ -4,7 +4,7 @@
 //** Nome unit: JoySx.VirpilZObj
 //** Scopo: Joystick SINISTRO Virpil Constellation Alpha Prime su base WarBRD con la prolunga asse Z
 //**        (Flightstick Z-Extension), modello 3D reale.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: la prolunga (zaxis_holo.obj) si innesta sulla torretta della base e si muove
 //** con il gimbal; l'impugnatura sinistra (vpap_l_holo.obj) e' montata
@@ -27,6 +27,7 @@ type
     public
         class function ModelId: string; override;
         class function DisplayName: string; override;
+        class function DefaultAxes: string; override;
     end;
 
 implementation
@@ -87,6 +88,24 @@ begin
     Result := ObjStickSpec('warbrd_holo', 'vpap_l_holo', True);
     Result.GripLeft := True;
     Result.ExtName := 'zaxis_holo';
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TJoySxVirpilZObj.DefaultAxes
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: Result: string
+//** Scopo: Mappatura assi proposta dal Setup quando si sceglie il modello: "0,1,2".
+//** Data Ultima Modifica: 05/11/2026
+//***********************************************************************************************************
+//** Funzionamento: sugli stick Virpil il twist dell'impugnatura e' l'asse Z di
+//** Windows (indice 2), non R: X = asse X, Y = asse Y, twist = asse Z.
+//***********************************************************************************************************
+//***********************************************************************************************************
+class function TJoySxVirpilZObj.DefaultAxes: string;
+begin
+    Result := '0,1,2';
 end;
 
 initialization

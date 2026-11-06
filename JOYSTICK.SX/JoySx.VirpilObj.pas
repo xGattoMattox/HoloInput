@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: JoySx.VirpilObj
 //** Scopo: Joystick SINISTRO Virpil Constellation Alpha Prime su base WarBRD, modello 3D reale.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: la base e' quella del destro specchiata, l'impugnatura e' il
 //** modello sinistro dedicato (vpap_l_holo.obj). Vedi JOYSTICK.DX\JoyDx.ObjBase.
@@ -23,6 +23,7 @@ type
     public
         class function ModelId: string; override;
         class function DisplayName: string; override;
+        class function DefaultAxes: string; override;
     end;
 
 implementation
@@ -76,6 +77,24 @@ class function TJoySxVirpilObj.Spec: TObjStickSpec;
 begin
     Result := ObjStickSpec('warbrd_holo', 'vpap_l_holo', True);
     Result.GripLeft := True;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TJoySxVirpilObj.DefaultAxes
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: Result: string
+//** Scopo: Mappatura assi proposta dal Setup quando si sceglie il modello: "0,1,2".
+//** Data Ultima Modifica: 05/11/2026
+//***********************************************************************************************************
+//** Funzionamento: sugli stick Virpil il twist dell'impugnatura e' l'asse Z di
+//** Windows (indice 2), non R: X = asse X, Y = asse Y, twist = asse Z.
+//***********************************************************************************************************
+//***********************************************************************************************************
+class function TJoySxVirpilObj.DefaultAxes: string;
+begin
+    Result := '0,1,2';
 end;
 
 initialization

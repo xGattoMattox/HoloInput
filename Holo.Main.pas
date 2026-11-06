@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Main
 //** Scopo: Form principale = overlay trasparente, senza bordi, sempre in primo piano.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: modalita':
 //**   BLOCCATO  : la finestra e' "click-through" (WS_EX_TRANSPARENT) e copre
@@ -46,7 +46,8 @@ uses
     System.Diagnostics,
     FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Layouts, FMX.Dialogs,
     FMX.Platform.Win,
-    Holo.Config, Holo.Skins, Holo.Input, Holo.Models, Holo.Widget, Holo.UI, Holo.WebOverlay;
+    Holo.Config, Holo.Skins, Holo.Input, Holo.Models, Holo.Widget, Holo.UI, Holo.WebOverlay,
+    Holo.Updater;
 
 type
     TfrmMain = class(TForm)
@@ -102,6 +103,12 @@ type
         procedure WidgetMoved(Sender: TObject);
         procedure WidgetResized(Sender: TObject);
         procedure WidgetViewChanged(Sender: TObject);
+        procedure SetupObsFpsChange(Sender: TObject; AFps: Integer);
+        procedure StartupUpdateCheck;
+        procedure StartUpdateCheck;
+        procedure CheckUpdatesNow;
+        procedure UpdateFound(const AInfo: TUpdateInfo; AManual: Boolean);
+        procedure InstallUpdate(const AInfo: TUpdateInfo);
         procedure BtnSetupClick(Sender: TObject);
         procedure BtnLockClick(Sender: TObject);
         procedure BtnExitClick(Sender: TObject);
@@ -120,7 +127,12 @@ implementation
 {$R *.fmx}
 
 uses
-    Holo.Setup, Holo.Lang, Holo.Disclaimer;
+    Holo.Setup, Holo.Lang, Holo.Disclaimer, Holo.About, Holo.Dialog;
+
+var
+    /// True dalla distruzione della finestra principale: i risultati del controllo
+    /// degli aggiornamenti in arrivo dal thread vengono ignorati.
+    GMainClosing: Boolean = False;
 
 type
     /// Una fila (riga o colonna) di widget nei layout predefiniti.
@@ -143,7 +155,7 @@ const
 //** Parametri di ingresso: AOwner: TComponent
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Inizializzare l'applicazione.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: legge il .ini (se esiste), carica la lingua scelta, avvia
 //** l'acquisizione input e le hotkey, costruisce l'interfaccia, applica la
@@ -153,7 +165,8 @@ const
 //** (ShowDisclaimer); se e' gia' accettato e nel Setup e' scelto "Avvia il
 //** servizio all'avvio di HoloInput" mette in coda l'avvio del servizio OBS
 //** (AutoStartObs). Al primo avvio (senza .ini) parte sbloccata per mostrare
-//** subito i comandi.
+//** subito i comandi. Infine mette in coda StartupUpdateCheck (messaggio dopo
+//** un aggiornamento o controllo di una nuova versione su GitHub).
 //***********************************************************************************************************
 //***********************************************************************************************************
 constructor TfrmMain.Create(AOwner: TComponent);
@@ -203,6 +216,15 @@ begin
             begin
                 AutoStartObs;
             end);
+
+    // aggiornamenti: messaggio dopo un aggiornamento appena installato oppure
+    // controllo (in background) di una nuova versione su GitHub
+    if FConfig.DisclaimerAccepted then
+        TThread.ForceQueue(nil,
+            procedure
+            begin
+                StartupUpdateCheck;
+            end);
 end;
 
 //***********************************************************************************************************
@@ -217,6 +239,7 @@ end;
 //***********************************************************************************************************
 destructor TfrmMain.Destroy;
 begin
+    GMainClosing := True;
     if FTimer <> nil then
         FTimer.Enabled := False;
     FObsActive := False;
@@ -315,7 +338,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Applicare la configurazione corrente a tutta l'interfaccia.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: risolve la skin, aggiorna stile finestra e gestore degli input,
 //** configura i widget visibili (stile pannello / solo dispositivo, effetti
@@ -352,6 +375,7 @@ begin
         if W.Visible then
         begin
             W.SetStyle(FConfig.WidgetStyle = wsDeviceOnly, FConfig.BaseEffects);
+            W.SetAutoHide(FConfig.AutoHide, FConfig.AutoHideSecs);
             W.Configure(FConfig.Widgets[K], FColors, FConfig.ShowLegends);
             W.BindDevices(FInput);
         end;
@@ -1042,12 +1066,14 @@ end;
 //** Parametri di ingresso: Sender: TObject; AHotkeyId: Integer
 //** Parametri di uscita: nessuno
 //** Scopo: Gestire le hotkey globali.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: l'azione viene accodata (ForceQueue) per eseguirla fuori
 //** dalla procedura di finestra, cosi' si possono aprire finestre modali.
 //** Con il servizio OBS attivo funziona solo Ctrl+Alt+F11 (Setup): le altre
 //** cambierebbero posizione o visibilita' della finestra occultata.
+//** Ctrl+Alt+F11 spegne anche la modalita' streamer, se attiva: alla chiusura
+//** del Setup la barra comandi e l'etichetta sottostante sono di nuovo visibili.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.HotkeyPressed(Sender: TObject; AHotkeyId: Integer);
@@ -1057,7 +1083,12 @@ begin
         begin
             case AHotkeyId of
                 HK_LOCK:    if not FSetupOpen and not FObsActive then SetLocked(not FLocked);
-                HK_SETUP:   OpenSetup;
+                HK_SETUP:
+                    begin
+                        if FConfig.StreamerMode and not FSetupOpen then
+                            ToggleStreamer;   // la barra comandi torna visibile
+                        OpenSetup;
+                    end;
                 HK_VISIBLE: ToggleOverlay;
                 HK_STREAMER: if not FSetupOpen and not FObsActive then ToggleStreamer;
             end;
@@ -1156,10 +1187,11 @@ end;
 //** Parametri di uscita: nessuno
 //** Scopo: Memorizzare la vista di un widget ruotata con il tasto destro o zoomata con la rotella
 //**        del mouse.
-//** Data Ultima Modifica: 26/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
-//** Funzionamento: copia inclinazione, rotazione e zoom del widget nella
-//** configurazione (VistaInclinazione / VistaRotazione / VistaZoom nel .ini);
+//** Funzionamento: copia inclinazione, rotazione, zoom e spostamento verticale
+//** del widget nella configurazione (VistaInclinazione / VistaRotazione /
+//** VistaZoom / VistaSpostamento nel .ini);
 //** il file viene salvato con le altre modifiche quando si blocca il layout.
 //** Il pulsante Default del Setup riporta la vista a quella predefinita.
 //***********************************************************************************************************
@@ -1172,6 +1204,7 @@ begin
     FConfig.Widgets[W.Kind].Tilt := W.ViewTilt;
     FConfig.Widgets[W.Kind].Yaw := W.ViewYaw;
     FConfig.Widgets[W.Kind].Zoom := W.ViewZoom;
+    FConfig.Widgets[W.Kind].PanY := W.ViewPanY;
     FDirty := True;
 end;
 
@@ -1182,13 +1215,16 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Aprire la schermata di setup.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: nasconde l'overlay ("pulisce la vista"), lavora su una
 //** copia della configurazione; con Salva la copia diventa la configurazione
 //** attiva, viene scritta nel .ini e applicata; con Chiudi non cambia nulla.
 //** Il Setup riceve lo stato del servizio OBS e restituisce l'azione chiesta
-//** (avvia/ferma); con il servizio attivo l'overlay resta occultato.
+//** (avvia/ferma); con il servizio attivo l'overlay resta occultato. Il cambio
+//** degli FPS con il servizio attivo e' eseguito subito (SetupObsFpsChange).
+//** Con il pulsante "Controlla aggiornamenti" (pagina Info) dopo la chiusura
+//** parte il controllo degli aggiornamenti (CheckUpdatesNow).
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.OpenSetup;
@@ -1197,6 +1233,7 @@ var
     Dlg: TfrmSetup;
     Res: TModalResult;
     Act: TObsAction;
+    Upd: Boolean;
 begin
     if FSetupOpen then
         Exit;
@@ -1205,6 +1242,7 @@ begin
     FTimer.Enabled := False;
     Hide;
     Act := oaNone;
+    Upd := False;
     Tmp := TAppConfig.Create;
     try
         Tmp.Assign(FConfig);
@@ -1213,9 +1251,11 @@ begin
         repeat
             Dlg := TfrmSetup.CreateSetup(nil, Tmp, FInput);
             try
+                Dlg.OnObsFpsChange := SetupObsFpsChange;
                 Dlg.SetObsState(FObsActive, ObsStatusText);
                 Res := Dlg.ShowModal;
                 Act := Dlg.ObsAction;
+                Upd := Dlg.UpdateRequested;
             finally
                 Dlg.Free;
             end;
@@ -1253,6 +1293,9 @@ begin
         ApplyWindowStyles;
     end;
     FTimer.Enabled := True;
+    // pulsante "Controlla aggiornamenti" della pagina Info
+    if (Res = mrOk) and Upd then
+        CheckUpdatesNow;
 end;
 
 //***********************************************************************************************************
@@ -1262,7 +1305,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Mostrare l'avviso legale del primo avvio e ricordarne l'accettazione.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: nasconde l'overlay e ferma il rendering mentre l'avviso e'
 //** aperto (FSetupOpen blocca anche setup e blocco del layout dalle hotkey).
@@ -1270,7 +1313,7 @@ end;
 //** nell'avviso, applica la configurazione e rimostra l'overlay; con
 //** "Rifiuto" chiude l'applicazione senza salvare (l'avviso ricomparira' al
 //** prossimo avvio). Dopo l'accettazione puo' partire il servizio OBS
-//** (AutoStartObs).
+//** (AutoStartObs) e il controllo degli aggiornamenti.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.ShowDisclaimer;
@@ -1298,6 +1341,8 @@ begin
     ApplyWindowStyles;
     FTimer.Enabled := True;
     AutoStartObs;
+    if FConfig.CheckUpdates then
+        StartUpdateCheck;
 end;
 
 //***********************************************************************************************************
@@ -1364,6 +1409,207 @@ begin
     FObsFpsCount := 0;
     FObsFpsValue := 0;
     Result := True;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.StartupUpdateCheck
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: nessuno
+//** Scopo: All'avvio, segnalare un aggiornamento appena installato oppure controllare se su GitHub
+//**        c'e' una nuova versione.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: dopo un aggiornamento (avvio con "--after-update") mostra
+//** la versione installata; altrimenti, se nel Setup e' attivo "Controlla
+//** all'avvio", avvia il controllo in background (StartUpdateCheck).
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.StartupUpdateCheck;
+begin
+    if JustUpdated then
+        HoloMessage(Tr('update.done.title', 'HoloInput aggiornato'),
+            Format(Tr('update.done.text', 'HoloInput e'' stato aggiornato alla versione %s.' + sLineBreak +
+            sLineBreak + 'Le novita'' sono nel file CHANGELOG.md accanto all''eseguibile.'), [AppVersion]),
+            FColors)
+    else if FConfig.CheckUpdates then
+        StartUpdateCheck;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.StartUpdateCheck
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: nessuno
+//** Scopo: Controllare in background se su GitHub c'e' una nuova versione.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: la richiesta a GitHub (con le novita' della nuova versione)
+//** gira in un thread, cosi' l'overlay non si blocca; il risultato torna nel
+//** thread principale (UpdateFound) solo se la richiesta e' riuscita. Gli
+//** errori di rete vengono ignorati in silenzio.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.StartUpdateCheck;
+var
+    Cur: string;
+begin
+    Cur := AppVersion;   // letta qui, nel thread principale
+    TThread.CreateAnonymousThread(
+        procedure
+        var
+            Info: TUpdateInfo;
+            Err: string;
+        begin
+            if CheckForUpdate(Cur, Info, Err) then
+                TThread.Queue(nil,
+                    procedure
+                    begin
+                        if not GMainClosing then
+                            UpdateFound(Info, False);
+                    end);
+        end).Start;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.CheckUpdatesNow
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: nessuno
+//** Scopo: Controllare subito gli aggiornamenti (pulsante "Controlla aggiornamenti" del Setup).
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: la richiesta e' breve e viene fatta direttamente; se non
+//** riesce mostra l'errore, altrimenti passa il risultato a UpdateFound, che
+//** risponde anche quando non ci sono novita'.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.CheckUpdatesNow;
+var
+    Info: TUpdateInfo;
+    Err: string;
+begin
+    if CheckForUpdate(AppVersion, Info, Err) then
+        UpdateFound(Info, True)
+    else
+        HoloMessage(Tr('update.checkfail.title', 'Controllo aggiornamenti'),
+            Format(Tr('update.checkfail.text', 'Impossibile controllare gli aggiornamenti:' + sLineBreak +
+            '%s'), [Err]), FColors);
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.UpdateFound
+//** Parametri di ingresso: AInfo: TUpdateInfo; AManual: Boolean
+//** Parametri di uscita: nessuno
+//** Scopo: Proporre l'aggiornamento se la release trovata e' piu' recente della versione in uso.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: senza novita' risponde solo al controllo manuale. Il
+//** controllo automatico non disturba mentre il Setup e' aperto o il servizio
+//** OBS e' attivo (si ripropone al prossimo avvio). Chiede conferma con la
+//** finestra delle novita' (AskUpdate: Aggiorna / Piu' tardi) e con Aggiorna
+//** passa a InstallUpdate.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.UpdateFound(const AInfo: TUpdateInfo; AManual: Boolean);
+var
+    Cur: string;
+begin
+    Cur := AppVersion;
+    if not UpdateAvailable(AInfo, Cur) then
+    begin
+        if AManual then
+            HoloMessage(Tr('update.none.title', 'Nessun aggiornamento'),
+                Format(Tr('update.none.text', 'Stai gia'' usando la versione piu'' recente di HoloInput ' +
+                '(%s).'), [Cur]), FColors);
+        Exit;
+    end;
+    if not AManual and (FSetupOpen or FObsActive) then
+        Exit;
+    if AskUpdate(AInfo, Cur, FColors) then
+        InstallUpdate(AInfo);
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.InstallUpdate
+//** Parametri di ingresso: AInfo: TUpdateInfo
+//** Parametri di uscita: nessuno
+//** Scopo: Scaricare e installare l'aggiornamento (finestra con la barra di progresso), poi
+//**        riavviare HoloInput.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: durante l'aggiornamento le hotkey e il Setup sono bloccati
+//** (FSetupOpen). Se l'installazione riesce ferma il servizio OBS, avvia il
+//** nuovo exe (che aspetta la chiusura di questo) e chiude l'applicazione. Se
+//** non riesce mostra l'errore e propone di aprire la pagina della release per
+//** scaricare la nuova versione a mano; se l'utente annulla non mostra nulla.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.InstallUpdate(const AInfo: TUpdateInfo);
+var
+    Ok: Boolean;
+    Err: string;
+begin
+    FSetupOpen := True;
+    try
+        Ok := RunUpdate(AInfo, FColors, Err);
+    finally
+        FSetupOpen := False;
+    end;
+    if Ok then
+    begin
+        if FObsActive then
+            StopObs;
+        if RestartAfterUpdate then
+        begin
+            GMainClosing := True;
+            Close;
+        end
+        else
+            HoloMessage(Tr('update.fail.title', 'Aggiornamento non riuscito'),
+                Tr('update.restart.text', 'L''aggiornamento e'' stato installato: chiudi e riapri ' +
+                'HoloInput per usare la nuova versione.'), FColors);
+        Exit;
+    end;
+    if (Err <> '') and HoloConfirm(Tr('update.fail.title', 'Aggiornamento non riuscito'),
+        Format(Tr('update.fail.text', '%s' + sLineBreak + sLineBreak + 'Puoi scaricare la nuova versione ' +
+        'a mano dalla pagina della release.'), [Err]), FColors, Tr('update.fail.open', 'Apri la pagina'),
+        Tr('update.fail.close', 'Chiudi')) then
+        OpenUrl(AInfo.PageUrl);
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TfrmMain.SetupObsFpsChange
+//** Parametri di ingresso: Sender: TObject; AFps: Integer
+//** Parametri di uscita: nessuno
+//** Scopo: Fermare e riavviare subito il servizio OBS con i nuovi fotogrammi al secondo scelti nel Setup.
+//** Data Ultima Modifica: 05/11/2026
+//***********************************************************************************************************
+//** Funzionamento: chiamata dal Setup (ancora aperto) quando si cambiano gli FPS
+//** con il servizio attivo: salva il nuovo valore nel .ini, ferma e riavvia il
+//** servizio (OBS si ricollega da solo) e aggiorna lo stato mostrato nella pagina
+//** OBS del Setup. I fotogrammi ripartono alla chiusura del Setup, come sempre.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TfrmMain.SetupObsFpsChange(Sender: TObject; AFps: Integer);
+begin
+    if not FObsActive or (FConfig.ObsFps = AFps) then
+        Exit;
+    FConfig.ObsFps := AFps;
+    SaveConfig;
+    StopObs;
+    StartObs;
+    if Sender is TfrmSetup then
+        TfrmSetup(Sender).SetObsState(FObsActive, ObsStatusText);
 end;
 
 //***********************************************************************************************************
@@ -1477,7 +1723,7 @@ end;
 //** Parametri di uscita: nessuno
 //** Scopo: Preparare un fotogramma dell'overlay per OBS (dal ciclo principale, OBS_FPS volte al
 //**        secondo).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento:
 //** 1) calcola il rettangolo di ogni widget visibile nella pagina: posizione
@@ -1529,7 +1775,8 @@ begin
     begin
         Shots[K] := nil;
         Rects[K] := RectF(0, 0, 0, 0);
-        if FWidgets[K].Visible then
+        // i widget nascosti da "nascondi i widget inattivi" non entrano nel fotogramma
+        if FWidgets[K].Visible and (FWidgets[K].ShowAlpha > 0.01) then
         begin
             W := FWidgets[K];
             Rects[K] := RectF((FFormOrigin.X + W.Position.X) * SX, (FFormOrigin.Y + W.Position.Y) * SY,
@@ -1558,7 +1805,7 @@ begin
     try
         try
             for K := Low(TDeviceKind) to High(TDeviceKind) do
-                if FWidgets[K].Visible then
+                if FWidgets[K].Visible and (FWidgets[K].ShowAlpha > 0.01) then
                     Shots[K] := FWidgets[K].MakeScreenshot;
 
             Frame := TBitmap.Create(Crop.Width, Crop.Height);
@@ -1571,7 +1818,7 @@ begin
                         R := Rects[K];
                         R.Offset(-Crop.Left, -Crop.Top);
                         Frame.Canvas.DrawBitmap(Shots[K], RectF(0, 0, Shots[K].Width, Shots[K].Height), R,
-                            FConfig.Opacity, False);
+                            FConfig.Opacity * FWidgets[K].ShowAlpha, False);
                     end;
             finally
                 Frame.Canvas.EndScene;

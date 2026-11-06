@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Widget
 //** Scopo: Widget che mostra UN dispositivo: pannello 2D (cornice, titolo, stato) con una scena 3D.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: pannello 2D (cornice, titolo, stato) con
 //** dentro una scena 3D (TViewport3D) composta da:
@@ -67,6 +67,10 @@ const
     VIEW_DRAG_DEG = 0.4;     // gradi di rotazione della vista per pixel di trascinamento
     VIEW_TILT_LIMIT = 90;    // inclinazione massima aggiunta a quella del modello (gradi)
     VIEW_ZOOM_STEP = 1.1;    // fattore di zoom per ogni scatto della rotella
+    AUTOHIDE_FADE_OUT = 0.6; // secondi della dissolvenza quando il widget si nasconde
+    AUTOHIDE_FADE_IN = 0.15; // secondi della dissolvenza quando il widget ricompare
+    AUTOHIDE_AXIS_EPS = 0.01;   // variazione minima di un asse joystick considerata input
+    AUTOHIDE_STICK_DEAD = 0.25; // levetta del gamepad considerata in uso oltre questa deflessione
     VIEW_ZOOM_MIN = 0.3;     // limiti dello zoom (1 = modello inquadrato per intero)
     VIEW_ZOOM_MAX = 3;
     SNAP_DIST = 10;          // distanza (pixel) entro cui le linee guida si agganciano a un widget
@@ -99,6 +103,7 @@ type
         FViewport: TViewport3D;
         FCamera: TCamera;
         FStage: TDummy;
+        FPan: TDummy;                      // spostamento verticale della vista (figlio di FStage)
         FWorld: TDummy;
         FModelRoot: TDummy;
         FModel: TDeviceModel;
@@ -125,7 +130,17 @@ type
         FRotating: Boolean;                // rotazione della vista con il tasto destro
         FRotMouse: TPointF;
         FRotTilt0, FRotYaw0: Single;
+        FPanning: Boolean;                 // spostamento verticale della vista (Shift + tasto destro)
+        FPanY0: Single;
+        FAutoHide: Boolean;                // nascondi il widget quando il dispositivo e' inattivo
+        FAutoHideSecs: Single;
+        FIdle: Single;                     // secondi trascorsi dall'ultimo input del dispositivo
+        FShow: Single;                     // visibilita' del widget: 1 = visibile, 0 = nascosto
+        FPrevJoy: TJoyState;               // stato precedente (per riconoscere un nuovo input)
+        FPrevPad: TPadState;
         FOnViewChanged: TNotifyEvent;
+        function DeviceActive(const S: TInputSnapshot): Boolean;
+        procedure UpdateAutoHide(const S: TInputSnapshot; ADeltaT: Single);
         function EdgesAt(X, Y: Single): TResizeEdges;
         procedure UpdateCursor(X, Y: Single);
         procedure SetOutlineOnly(AValue: Boolean);
@@ -158,19 +173,25 @@ type
         procedure BindDevices(AInput: TInputManager);
         /// Stile del widget: solo dispositivo (sfondo trasparente) ed effetti di base.
         procedure SetStyle(ADeviceOnly, ABaseEffects: Boolean);
+        /// Nascondi automaticamente il widget dopo ASeconds senza input del suo dispositivo.
+        procedure SetAutoHide(AEnabled: Boolean; ASeconds: Integer);
         procedure Tick(const S: TInputSnapshot; ADeltaT: Single; AAnimate: Boolean);
         property Kind: TDeviceKind read FKind;
         property EditMode: Boolean read FEditMode write SetEditMode;
         property OnMoved: TNotifyEvent read FOnMoved write FOnMoved;
         /// Chiamato al termine di un ridimensionamento fatto con il mouse.
         property OnResized: TNotifyEvent read FOnResized write FOnResized;
-        /// Chiamato al termine di una rotazione della vista (tasto destro) e a ogni
-        /// scatto della rotella (zoom).
+        /// Chiamato al termine di una rotazione (tasto destro) o di uno spostamento
+        /// verticale (Shift + tasto destro) della vista e a ogni scatto della rotella (zoom).
         property OnViewChanged: TNotifyEvent read FOnViewChanged write FOnViewChanged;
         /// Correzioni della vista impostate con il mouse (gradi).
         property ViewTilt: Single read FCfg.Tilt;
         property ViewYaw: Single read FCfg.Yaw;
         property ViewZoom: Single read FCfg.Zoom;
+        /// Spostamento verticale della vista (frazione dell'altezza visibile, + = in basso).
+        property ViewPanY: Single read FCfg.PanY;
+        /// Visibilita' attuale dovuta a "nascondi i widget inattivi" (1 = visibile, 0 = nascosto).
+        property ShowAlpha: Single read FShow;
     published
         property Visible;
         property Position;
@@ -409,7 +430,7 @@ end;
 //** Parametri di ingresso: AOwner: TComponent; AKind: TDeviceKind
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare il widget e la sua scena 3D vuota.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: il viewport ha sfondo trasparente e non intercetta il mouse
 //** (cosi' il trascinamento arriva al widget); la camera e' puntata sullo Stage.
@@ -435,11 +456,18 @@ begin
     FViewport.HitTest := False;
     FViewport.Multisample := TMultisample.FourSamples;
 
+    FShow := 1;
+
     FStage := TDummy.Create(Self);
     FStage.Parent := FViewport;
 
+    // la camera punta FStage; modello, anelli e scanline stanno sotto FPan, che si
+    // sposta in verticale (Shift + tasto destro) senza muovere il punto mirato
+    FPan := TDummy.Create(Self);
+    FPan.Parent := FStage;
+
     FWorld := TDummy.Create(Self);
-    FWorld.Parent := FStage;
+    FWorld.Parent := FPan;
 
     FCamera := TCamera.Create(Self);
     FCamera.Parent := FViewport;
@@ -481,7 +509,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: (ri)creare il modello 3D scelto nella configurazione.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: elimina il modello precedente e le decorazioni, crea la
 //** nuova radice sotto World, istanzia la classe del modello e aggiunge il
@@ -502,9 +530,9 @@ begin
     if FModelClass <> nil then
         FModel := FModelClass.Create(FKit, FModelRoot);
 
-    FRingOuter := FKit.Ring(FStage, 0, 0, 0, 1, True, hsNormal);
-    FRingInner := FKit.Ring(FStage, 0, 0, 0, 1, False, hsDim);
-    FScan := FKit.Box(FStage, 0, 0, 0, 1, 0.02, 1, hsScan);
+    FRingOuter := FKit.Ring(FPan, 0, 0, 0, 1, True, hsNormal);
+    FRingInner := FKit.Ring(FPan, 0, 0, 0, 1, False, hsDim);
+    FScan := FKit.Box(FPan, 0, 0, 0, 1, 0.02, 1, hsScan);
     FScan.Visible := False;
     ApplyEffects;
     FLastW := -1;   // forza FitCamera al prossimo Tick
@@ -604,6 +632,137 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
+//** Nome procedura: TDeviceWidget.SetAutoHide
+//** Parametri di ingresso: AEnabled: Boolean; ASeconds: Integer
+//** Parametri di uscita: nessuno
+//** Scopo: Attivare o disattivare "nascondi i widget inattivi" e il tempo di attesa.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: azzera il tempo di inattivita' e rende subito visibile il
+//** widget, cosi' dopo un cambio delle impostazioni il conteggio riparte da zero.
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TDeviceWidget.SetAutoHide(AEnabled: Boolean; ASeconds: Integer);
+begin
+    FAutoHide := AEnabled;
+    FAutoHideSecs := EnsureRange(ASeconds, AUTOHIDE_MIN, AUTOHIDE_MAX);
+    FIdle := 0;
+    FShow := 1;
+    Opacity := 1;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TDeviceWidget.DeviceActive
+//** Parametri di ingresso: S: TInputSnapshot
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Indicare se nel frame corrente c'e' input dal dispositivo del widget.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: dipende dalla tipologia:
+//**  - tastiera: un tasto premuto;
+//**  - mouse: un pulsante premuto, un movimento o uno scatto della rotella;
+//**  - gamepad: un pulsante premuto, un grilletto o una levetta oltre
+//**    AUTOHIDE_STICK_DEAD, oppure una levetta che si muove;
+//**  - joystick: un pulsante premuto, il POV fuori dal centro o un asse che si
+//**    muove di almeno AUTOHIDE_AXIS_EPS (un asse fermo non conta, cosi' slider
+//**    e manette in posizione non tengono il widget sempre visibile);
+//**  - pulsantiere: un pulsante premuto a partire dal primo pulsante usato.
+//** Lo stato precedente di joystick e gamepad e' in FPrevJoy / FPrevPad.
+//***********************************************************************************************************
+//***********************************************************************************************************
+function TDeviceWidget.DeviceActive(const S: TInputSnapshot): Boolean;
+var
+    I, Idx: Integer;
+    J: TJoyState;
+    P: TPadState;
+begin
+    Result := False;
+    Idx := FCfg.DeviceIndex;
+    case FKind of
+        dkKeyboard:
+            for I := 0 to High(S.Keys) do
+                if S.Keys[I] then
+                    Exit(True);
+        dkMouse:
+            Result := (S.Mouse.Buttons <> 0) or (S.Mouse.DX <> 0) or (S.Mouse.DY <> 0) or
+                (S.Mouse.WheelDelta <> 0);
+        dkGamepad:
+            if (Idx >= 0) and (Idx < MAX_PADS) then
+            begin
+                P := S.Pads[Idx];
+                Result := (P.Buttons <> 0) or (P.LT > 0.05) or (P.RT > 0.05) or
+                    (Abs(P.LX) > AUTOHIDE_STICK_DEAD) or (Abs(P.LY) > AUTOHIDE_STICK_DEAD) or
+                    (Abs(P.RX) > AUTOHIDE_STICK_DEAD) or (Abs(P.RY) > AUTOHIDE_STICK_DEAD) or
+                    (Abs(P.LX - FPrevPad.LX) > AUTOHIDE_AXIS_EPS) or
+                    (Abs(P.LY - FPrevPad.LY) > AUTOHIDE_AXIS_EPS) or
+                    (Abs(P.RX - FPrevPad.RX) > AUTOHIDE_AXIS_EPS) or
+                    (Abs(P.RY - FPrevPad.RY) > AUTOHIDE_AXIS_EPS);
+                FPrevPad := P;
+            end;
+        dkJoyLeft, dkJoyRight:
+            if (Idx >= 0) and (Idx < MAX_JOY) then
+            begin
+                J := S.Joys[Idx];
+                Result := (J.Buttons <> 0) or (J.POV >= 0);
+                if J.Connected and FPrevJoy.Connected then
+                    for I := 0 to JOY_AXES - 1 do
+                        if Abs(J.Axes[I] - FPrevJoy.Axes[I]) > AUTOHIDE_AXIS_EPS then
+                            Result := True;
+                FPrevJoy := J;
+            end;
+        dkBoxLeft, dkBoxRight:
+            if (Idx >= 0) and (Idx < MAX_JOY) then
+                Result := (S.Joys[Idx].Buttons shr EnsureRange(FCfg.ButtonOffset, 0, 31)) <> 0;
+    end;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TDeviceWidget.UpdateAutoHide
+//** Parametri di ingresso: S: TInputSnapshot; ADeltaT: Single
+//** Parametri di uscita: nessuno
+//** Scopo: Nascondere il widget dopo FAutoHideSecs secondi senza input del suo dispositivo e farlo
+//**        ricomparire al primo input.
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//** Funzionamento: con l'opzione spenta o con il layout sbloccato (modalita'
+//** modifica) il widget resta sempre visibile. Altrimenti conta i secondi di
+//** inattivita' (azzerati da DeviceActive) e, superato il tempo, porta FShow a 0
+//** con una dissolvenza di AUTOHIDE_FADE_OUT secondi; al primo input torna a 1
+//** in AUTOHIDE_FADE_IN secondi. FShow e' applicato all'opacita' del widget e
+//** usato anche per i fotogrammi di OBS (ShowAlpha).
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TDeviceWidget.UpdateAutoHide(const S: TInputSnapshot; ADeltaT: Single);
+var
+    Target: Single;
+begin
+    Target := 1;
+    if FAutoHide and not FEditMode then
+    begin
+        if DeviceActive(S) then
+            FIdle := 0
+        else
+            FIdle := FIdle + ADeltaT;
+        if FIdle >= FAutoHideSecs then
+            Target := 0;
+    end
+    else
+        FIdle := 0;
+    if FShow < Target then
+        FShow := Min(Target, FShow + ADeltaT / AUTOHIDE_FADE_IN)
+    else if FShow > Target then
+        FShow := Max(Target, FShow - ADeltaT / AUTOHIDE_FADE_OUT);
+    if not SameValue(Opacity, FShow, 0.001) then
+        Opacity := FShow;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
 //** Nome procedura: TDeviceWidget.ApplyEffects
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
@@ -656,19 +815,23 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Posizionare la camera in modo che il modello riempia il riquadro.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: stima l'ingombro apparente del modello dopo le rotazioni
 //** della vista, calcola la distanza necessaria in verticale e in orizzontale
 //** (in base al campo visivo e alle proporzioni del viewport), prende la
 //** maggiore e applica lo zoom dell'utente. Dimensiona anche anelli e scanline.
+//** Lo spostamento verticale dell'utente (PanY, frazione dell'altezza visibile
+//** alla distanza del modello) sposta FPan lungo la direzione "giu'" dello
+//** schermo (perpendicolare alla linea di vista inclinata di CAMERA_ELEVATION),
+//** cosi' il contenuto scorre in verticale senza cambiare prospettiva.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TDeviceWidget.FitCamera;
 var
     E: TPoint3D;
     V: TModelView;
-    T, Yw, El, W1, D1, H2, D2, HV, Aspect, TanH, DistH, DistW, Dist, VW, VH: Single;
+    T, Yw, El, W1, D1, H2, D2, HV, Aspect, TanH, DistH, DistW, Dist, VW, VH, PanH: Single;
 begin
     FLastW := Width;
     FLastH := Height;
@@ -699,6 +862,8 @@ begin
     Dist := (Max(DistH, DistW) * 1.10 + D2 / 2) / Max(0.3, FCfg.Zoom);
 
     FCamera.Position.Point := Point3D(0, -Dist * Sin(El), -Dist * Cos(El));
+    PanH := FCfg.PanY * 2 * Dist * TanH;
+    FPan.Position.Point := Point3D(0, PanH * Cos(El), -PanH * Sin(El));
 
     if FRingOuter <> nil then
     begin
@@ -717,10 +882,11 @@ end;
 //** Parametri di ingresso: S: TInputSnapshot; ADeltaT: Single; AAnimate: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Aggiornare il widget ad ogni frame.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: riadatta la camera se il riquadro e' cambiato, passa gli
-//** input al modello, aggiorna l'indicatore di collegamento e, se abilitate,
+//** input al modello, gestisce "nascondi i widget inattivi" (UpdateAutoHide),
+//** aggiorna l'indicatore di collegamento e, se abilitate,
 //** le animazioni olografiche (anello rotante, scanline, sfarfallio); la
 //** scanline compare solo con gli effetti di base attivi.
 //***********************************************************************************************************
@@ -736,6 +902,7 @@ begin
         FitCamera;
 
     FModel.Update(S, FCfg, ADeltaT);
+    UpdateAutoHide(S, ADeltaT);
 
     Conn := FModel.IsConnected(S, FCfg);
     if Conn <> FConnected then
@@ -1007,13 +1174,13 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Disegnare il widget nello stile "solo dispositivo" (nessun pannello).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: chiamata da AfterPaint, quindi sopra la scena 3D. Di norma
 //** non disegna nulla (resta visibile solo il modello 3D) tranne lo stato, se
 //** il dispositivo non e' collegato o il modello non esiste. Solo da
-//** sbloccato e con il mouse sopra il widget (o durante la rotazione della
-//** vista) disegna titolo, stato, contorno tratteggiato e maniglie (la
+//** sbloccato e con il mouse sopra il widget (o durante la rotazione o lo
+//** spostamento della vista) disegna titolo, stato, contorno tratteggiato e maniglie (la
 //** velatura invisibile che rende afferrabile il widget e' in Paint).
 //***********************************************************************************************************
 //***********************************************************************************************************
@@ -1024,7 +1191,7 @@ var
 begin
     R := LocalRect;
     Op := AbsoluteOpacity;
-    if not FEditMode or not (IsMouseOver or FRotating) then
+    if not FEditMode or not (IsMouseOver or FRotating or FPanning) then
     begin
         if (FModel = nil) or not FConnected then
             PaintStatus(R, Op);
@@ -1048,7 +1215,7 @@ end;
 //** Parametri di ingresso: Value: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Attivare/disattivare il trascinamento con il mouse.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TDeviceWidget.SetEditMode(const Value: Boolean);
@@ -1063,6 +1230,7 @@ begin
     FResizing := False;
     FDragging := False;
     FRotating := False;
+    FPanning := False;
     if Value then
         Cursor := crSizeAll
     else
@@ -1205,8 +1373,9 @@ end;
 //** Parametri di ingresso: Button: TMouseButton; Shift: TShiftState; X, Y: Single
 //** Parametri di uscita: nessuno
 //** Scopo: Iniziare spostamento o ridimensionamento (solo in modalita' modifica, tasto sinistro)
-//**        oppure la rotazione della vista (tasto destro).
-//** Data Ultima Modifica: 30/10/2026
+//**        oppure la rotazione (tasto destro) o lo spostamento verticale (Shift + tasto destro)
+//**        della vista.
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento: se il click e' sulla cornice inizia il ridimensionamento
 //** dai lati afferrati, altrimenti lo spostamento (con le linee guida verdi
@@ -1216,6 +1385,7 @@ end;
 //** assolute (il widget si sposta mentre lo si allarga a sinistra o in alto).
 //** Con il tasto destro si memorizzano il punto del mouse (coordinate
 //** assolute) e la vista di partenza: la rotazione si calcola in MouseMove.
+//** Con Shift premuto il tasto destro sposta invece il contenuto in verticale.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TDeviceWidget.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -1243,11 +1413,20 @@ begin
     end
     else if (Button = TMouseButton.mbRight) and not (FDragging or FResizing) and (FModel <> nil) then
     begin
-        FRotating := True;
         FRotMouse := LocalToAbsolute(PointF(X, Y));
-        FRotTilt0 := FCfg.Tilt;
-        FRotYaw0 := FCfg.Yaw;
-        Cursor := crHandPoint;
+        if ssShift in Shift then
+        begin
+            FPanning := True;
+            FPanY0 := FCfg.PanY;
+            Cursor := crSizeNS;
+        end
+        else
+        begin
+            FRotating := True;
+            FRotTilt0 := FCfg.Tilt;
+            FRotYaw0 := FCfg.Yaw;
+            Cursor := crHandPoint;
+        end;
     end;
 end;
 
@@ -1257,8 +1436,9 @@ end;
 //** Nome procedura: TDeviceWidget.MouseMove
 //** Parametri di ingresso: Shift: TShiftState; X, Y: Single
 //** Parametri di uscita: nessuno
-//** Scopo: Spostare o ridimensionare il contorno seguendo il mouse, oppure ruotare la vista.
-//** Data Ultima Modifica: 30/10/2026
+//** Scopo: Spostare o ridimensionare il contorno seguendo il mouse, oppure ruotare o spostare in
+//**        verticale la vista.
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //** Funzionamento:
 //**  - rotazione (tasto destro premuto): lo spostamento orizzontale ruota il
@@ -1267,6 +1447,9 @@ end;
 //**    = la parte alta si allontana); VIEW_DRAG_DEG gradi per pixel, rotazione
 //**    riportata in -180..180, inclinazione limitata a +-VIEW_TILT_LIMIT. La
 //**    camera si riadatta subito, cosi' il modello resta inquadrato;
+//**  - spostamento verticale (Shift + tasto destro): il contenuto segue il
+//**    mouse in verticale (mouse in avanti = su, indietro = giu'), entro
+//**    +-VIEW_PAN_LIMIT dell'altezza visibile;
 //**  - spostamento: la nuova posizione e' quella iniziale piu' lo spostamento
 //**    del mouse in coordinate assolute (cosi' l'aggancio non fa slittare il
 //**    punto di presa); SnapPosition la aggancia agli altri widget e le linee
@@ -1290,6 +1473,12 @@ begin
         FCfg.Yaw := FCfg.Yaw - 360 * Round(FCfg.Yaw / 360);
         FCfg.Tilt := EnsureRange(FRotTilt0 + D.Y * VIEW_DRAG_DEG, -VIEW_TILT_LIMIT, VIEW_TILT_LIMIT);
         ApplyView;
+        FitCamera;
+    end
+    else if FPanning then
+    begin
+        D := LocalToAbsolute(PointF(X, Y)) - FRotMouse;
+        FCfg.PanY := EnsureRange(FPanY0 + D.Y / Max(10, FViewport.Height), -VIEW_PAN_LIMIT, VIEW_PAN_LIMIT);
         FitCamera;
     end
     else if FResizing then
@@ -1326,11 +1515,12 @@ end;
 //** Nome procedura: TDeviceWidget.MouseUp
 //** Parametri di ingresso: Button: TMouseButton; Shift: TShiftState; X, Y: Single
 //** Parametri di uscita: nessuno
-//** Scopo: Terminare spostamento, ridimensionamento o rotazione della vista.
-//** Data Ultima Modifica: 31/10/2026
+//** Scopo: Terminare spostamento, ridimensionamento, rotazione o spostamento verticale della vista.
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
-//** Funzionamento: al rilascio del tasto destro termina la rotazione e, se la
-//** vista e' cambiata, avvisa la form principale (OnViewChanged) che la salva.
+//** Funzionamento: al rilascio del tasto destro termina la rotazione (o lo
+//** spostamento verticale) e, se la vista e' cambiata, avvisa la form
+//** principale (OnViewChanged) che la salva.
 //** Per spostamento e ridimensionamento nasconde le linee guida e allinea
 //** posizione (e dimensioni) a una griglia di 4 px (tranne le coordinate
 //** agganciate a un altro widget, che restano esatte), rimostra la scena 3D e avvisa la form principale,
@@ -1345,6 +1535,19 @@ var
     NewX, NewY: Single;
 begin
     inherited;
+    if FPanning and (Button = TMouseButton.mbRight) then
+    begin
+        FPanning := False;
+        if FEditMode then
+            Cursor := crSizeAll
+        else
+            Cursor := crDefault;
+        if not SameValue(FCfg.PanY, FPanY0) and Assigned(FOnViewChanged) then
+            FOnViewChanged(Self);
+        if FDeviceOnly then
+            Repaint;
+        Exit;
+    end;
     if FRotating and (Button = TMouseButton.mbRight) then
     begin
         FRotating := False;

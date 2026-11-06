@@ -3,12 +3,11 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Config
 //** Scopo: Configurazione dell'applicazione e persistenza nel file .ini.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: il file si chiama come l'eseguibile (HoloInput.ini) e si trova nella stessa
 //** cartella; viene letto all'avvio se esiste e scritto dal Setup.
-//** Contiene anche la lettura delle opzioni di avvio "-o <nome>" (HasStartOption)
-//** e i nomi tradotti di tipologie e layout (KindText, LayoutText): i vettori
+//** Contiene anche i nomi tradotti di tipologie e layout (KindText, LayoutText): i vettori
 //** KindCaption e LayoutCaption sono i testi predefiniti (italiano).
 //** La sezione [OBS] contiene i parametri del servizio Browser Source per OBS
 //** (porta, risoluzione della pagina, fotogrammi al secondo, avvio automatico, modo di
@@ -67,6 +66,11 @@ const
     DEF_RANGE_Y = 36;    // inclinazione avanti/indietro (beccheggio): +/-18
     DEF_RANGE_Z = 50;    // rotazione dell'impugnatura (twist): +/-25
 
+    /// nascondi automaticamente i widget inattivi: secondi senza input prima di nasconderli
+    AUTOHIDE_MIN = 1;
+    AUTOHIDE_MAX = 600;
+    DEF_AUTOHIDE_SECS = 5;
+
     /// servizio Browser Source per OBS
     OBS_PORT_MIN = 1024;
     OBS_PORT_MAX = 65535;
@@ -92,6 +96,7 @@ type
         ButtonOffset: Integer;    // pulsantiere: indice del primo pulsante usato
         Tilt, Yaw: Single;        // correzione della vista (gradi aggiunti al default del modello)
         Zoom: Single;             // moltiplicatore di zoom (1 = auto-fit)
+        PanY: Single;             // spostamento verticale della vista (frazione dell'altezza visibile)
     end;
 
     TAppConfig = class
@@ -104,6 +109,9 @@ type
         Animations: Boolean;        // anelli rotanti, scanline, sfarfallio olografico
         WidgetStyle: TWidgetStyle;  // pannello completo / solo dispositivo (sfondo trasparente)
         BaseEffects: Boolean;       // effetti di base dei widget: anelli del proiettore e scanline
+        AutoHide: Boolean;          // nasconde i widget dei dispositivi inattivi (da bloccato)
+        AutoHideSecs: Integer;      // secondi senza input prima di nascondere un widget
+        CheckUpdates: Boolean;      // all'avvio controlla su GitHub se c'e' una nuova versione
         ShowLegends: Boolean;       // scritte 3D sui tasti
         StayOnTop: Boolean;
         StartLocked: Boolean;       // avvio in modalita' "bloccata" (click-through)
@@ -135,13 +143,12 @@ type
     end;
 
 const
-    /// Opzione di avvio "-o DebugDevices": nel Setup ricompare la colonna
-    /// "Dispositivo sorgente" per scegliere a mano il dispositivo di ogni widget.
-    OPT_DEBUG_DEVICES = 'DebugDevices';
+    /// Spostamento verticale massimo della vista di un widget (Shift + tasto destro),
+    /// in frazioni dell'altezza visibile.
+    VIEW_PAN_LIMIT = 0.45;
 
 function FloatToIni(AValue: Single): string;
 function IniToFloat(const AText: string; ADefault: Single): Single;
-function HasStartOption(const AName: string): Boolean;
 function KindText(AKind: TDeviceKind): string;
 function LayoutText(AMode: TLayoutMode): string;
 
@@ -192,31 +199,6 @@ end;
 function IniToFloat(const AText: string; ADefault: Single): Single;
 begin
     Result := StrToFloatDef(Trim(AText), ADefault, GIniFormat);
-end;
-
-//***********************************************************************************************************
-//***********************************************************************************************************
-//** Autore: Citizen GattoMatto
-//** Nome funzione: HasStartOption
-//** Parametri di ingresso: AName: string
-//** Parametri di uscita: Result: Boolean
-//** Scopo: Indicare se all'avvio e' stata passata l'opzione "-o <AName>" (es. "-o DebugDevices").
-//** Data Ultima Modifica: 30/10/2026
-//***********************************************************************************************************
-//** Funzionamento: scorre i parametri della riga di comando cercando "-o" (o
-//** "/o") seguito dal nome dell'opzione; il confronto non distingue maiuscole e
-//** minuscole e le opzioni "-o" possono essere piu' di una.
-//***********************************************************************************************************
-//***********************************************************************************************************
-function HasStartOption(const AName: string): Boolean;
-var
-    I: Integer;
-begin
-    Result := False;
-    for I := 1 to ParamCount - 1 do
-        if (SameText(ParamStr(I), '-o') or SameText(ParamStr(I), '/o')) and
-            SameText(ParamStr(I + 1), AName) then
-            Exit(True);
 end;
 
 //***********************************************************************************************************
@@ -289,12 +271,13 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Riportare tutte le impostazioni ai valori di fabbrica.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: imposta i parametri generali (compresi quelli del
 //** servizio OBS, con la risoluzione nativa del monitor) e, per ogni
 //** tipologia, modello, dimensioni, dispositivo e ampiezza del movimento
-//** (joystick) predefiniti.
+//** (joystick) predefiniti. I joystick predefiniti sono Virpil, con assi
+//** "0,1,2" (twist sull'asse Z).
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TAppConfig.SetDefaults;
@@ -314,6 +297,9 @@ begin
     Animations := True;
     WidgetStyle := DefWidgetStyle;
     BaseEffects := True;
+    AutoHide := False;
+    AutoHideSecs := DEF_AUTOHIDE_SECS;
+    CheckUpdates := True;
     ShowLegends := True;
     StayOnTop := True;
     StartLocked := True;
@@ -343,11 +329,15 @@ begin
         Widgets[K].AxisX := 0;
         Widgets[K].AxisY := 1;
         Widgets[K].AxisZ := 3;   // R = twist su quasi tutti gli stick
+        // i modelli predefiniti dei joystick sono Virpil: twist sull'asse Z (vedi DefaultAxes)
+        if K in [dkJoyLeft, dkJoyRight] then
+            Widgets[K].AxisZ := 2;
         Widgets[K].RangeX := DEF_RANGE_X;
         Widgets[K].RangeY := DEF_RANGE_Y;
         Widgets[K].RangeZ := DEF_RANGE_Z;
         Widgets[K].ButtonOffset := 0;
         Widgets[K].Zoom := 1;
+        Widgets[K].PanY := 0;
     end;
 end;
 
@@ -359,7 +349,7 @@ end;
 //** Parametri di uscita: nessuno
 //** Scopo: Copiare tutte le impostazioni da un'altra istanza (usato dal Setup per lavorare su una
 //**        copia annullabile).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TAppConfig.Assign(ASource: TAppConfig);
@@ -374,6 +364,9 @@ begin
     Animations := ASource.Animations;
     WidgetStyle := ASource.WidgetStyle;
     BaseEffects := ASource.BaseEffects;
+    AutoHide := ASource.AutoHide;
+    AutoHideSecs := ASource.AutoHideSecs;
+    CheckUpdates := ASource.CheckUpdates;
     ShowLegends := ASource.ShowLegends;
     StayOnTop := ASource.StayOnTop;
     StartLocked := ASource.StartLocked;
@@ -421,7 +414,7 @@ end;
 //** Scopo: Riportare skin, stile dei widget, disposizione, misure e vista dei modelli (rotazione e
 //**        zoom) ai valori predefiniti, lasciando invariato tutto il resto (modelli, dispositivi,
 //**        assi, opzioni).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 05/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TAppConfig.ResetLayoutDefaults;
@@ -442,6 +435,7 @@ begin
         Widgets[K].Tilt := 0;
         Widgets[K].Yaw := 0;
         Widgets[K].Zoom := 1;
+        Widgets[K].PanY := 0;
     end;
     SetLayout(DefLayout);
 end;
@@ -453,7 +447,7 @@ end;
 //** Parametri di ingresso: AFileName: string
 //** Parametri di uscita: nessuno
 //** Scopo: Leggere la configurazione dal file .ini.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: ogni chiave mancante mantiene il valore attuale (default),
 //** cosi' un .ini parziale o di una versione precedente resta valido.
@@ -507,6 +501,10 @@ begin
             if SameText(LayoutText, WidgetStyleIniText[WS]) then
                 WidgetStyle := WS;
         BaseEffects := Ini.ReadBool(S, 'EffettiBase', BaseEffects);
+        AutoHide := Ini.ReadBool(S, 'NascondiInattivi', AutoHide);
+        AutoHideSecs := EnsureRange(Ini.ReadInteger(S, 'NascondiDopoSecondi', AutoHideSecs),
+            AUTOHIDE_MIN, AUTOHIDE_MAX);
+        CheckUpdates := Ini.ReadBool(S, 'ControllaAggiornamenti', CheckUpdates);
         ShowLegends := Ini.ReadBool(S, 'LegendeTasti', ShowLegends);
         StayOnTop := Ini.ReadBool(S, 'SempreInPrimoPiano', StayOnTop);
         StartLocked := Ini.ReadBool(S, 'AvvioBloccato', StartLocked);
@@ -553,6 +551,8 @@ begin
             W.Tilt := IniToFloat(Ini.ReadString(S, 'VistaInclinazione', ''), W.Tilt);
             W.Yaw := IniToFloat(Ini.ReadString(S, 'VistaRotazione', ''), W.Yaw);
             W.Zoom := EnsureRange(IniToFloat(Ini.ReadString(S, 'VistaZoom', ''), W.Zoom), 0.3, 3);
+            W.PanY := EnsureRange(IniToFloat(Ini.ReadString(S, 'VistaSpostamento', ''), W.PanY),
+                -VIEW_PAN_LIMIT, VIEW_PAN_LIMIT);
             Widgets[K] := W;
         end;
     finally
@@ -578,7 +578,7 @@ end;
 //** Parametri di ingresso: AFileName: string
 //** Parametri di uscita: nessuno
 //** Scopo: Salvare la configurazione nel file .ini (UTF-8).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: scrive tutte le chiavi in memoria e poi su disco con UpdateFile.
 //***********************************************************************************************************
@@ -603,6 +603,9 @@ begin
         Ini.WriteBool(S, 'Animazioni', Animations);
         Ini.WriteString(S, 'StileWidget', WidgetStyleIniText[WidgetStyle]);
         Ini.WriteBool(S, 'EffettiBase', BaseEffects);
+        Ini.WriteBool(S, 'NascondiInattivi', AutoHide);
+        Ini.WriteInteger(S, 'NascondiDopoSecondi', AutoHideSecs);
+        Ini.WriteBool(S, 'ControllaAggiornamenti', CheckUpdates);
         Ini.WriteBool(S, 'LegendeTasti', ShowLegends);
         Ini.WriteBool(S, 'SempreInPrimoPiano', StayOnTop);
         Ini.WriteBool(S, 'AvvioBloccato', StartLocked);
@@ -646,6 +649,7 @@ begin
             Ini.WriteString(S, 'VistaInclinazione', FloatToIni(W.Tilt));
             Ini.WriteString(S, 'VistaRotazione', FloatToIni(W.Yaw));
             Ini.WriteString(S, 'VistaZoom', FloatToIni(W.Zoom));
+            Ini.WriteString(S, 'VistaSpostamento', FloatToIni(W.PanY));
         end;
         Ini.UpdateFile;
     finally

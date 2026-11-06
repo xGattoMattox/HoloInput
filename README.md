@@ -2,7 +2,7 @@
 
 **HoloInput** shows your input devices — keyboard, mouse, gamepad, joysticks and button boxes — as live **3D holograms** while you play. It was built for *Star Citizen* pilots and streamers, but it works with any game running in a borderless window.
 
-*Italiano: [README.it.md](README.it.md)*
+*Italiano: [README.it.md](README.it.md)* · *What's new: [CHANGELOG.md](CHANGELOG.md)*
 
 ---
 
@@ -16,6 +16,7 @@
 - **Layouts**: horizontal (bottom or top), vertical (left or right), or **custom**, where you drag widgets freely. Green alignment guides snap them to each other.
 - **Per-widget view**:
   - **Rotate:** hold the right mouse button and drag.
+  - **Move up / down:** hold **Shift** and the right mouse button, then move the mouse forward (up) or back (down).
   - **Zoom:** use the mouse wheel.
   - **Resize:** drag the edges or corners.
 - **Joystick movement range**: set the total travel angle of each axis (X, Y, twist) to match your real sticks, and invert any axis (Yes/No).
@@ -24,11 +25,13 @@
   - keyboard and mouse: Raw Input;
   - gamepads: XInput;
   - joysticks and button boxes: Raw Input HID.
+- **Auto hide**: idle device widgets fade out after a time you choose (5 seconds by default) and come back at the first input.
 - **Streamer mode** hides the command bar. **Privacy mode** always hides the keyboard, so you never show a password on stream.
 - **OBS Browser Source service**: HoloInput streams the overlay to OBS through a local WebSocket page, with transparency, at 15, 30 or 60 fps. It can then hide itself from the screen:
   - hidden window;
   - moved off-screen;
   - moved to another monitor.
+- **Automatic updates**: at startup HoloInput checks the official GitHub releases. When a new version is out it asks you, downloads it with a progress bar, verifies its SHA-256 and restarts updated.
 - **Localization**: Italian and English are included. Every on-screen text can be translated with a simple `.ini` file.
 
 ## Requirements
@@ -56,25 +59,34 @@ Nothing is installed in the system and there is no registry entry. To uninstall,
 
 **Verify your download:** every release lists the **SHA-256** of the zip. Check it with `certutil -hashfile HoloInput-v<version>-win64.zip SHA256` (or `Get-FileHash` in PowerShell): the value must match the one on the release page. If you prefer, build the exe yourself from the source code (see *Building from source*).
 
+### Updates
+
+At startup HoloInput checks whether a newer version has been published on the [Releases](https://github.com/xGattoMattox/HoloInput/releases) page. If there is one, it asks you first, showing **what's new** (the matching sections of `CHANGELOG.md`): choose **Update** to download it (with a progress bar), or **Later**. The download is checked against the release's SHA-256 file; then HoloInput replaces its executable and restarts on the new version. Your settings (`HoloInput.ini`) are kept.
+
+- *Setup → Info* has a **Check for updates** button and a **Check at startup** box to turn the automatic check off.
+- The check never interrupts you while the Setup is open or the OBS service is running: it asks again at the next start.
+- The folder must be writable (another reason to avoid `Program Files`). If the update fails, HoloInput offers to open the release page so you can download it manually.
+
 ## Quick start
 
 | Hotkey | Action |
 |---|---|
 | `Ctrl+Alt+F12` | Lock / unlock the layout (locked = click-through) |
-| `Ctrl+Alt+F11` | Open the Setup |
+| `Ctrl+Alt+F11` | Open the Setup (also leaves streamer mode, so the command bar is visible again) |
 | `Ctrl+Alt+F10` | Show / hide the overlay |
 | `Ctrl+Alt+F9` | Streamer mode (hide the command bar) |
 
-- **Unlocked**: drag widgets with the left button, resize them from the edges, rotate the view with the right button and zoom with the wheel.
+- **Unlocked**: drag widgets with the left button, resize them from the edges, rotate the view with the right button, move it up or down with Shift + right button and zoom with the wheel.
 - **Setup** pages:
-  - **General**: skin, language, layout, options, widget style.
+  - **General**: skin, language, layout, options (including *Hide idle widgets after N seconds*), widget style.
   - **Devices**: which widgets to show and the 3D model of each.
   - **Range**: joystick travel angles and axis inversion.
   - **Modes**: streamer and privacy modes.
   - **Log**: device detection.
   - **OBS**: the Browser Source service.
   - **Info**: about HoloInput and its author.
-- **Device assignment**: devices are assigned automatically. To pick the source device of each widget by hand, start HoloInput with `HoloInput.exe -o DebugDevices`.
+- Options that work **only with the layout locked** (*Hide idle widgets*, the OBS service) are marked **LOCKED ONLY** in the Setup; everything else works both locked and unlocked.
+- **Device assignment**: in *Setup → Devices* pick the hardware device of each widget (joysticks, button boxes and gamepads) from the *Source device* drop-down, which lists the devices found by the last scan.
 
 ## Using HoloInput with OBS
 
@@ -88,6 +100,8 @@ Nothing is installed in the system and there is no registry entry. To uninstall,
 4. Press `Ctrl+Alt+F11` to bring the Setup back and **Stop the service**.
 
 Tick **Start the service when HoloInput launches** if you want it to start automatically.
+
+If you change the **frames per second** while the service is running, HoloInput asks for confirmation and then stops and restarts it right away with the new value (no need to press *Save*). Remember to set the same fps in the OBS Browser source.
 
 The service listens on `127.0.0.1` only, so it is not reachable from other computers and does not trigger the firewall.
 

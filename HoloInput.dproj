@@ -107,9 +107,9 @@
         <VerInfo_MajorVer>0</VerInfo_MajorVer>
         <VerInfo_MinorVer>2026</VerInfo_MinorVer>
         <VerInfo_Release>11</VerInfo_Release>
-        <VerInfo_Build>4</VerInfo_Build>
+        <VerInfo_Build>8</VerInfo_Build>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=0.2026.11.4;InternalName=;LegalCopyright=Citizen GattoMarro;LegalTrademarks=Citizen GattoMarro;OriginalFilename=HoloInput;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=0.2026.11.4;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=0.2026.11.8;InternalName=;LegalCopyright=Citizen GattoMatto;LegalTrademarks=Citizen GattoMatto;OriginalFilename=HoloInput;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=0.2026.11.8;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -125,12 +125,11 @@
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=0.2026.10.26;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=0.2026.11.8;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_MajorVer>0</VerInfo_MajorVer>
         <VerInfo_MinorVer>2026</VerInfo_MinorVer>
-        <VerInfo_Release>10</VerInfo_Release>
-        <VerInfo_Build>26</VerInfo_Build>
-        <Debugger_RunParams>-o DebugDevices</Debugger_RunParams>
+        <VerInfo_Release>11</VerInfo_Release>
+        <VerInfo_Build>8</VerInfo_Build>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -155,6 +154,7 @@
         <DCCReference Include="Holo.Lang.pas"/>
         <DCCReference Include="Holo.Disclaimer.pas"/>
         <DCCReference Include="Holo.WebOverlay.pas"/>
+        <DCCReference Include="Holo.Updater.pas"/>
         <DCCReference Include="SKINS\Skin.RSI.pas"/>
         <DCCReference Include="SKINS\Skin.Origin.pas"/>
         <DCCReference Include="SKINS\Skin.Drake.pas"/>

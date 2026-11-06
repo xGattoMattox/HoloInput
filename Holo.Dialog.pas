@@ -4,11 +4,12 @@
 //** Nome unit: Holo.Dialog
 //** Scopo: Finestre di messaggio con lo stile grafico dell'applicazione (pannello con angoli smussati,
 //**        colori della skin, font Bahnschrift, pulsanti THoloButton) al posto delle MessageBox di Windows.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: holoConfirm: avviso con due pulsanti, "Ok" (restituisce True) e "Annulla"
 //** (restituisce False). Invio = Ok, Esc = Annulla. Se i testi dei pulsanti
 //** non sono indicati si usano quelli della lingua corrente (Holo.Lang).
+//** HoloMessage: messaggio con il solo pulsante "Ok".
 //***********************************************************************************************************
 //***********************************************************************************************************
 unit Holo.Dialog;
@@ -22,8 +23,11 @@ uses
     Holo.Skins, Holo.UI;
 
 /// Mostra un avviso modale con i colori della skin; True se l'utente sceglie Ok.
+/// ACancelText = '-' nasconde il pulsante Annulla (messaggio con il solo Ok).
 function HoloConfirm(const ATitle, AMessage: string; const AColors: TSkinColors;
     const AOkText: string = ''; const ACancelText: string = ''): Boolean;
+/// Mostra un messaggio modale con il solo pulsante Ok.
+procedure HoloMessage(const ATitle, AMessage: string; const AColors: TSkinColors);
 
 implementation
 
@@ -194,12 +198,13 @@ end;
 //**                        string
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Mostrare l'avviso e restituire la scelta dell'utente.
-//** Data Ultima Modifica: 30/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: form senza bordi e con sfondo trasparente (si vede solo il
 //** pannello smussato), sempre in primo piano e centrata sulla finestra attiva
 //** (o sullo schermo); titolo nel colore accento, testo nel colore testi della
-//** skin, pulsanti "Ok" e "Annulla" in basso a destra.
+//** skin, pulsanti "Ok" e "Annulla" in basso a destra. Con ACancelText = '-'
+//** il pulsante Annulla non c'e' e Ok prende il suo posto.
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HoloConfirm(const ATitle, AMessage: string; const AColors: TSkinColors;
@@ -258,11 +263,31 @@ begin
             BOk.Text := Tr('dialog.ok', 'Ok');
         BOk.SetColors(AColors);
         BOk.OnClick := F.OkClick;
+        if ACancelText = '-' then
+        begin
+            BCancel.Visible := False;
+            BOk.Position.X := BCancel.Position.X;
+        end;
 
         Result := F.ShowModal = mrOk;
     finally
         F.Free;
     end;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: HoloMessage
+//** Parametri di ingresso: ATitle, AMessage: string; AColors: TSkinColors
+//** Parametri di uscita: nessuno
+//** Scopo: Mostrare un messaggio con il solo pulsante Ok (stesso aspetto di HoloConfirm).
+//** Data Ultima Modifica: 06/11/2026
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure HoloMessage(const ATitle, AMessage: string; const AColors: TSkinColors);
+begin
+    HoloConfirm(ATitle, AMessage, AColors, '', '-');
 end;
 
 end.

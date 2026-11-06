@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome programma: HoloInput
 //** Scopo: Overlay olografico delle periferiche di input (programma principale).
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: Delphi 13 CE - FireMonkey - Windows (Win64 / Win32).
 //**
@@ -19,6 +19,10 @@
 //**   SKINS\        skin colore ispirate ai produttori di Star Citizen
 //**   OBJ\          modelli 3D reali (OBJ preparati con TOOLS\holo_prep.py)
 //**   TOOLS\        script di preparazione dei modelli 3D e dei file di lingua
+//**
+//** Aggiornamenti: Holo.Updater controlla le release su GitHub; dopo
+//** un aggiornamento il nuovo exe parte con "--after-update <pid>" e
+//** FinishPendingUpdate (qui sotto) aspetta la chiusura del vecchio processo.
 //**
 //** Per aggiungere un dispositivo o una skin basta aggiungere la unit qui sotto:
 //** si registra da sola nella propria sezione initialization.
@@ -44,6 +48,7 @@ uses
     Holo.Lang in 'Holo.Lang.pas',
     Holo.Disclaimer in 'Holo.Disclaimer.pas',
     Holo.WebOverlay in 'Holo.WebOverlay.pas',
+    Holo.Updater in 'Holo.Updater.pas',
     //** skin (l'ordine e' quello del menu nel setup) *******************************************************
     Skin.RSI in 'SKINS\Skin.RSI.pas',
     Skin.Origin in 'SKINS\Skin.Origin.pas',
@@ -84,6 +89,8 @@ uses
 {$R HoloObj.res}      // modelli 3D olografici (cartella OBJ)   - rigenerare con TOOLS\build_res.bat
 
 begin
+    // dopo un aggiornamento: aspetta la chiusura della versione precedente e la ripulisce
+    FinishPendingUpdate;
     Application.Initialize;
     Application.CreateForm(TfrmMain, frmMain);
     Application.Run;
