@@ -1,6 +1,6 @@
 # HoloInput — holographic input overlay
 
-**HoloInput** shows your input devices — keyboard, mouse, gamepad, joysticks and button boxes — as live **3D holograms** while you play. It was built for *Star Citizen* pilots and streamers, but it works with any game running in a borderless window.
+**HoloInput** shows your input devices — keyboard, mouse, gamepad, joysticks, throttles and button boxes — as live **3D holograms** while you play. It was built for *Star Citizen* pilots and streamers, but it works with any game running in a borderless window.
 
 *Italiano: [README.it.md](README.it.md)* · *What's new: [CHANGELOG.md](CHANGELOG.md)*
 
@@ -8,7 +8,7 @@
 
 ## Features
 
-- **Real-time 3D widgets** for keyboard (ISO/ANSI, full size and TKL), mouse, Xbox-style gamepad, joysticks (including the left-hand stick with a Z-axis extension) and button boxes. Keys, buttons, axes, hats and twist move as you use them.
+- **Real-time 3D widgets** for keyboard (ISO/ANSI, full size and TKL), mouse, Xbox-style gamepad, joysticks (including the left-hand stick with a Z-axis extension), throttles (left and right: lever, mini-stick, hat and buttons) and button boxes. Keys, buttons, axes, hats and twist move as you use them.
 - **10 skins** inspired by the *Star Citizen* manufacturers: RSI (default), Origin, Drake, Anvil, Aegis, MISC, Crusader, ARGO, CNOU and Tumbril.
 - **Two widget styles**:
   - **Panel**: background, frame, title and device status.
@@ -24,7 +24,7 @@
 - **All input is read in the background**, so the overlay keeps working while the game (or any other window) has focus:
   - keyboard and mouse: Raw Input;
   - gamepads: XInput;
-  - joysticks and button boxes: Raw Input HID.
+  - joysticks, throttles and button boxes: Raw Input HID.
 - **Auto hide**: idle device widgets fade out after a time you choose (5 seconds by default) and come back at the first input.
 - **Streamer mode** hides the command bar. **Privacy mode** always hides the keyboard, so you never show a password on stream.
 - **OBS Browser Source service**: HoloInput streams the overlay to OBS through a local WebSocket page, with transparency, at 15, 30 or 60 fps. It can then hide itself from the screen:

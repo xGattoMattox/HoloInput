@@ -665,9 +665,9 @@ end;
 //**  - mouse: un pulsante premuto, un movimento o uno scatto della rotella;
 //**  - gamepad: un pulsante premuto, un grilletto o una levetta oltre
 //**    AUTOHIDE_STICK_DEAD, oppure una levetta che si muove;
-//**  - joystick: un pulsante premuto, il POV fuori dal centro o un asse che si
-//**    muove di almeno AUTOHIDE_AXIS_EPS (un asse fermo non conta, cosi' slider
-//**    e manette in posizione non tengono il widget sempre visibile);
+//**  - joystick e manette: un pulsante premuto, il POV fuori dal centro o un
+//**    asse che si muove di almeno AUTOHIDE_AXIS_EPS (un asse fermo non conta,
+//**    cosi' slider e leve in posizione non tengono il widget sempre visibile);
 //**  - pulsantiere: un pulsante premuto a partire dal primo pulsante usato.
 //** Lo stato precedente di joystick e gamepad e' in FPrevJoy / FPrevPad.
 //***********************************************************************************************************
@@ -701,7 +701,7 @@ begin
                     (Abs(P.RY - FPrevPad.RY) > AUTOHIDE_AXIS_EPS);
                 FPrevPad := P;
             end;
-        dkJoyLeft, dkJoyRight:
+        dkJoyLeft, dkJoyRight, dkThrLeft, dkThrRight:
             if (Idx >= 0) and (Idx < MAX_JOY) then
             begin
                 J := S.Joys[Idx];

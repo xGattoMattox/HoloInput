@@ -5,7 +5,7 @@
 //** Scopo: Classe base degli "sketch" 3D dei dispositivi e relativo registro.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
-//** Funzionamento: ogni unit nelle sottocartelle (MOUSE, KEYBOARD, GAMEPAD, JOYSTICK.DX, ...)
+//** Funzionamento: ogni unit nelle sottocartelle (MOUSE, KEYBOARD, GAMEPAD, JOYSTICK.DX, MANETTE, ...)
 //** dichiara un discendente di TDeviceModel e lo registra con RegisterModel nella
 //** sezione initialization. Il widget crea il modello scelto nel setup tramite
 //** il suo ModelId (salvato nel .ini).

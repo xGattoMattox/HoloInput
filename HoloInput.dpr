@@ -16,6 +16,7 @@
 //**   JOYSTICK.SX\  joystick sinistri (stessi modelli specchiati)
 //**   PULSANTI.DX\  sketch 3D delle pulsantiere destre (+ base comune)
 //**   PULSANTI.SX\  sketch 3D delle pulsantiere sinistre
+//**   MANETTE\      sketch 3D delle manette (throttle) destre e sinistre (+ base comune Thr.Base)
 //**   SKINS\        skin colore ispirate ai produttori di Star Citizen
 //**   OBJ\          modelli 3D reali (OBJ preparati con TOOLS\holo_prep.py)
 //**   TOOLS\        script di preparazione dei modelli 3D e dei file di lingua
@@ -83,7 +84,11 @@ uses
     BtnDx.Grid16 in 'PULSANTI.DX\BtnDx.Grid16.pas',
     BtnDx.Panel in 'PULSANTI.DX\BtnDx.Panel.pas',
     BtnSx.Grid16 in 'PULSANTI.SX\BtnSx.Grid16.pas',
-    BtnSx.Panel in 'PULSANTI.SX\BtnSx.Panel.pas';
+    BtnSx.Panel in 'PULSANTI.SX\BtnSx.Panel.pas',
+    //** manette (throttle) destre / sinistre ***************************************************************
+    Thr.Base in 'MANETTE\Thr.Base.pas',
+    ThrDx.Generic in 'MANETTE\ThrDx.Generic.pas',
+    ThrSx.Generic in 'MANETTE\ThrSx.Generic.pas';
 
 {$R *.res}
 {$R HoloObj.res}      // modelli 3D olografici (cartella OBJ)   - rigenerare con TOOLS\build_res.bat

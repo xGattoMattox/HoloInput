@@ -4,7 +4,7 @@
 //** Nome unit: Holo.About
 //** Scopo: Contenuto della pagina "Info" del Setup, disegnato interamente da codice con i colori della skin
 //**        (nessuna immagine esterna).
-//** Data Ultima Modifica: 05/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: THoloDossierCard  scheda "Citizen Dossier" dell'autore (dati del profilo
 //**                     pubblico RSI) in stile ologramma: ritratto (logo
@@ -472,7 +472,7 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Disegnare le informazioni sul software (con copyright e licenza).
-//** Data Ultima Modifica: 05/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure THoloInfoCard.Paint;
@@ -510,7 +510,7 @@ begin
     Line(UpperCase(HOLO_APP_NAME), 20, True, FColors.Primary, 28);
     Line(TrBuiltin('about.info.by', 'by ') + HOLO_AUTHOR, 12, True, FColors.Accent, 24);
     Line(TrBuiltin('about.info.description', 'Overlay olografico che mostra in tempo reale tastiera, mouse, ' +
-        'gamepad, joystick e pulsantiere mentre giochi, con modelli 3D e skin ispirate ai ' +
+        'gamepad, joystick, manette e pulsantiere mentre giochi, con modelli 3D e skin ispirate ai ' +
         'costruttori di Star Citizen.'), 11, False, FColors.Text, 52);
 
     Line(TrBuiltin('about.info.tech', 'TECNOLOGIA'), 9, True, WithAlpha(FColors.Primary, $B0), 15);

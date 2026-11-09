@@ -2,7 +2,7 @@
 
 *English: [README.md](README.md)* · *Novità e correzioni: [CHANGELOG.md](CHANGELOG.md)* (in inglese)
 
-Applicazione FireMonkey (Delphi 13 CE) che mostra in 3D, con look da ologramma, tastiera, mouse, gamepad, joystick e pulsantiere mentre si gioca.
+Applicazione FireMonkey (Delphi 13 CE) che mostra in 3D, con look da ologramma, tastiera, mouse, gamepad, joystick, manette e pulsantiere mentre si gioca.
 
 > Per ora commenti del codice, intestazioni delle routine e documentazione tecnica sono **solo in italiano**; l'interfaccia è localizzata (italiano e inglese).
 
@@ -24,6 +24,7 @@ Applicazione FireMonkey (Delphi 13 CE) che mostra in 3D, con look da ologramma, 
 | `JOYSTICK.SX\` | `JoySx.VirpilObj` (base del destro specchiata, impugnatura sinistra dedicata), `JoySx.VirpilZObj` (con prolunga asse Z) |
 | `PULSANTI.DX\` | `BtnDx.Base`, `BtnDx.Grid16`, `BtnDx.Panel` |
 | `PULSANTI.SX\` | `BtnSx.Grid16`, `BtnSx.Panel` |
+| `MANETTE\` | manette (throttle): `Thr.Base` (base comune `TThrottleModel`: base, leva, impugnatura con hat, mini-stick e 6 pulsanti, disegnati da codice), `ThrDx.Generic` (destra), `ThrSx.Generic` (sinistra, specchiata) |
 | `SKINS\` | RSI, Origin, Drake, Anvil, Aegis, MISC, Crusader, Argo, CNOU, Tumbril |
 | `OBJ\` | modelli 3D reali in stile ologramma (`.obj`) e posizione dei comandi (`.ini`) |
 | `TOOLS\` | `holo_prep.py` per preparare i modelli 3D generati da una foto (il workflow ComfyUI resta privato, escluso dal repository); `lang_extract.py` per i file di lingua |
@@ -67,6 +68,7 @@ All'avvio HoloInput controlla (in background, con l'API di GitHub) l'ultima rele
 - **Log** (Setup): resoconto del rilevamento dispositivi (joystick e pulsantiere WinMM ID 0–15 con nome, assi, pulsanti e POV, e per ognuno se è letto anche in background tramite HID e con quali assi; slot XInput 1–4; tastiera e mouse di sistema; widget visibili con il dispositivo assegnato, segnalando con ATTENZIONE quelli non collegati). Il pulsante **Esegui scansione** azzera il log ed esegue una nuova scansione; una prima scansione parte all'apertura del Setup.
 - Nella pagina **Dispositivi** la colonna **Dispositivo sorgente** permette di scegliere, per ogni widget (tranne tastiera e mouse), il dispositivo hardware tra quelli rilevati dall'ultima scansione (joystick e pulsantiere per ID WinMM, gamepad per slot XInput). La scelta si salva in `HoloInput.ini` (chiave `Dispositivo`) e la pagina **Log** mostra quale dispositivo usa ogni widget.
 - **Ampiezza del movimento dei joystick** (Setup, pagina **Ampiezza**): per ogni joystick e per ogni asse si imposta l'angolo totale di escursione in gradi (0–180). Con 60° l'asse a fine corsa va da −30° a +30° rispetto al centro. X = inclinazione sinistra/destra, Y = avanti/indietro, Z = rotazione dell'impugnatura (twist); predefiniti X 36°, Y 36°, Z 50°. Accanto a ogni asse il menu **Inverti** (Si/No) ne rovescia il verso. Si salva nel .ini (`AmpiezzaX`, `AmpiezzaY`, `AmpiezzaZ`, `InvertiX`, `InvertiY`, `InvertiZ`).
+- **Manette** (widget *Manetta sinistra* e *Manetta destra*, nascosti di default): lette come joystick (ID WinMM, anche in background via HID). Nel campo **Assi XYZ** il primo numero è la **leva**, il secondo e il terzo il **mini-stick** (sinistra/destra, su/giù); predefinito `2,0,1`. Hat dal POV, pulsanti 1–6 a partire dal **1° puls.** In pagina **Ampiezza** il riquadro **Manette** imposta l'ampiezza della leva (predefinita 60°) e del mini-stick (40°) e il menu **Inverti** di ogni asse (usano `AmpiezzaX/Y/Z` e `InvertiX/Y/Z` della sezione del widget).
 - **Stile dei widget** (Setup, pagina **Generale**, riquadro *Stile dei widget*): **Pannello** (sfondo, cornice, titolo e stato) oppure **Solo dispositivo**: resta visibile solo il modello 3D su sfondo completamente trasparente (anche nel fotogramma per OBS). In questo stile titolo, cornice tratteggiata e maniglie compaiono solo con il layout sbloccato e solo quando il mouse è sopra il widget; per poterlo afferrare anche nelle zone vuote il widget ha una velatura invisibile (sui pixel del tutto trasparenti i click passerebbero sotto). L'avviso compare solo se il dispositivo non è collegato. La casella **Effetti di base** mostra o nasconde gli anelli del proiettore e la linea di scansione. Si salvano nel .ini (`StileWidget` = `Pannello` / `SoloDispositivo`, `EffettiBase`); il pulsante **Default** li riporta a Pannello con effetti di base.
 - **Nascondi i widget inattivi** (Setup, pagina **Generale**, riquadro Opzioni): se attivo, il widget di un dispositivo scompare con una dissolvenza dopo il numero di secondi scelto (1–600, predefinito 5) senza input da quel dispositivo, e ricompare al primo input. Contano come input: un tasto della tastiera; un pulsante, un movimento o la rotella del mouse; un pulsante, un grilletto o una levetta del gamepad; un pulsante, il POV o un asse in movimento del joystick (un asse fermo, come una manetta in posizione, non conta); un pulsante della pulsantiera a partire dal primo pulsante usato. Con il layout sbloccato i widget restano sempre visibili; nei fotogrammi di OBS i widget nascosti non compaiono. Chiavi `NascondiInattivi` e `NascondiDopoSecondi` in `[Generale]`.
 - **Modalità streamer**: nasconde i pulsanti della barra comandi; resta solo l'etichetta con il tasto rapido (`Ctrl+Alt+F9`) per farli ricomparire. Anche `Ctrl+Alt+F11` (Setup) spegne la modalità streamer: alla chiusura del Setup barra comandi ed etichetta sottostante sono di nuovo visibili.
@@ -106,7 +108,7 @@ GNU GPL v3 con termini aggiuntivi della sezione 7 (file [LICENSE](LICENSE)): obb
 
 ## Aggiungere un dispositivo o una skin
 
-1. Creare la unit nella cartella giusta, derivando da `TKeyboardModel`, `TMouseModel`, `TObjPadModel` (vedi "Gamepad 3D da file OBJ"), `TObjStickModel` (vedi "Joystick 3D da file OBJ"), `TButtonBoxModel` (o da `TSkin`).
+1. Creare la unit nella cartella giusta, derivando da `TKeyboardModel`, `TMouseModel`, `TObjPadModel` (vedi "Gamepad 3D da file OBJ"), `TObjStickModel` (vedi "Joystick 3D da file OBJ"), `TThrottleModel` (manette, `MANETTE\Thr.Base`), `TButtonBoxModel` (o da `TSkin`).
 2. Registrarla nella `initialization` con `RegisterModel(...)` / `RegisterSkin(...)`.
 3. Aggiungerla alla clausola `uses` di `HoloInput.dpr`. Compare da sola nel Setup.
 

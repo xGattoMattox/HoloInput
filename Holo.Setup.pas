@@ -17,7 +17,7 @@
 //**   DISPOSITIVI per ogni widget: visibilita', modello 3D, dispositivo
 //**               sorgente (scelto tra quelli rilevati), posizione, dimensioni, assi;
 //**   AMPIEZZA    ampiezza del movimento (gradi) e inversione (Si/No) di ogni asse
-//**               dei due joystick;
+//**               dei due joystick e delle due manette (leva e mini-stick);
 //**   MODALITA'   modalita' streamer (barra senza pulsanti) e modalita'
 //**               privacy (tastiera sempre nascosta);
 //**   LOG         log del rilevamento dispositivi e pulsante "Esegui scansione";
@@ -193,7 +193,8 @@ const
     OBS_ON_COLOR: TAlphaColor = $FF5FAE7A;    // cornice dello stato OBS: servizio attivo (verde tenue)
     OBS_OFF_COLOR: TAlphaColor = $FFA85C5C;   // cornice dello stato OBS: servizio fermo (rosso sbiadito)
     ROW_Y0 = 36;         // prima riga della tabella dispositivi (nella pagina)
-    ROW_DY = 36;
+    ROW_DY = 34;
+    DEV_ROWS = Ord(High(TDeviceKind)) + 1;   // righe della tabella dispositivi
     /// testi del setup: font di sistema, piu' leggibile; i titoli dei riquadri e
     /// dei pulsanti restano nel font olografico dell'app (HOLO_FONT)
     SETUP_FONT = 'Segoe UI';
@@ -553,7 +554,9 @@ end;
 //** contrassegno "SOLO BLOCCATO" (AddLockBadge), spiegato dalla legenda in basso.
 //** I controlli sono creati dentro la pagina corrente (FPage).
 //** Nella pagina Dispositivi la colonna "Dispositivo sorgente" e' sempre
-//** visibile: ogni widget sceglie il dispositivo tra quelli rilevati.
+//** visibile: ogni widget sceglie il dispositivo tra quelli rilevati. La
+//** pagina Ampiezza ha un riquadro per i joystick e uno per le manette (leva e
+//** mini-stick, con le stesse colonne ampiezza / Inverti).
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmSetup.BuildUI;
@@ -660,7 +663,7 @@ begin
     //** pagina DISPOSITIVI *********************************************************************************
     NewPage(1, Tr('setup.page.devices', 'Dispositivi'));
     // tabella dei widget in un riquadro
-    AddFrame(8, 0, FW, ROW_Y0 + 7 * ROW_DY + 8);
+    AddFrame(8, 0, FW, ROW_Y0 + DEV_ROWS * ROW_DY + 8);
     Y := 10;
     AddLabel(20, Y, 170, Tr('setup.dev.col.visible', 'Visibile / tipo'), 10);
     AddLabel(200, Y, 240, Tr('setup.dev.col.model', 'Modello 3D'), 10);
@@ -696,15 +699,16 @@ begin
     end;
 
     // spiegazione della colonna "Assi XYZ" (cornice creata prima dei testi)
-    Y := ROW_Y0 + 7 * ROW_DY + 20;
+    Y := ROW_Y0 + DEV_ROWS * ROW_DY + 20;
     AddFrame(8, Y, FW, 146);
     AddLabel(20, Y + 10, 520, Tr('setup.dev.axes.title', 'ASSI XYZ'), 12, True);
     AddText(20, Y + 34, 1100, 108, Tr('setup.dev.axes.text',
         'Tre indici separati da virgola: dicono quale asse fisico del dispositivo muove ogni ' +
         'movimento del modello 3D, nell''ordine' + sLineBreak +
-        '   primo numero    = X  inclinazione sinistra / destra' + sLineBreak +
-        '   secondo numero  = Y  inclinazione avanti / indietro' + sLineBreak +
-        '   terzo numero    = Z  rotazione dell''impugnatura (twist)' + sLineBreak +
+        '   joystick:  X inclinazione sinistra / destra,  Y inclinazione avanti / indietro,  ' +
+        'Z rotazione dell''impugnatura (twist)' + sLineBreak +
+        '   manette:   leva avanti / indietro,  mini-stick sinistra / destra,  mini-stick su / giu''' +
+        sLineBreak +
         'Indici degli assi di Windows: 0 = X   1 = Y   2 = Z   3 = R   4 = U   5 = V.' + sLineBreak +
         'Esempio "0,1,3": X dall''asse X, Y dall''asse Y, twist dall''asse R. Se il twist ' +
         'dello stick e'' sull''asse Z scrivere "0,1,2".' + sLineBreak +
@@ -715,8 +719,8 @@ begin
     AddFrame(8, Y, FW, 90);
     AddLabel(20, Y + 8, 520, Tr('setup.dev.cols.title', 'ALTRE COLONNE'), 12, True);
     AddText(20, Y + 32, 1100, 54, Tr('setup.dev.cols.text',
-        '1' + #$00B0 + ' puls. (solo pulsantiere): numero del pulsante del dispositivo da cui la ' +
-        'pulsantiera comincia a leggere. Con 1 il primo tasto del modello 3D e'' il pulsante 1; con 17 ' +
+        '1' + #$00B0 + ' puls. (pulsantiere e manette): numero del pulsante del dispositivo da cui il ' +
+        'modello comincia a leggere. Con 1 il primo tasto del modello 3D e'' il pulsante 1; con 17 ' +
         'una pulsantiera da 16 tasti mostra i pulsanti 17-32 (per dividere tra due pulsantiere un ' +
         'dispositivo con 32 pulsanti, o per mostrare i pulsanti della base di un joystick).' + sLineBreak +
         'X / Y (posizione sullo schermo): modificabili solo con il layout Personalizzato.'));
@@ -772,6 +776,39 @@ begin
     AddLabel(280, Y + 24, 800,
         Format(Tr('setup.amp.defaults.hint', 'X %d' + #$00B0 + '   Y %d' + #$00B0 + '   Z %d' + #$00B0 +
         '   (non salvate finche'' non si preme Salva)'), [DEF_RANGE_X, DEF_RANGE_Y, DEF_RANGE_Z]), 10);
+
+    // riquadro con le impostazioni delle due manette (leva e mini-stick)
+    AddFrame(8, 386, FW, 150);
+    AddLabel(20, 396, 400, Tr('setup.amp.thr.title', 'MANETTE'), 13, True);
+    AddLabel(560, 400, 560, Format(Tr('setup.amp.thr.defaults', 'predefinite: leva %d' + #$00B0 +
+        ', mini-stick %d' + #$00B0), [DEF_THR_LEVER, DEF_THR_MINI]), 10);
+    AddLabel(20, 426, 170, Tr('setup.amp.col.throttle', 'Manetta'), 10);
+    AddLabel(RANGE_COL[0], 426, 125, Tr('setup.amp.col.lever', 'Leva  avanti / indietro'), 10);
+    AddLabel(RANGE_COL[1], 426, 125, Tr('setup.amp.col.ministickx', 'Mini-stick  sx / dx'), 10);
+    AddLabel(RANGE_COL[2], 426, 125, Tr('setup.amp.col.ministicky', 'Mini-stick  su / giu'''), 10);
+    for I := 0 to 2 do
+        AddLabel(RANGE_COL[I] + INV_DX, 426, 80, Tr('setup.amp.col.invert', 'Inverti'), 10);
+    Y := 452;
+    for K in [dkThrLeft, dkThrRight] do
+    begin
+        AddLabel(20, Y + 2, 170, KindText(K));
+        for I := 0 to 2 do
+        begin
+            Boxes[I] := AddNumber(RANGE_COL[I], Y, 80, JOY_RANGE_MIN, JOY_RANGE_MAX);
+            AddLabel(RANGE_COL[I] + 84, Y + 2, 20, #$00B0);
+            Invs[I] := AddCombo(RANGE_COL[I] + INV_DX, Y, 64);
+            Invs[I].Items.Add(Tr('setup.amp.invert.no', 'No'));
+            Invs[I].Items.Add(Tr('setup.amp.invert.yes', 'Si'));
+            Invs[I].ItemIndex := 0;
+        end;
+        FRows[K].RangeX := Boxes[0];
+        FRows[K].RangeY := Boxes[1];
+        FRows[K].RangeZ := Boxes[2];
+        FRows[K].InvX := Invs[0];
+        FRows[K].InvY := Invs[1];
+        FRows[K].InvZ := Invs[2];
+        Y := Y + ROW_DY;
+    end;
 
     //** pagina MODALITA' ***********************************************************************************
     NewPage(3, Tr('setup.page.modes', 'Modalita'''));
@@ -1166,11 +1203,11 @@ end;
 //** Parametri di ingresso: AKind: TDeviceKind
 //** Parametri di uscita: nessuno
 //** Scopo: Abilitare solo i campi pertinenti di una riga.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: X/Y solo con il layout Personalizzato; assi, ampiezza e
-//** inversione del movimento (pagina Ampiezza) solo per i joystick; primo
-//** pulsante solo per le pulsantiere; tutto grigio se il widget non e'
+//** inversione del movimento (pagina Ampiezza) per joystick e manette; primo
+//** pulsante per pulsantiere e manette; tutto grigio se il widget non e'
 //** visibile. Con la modalita' privacy la riga della tastiera e' completamente
 //** bloccata (si riattiva solo spegnendo la modalita').
 //***********************************************************************************************************
@@ -1194,8 +1231,8 @@ begin
     R.Y.Enabled := IsOn and (FLayout.ItemIndex = Ord(lmCustom));
     R.W.Enabled := IsOn;
     R.H.Enabled := IsOn;
-    R.Axes.Enabled := IsOn and (AKind in [dkJoyLeft, dkJoyRight]);
-    R.Offset.Enabled := IsOn and (AKind in [dkBoxLeft, dkBoxRight]);
+    R.Axes.Enabled := IsOn and (AKind in [dkJoyLeft, dkJoyRight, dkThrLeft, dkThrRight]);
+    R.Offset.Enabled := IsOn and (AKind in [dkBoxLeft, dkBoxRight, dkThrLeft, dkThrRight]);
     if R.RangeX <> nil then
     begin
         R.RangeX.Enabled := IsOn;
@@ -1377,7 +1414,7 @@ end;
 //** Parametri di uscita: nessuno
 //** Scopo: Quando l'utente sceglie un altro modello, proporre la mappatura assi suggerita dal
 //**        modello (es. joystick Virpil: "0,1,2"; senza suggerimento: "0,1,3").
-//** Data Ultima Modifica: 02/10/2026
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: ignorato durante il caricamento dei valori, per non
 //** sovrascrivere la mappatura salvata nel .ini.
@@ -1398,7 +1435,7 @@ begin
     Axes := FRows[K].Models[C.ItemIndex].DefaultAxes;
     if Axes = '' then
         Axes := '0,1,3';
-    if K in [dkJoyLeft, dkJoyRight] then
+    if K in [dkJoyLeft, dkJoyRight, dkThrLeft, dkThrRight] then
         FRows[K].Axes.Text := Axes;
 end;
 
@@ -1469,9 +1506,9 @@ end;
 //** Nome procedura: TfrmSetup.BtnRangeDefaultsClick
 //** Parametri di ingresso: Sender: TObject
 //** Parametri di uscita: nessuno
-//** Scopo: Riportare l'ampiezza del movimento dei due joystick ai valori predefiniti (non salvati
-//**        finche' non si preme Salva).
-//** Data Ultima Modifica: 27/10/2026
+//** Scopo: Riportare l'ampiezza del movimento dei due joystick e delle due manette ai valori
+//**        predefiniti (non salvati finche' non si preme Salva).
+//** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: aggiorna solo i campi della pagina Ampiezza; il valore passa
 //** alla configurazione con ReadValues, quando si preme Salva.
@@ -1486,6 +1523,12 @@ begin
         FRows[K].RangeX.Value := DEF_RANGE_X;
         FRows[K].RangeY.Value := DEF_RANGE_Y;
         FRows[K].RangeZ.Value := DEF_RANGE_Z;
+    end;
+    for K in [dkThrLeft, dkThrRight] do
+    begin
+        FRows[K].RangeX.Value := DEF_THR_LEVER;
+        FRows[K].RangeY.Value := DEF_THR_MINI;
+        FRows[K].RangeZ.Value := DEF_THR_MINI;
     end;
 end;
 

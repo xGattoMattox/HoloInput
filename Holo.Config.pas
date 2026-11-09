@@ -34,7 +34,8 @@ type
 
     /// Tipologie di widget. L'ordine e' anche l'ordine di disposizione automatica
     /// (da sinistra a destra in orizzontale, dall'alto in basso in verticale).
-    TDeviceKind = (dkBoxLeft, dkJoyLeft, dkKeyboard, dkMouse, dkGamepad, dkJoyRight, dkBoxRight);
+    TDeviceKind = (dkBoxLeft, dkThrLeft, dkJoyLeft, dkKeyboard, dkMouse, dkGamepad, dkJoyRight, dkThrRight,
+        dkBoxRight);
 
     /// Aspetto dei widget:
     ///   wsPanel      : pannello con sfondo, cornice, titolo e stato del dispositivo;
@@ -54,10 +55,12 @@ const
     WidgetStyleIniText: array[TWidgetStyle] of string = ('Pannello', 'SoloDispositivo');
 
     KindIniKey: array[TDeviceKind] of string = (
-        'PulsantieraSX', 'JoystickSX', 'Tastiera', 'Mouse', 'Gamepad', 'JoystickDX', 'PulsantieraDX');
+        'PulsantieraSX', 'ManettaSX', 'JoystickSX', 'Tastiera', 'Mouse', 'Gamepad', 'JoystickDX',
+        'ManettaDX', 'PulsantieraDX');
 
     KindCaption: array[TDeviceKind] of string = (
-        'PULSANTIERA SX', 'JOYSTICK SX', 'TASTIERA', 'MOUSE', 'GAMEPAD', 'JOYSTICK DX', 'PULSANTIERA DX');
+        'PULSANTIERA SX', 'MANETTA SX', 'JOYSTICK SX', 'TASTIERA', 'MOUSE', 'GAMEPAD', 'JOYSTICK DX',
+        'MANETTA DX', 'PULSANTIERA DX');
 
     /// ampiezza totale del movimento dei joystick (gradi): 60 = da -30 a +30
     JOY_RANGE_MIN = 0;
@@ -65,6 +68,9 @@ const
     DEF_RANGE_X = 36;    // inclinazione sinistra/destra (rollio): +/-18
     DEF_RANGE_Y = 36;    // inclinazione avanti/indietro (beccheggio): +/-18
     DEF_RANGE_Z = 50;    // rotazione dell'impugnatura (twist): +/-25
+    /// manette (throttle): RangeX = leva, RangeY / RangeZ = mini-stick (gradi totali)
+    DEF_THR_LEVER = 60;  // leva avanti / indietro: +/-30
+    DEF_THR_MINI = 40;   // mini-stick: +/-20 per asse
 
     /// nascondi automaticamente i widget inattivi: secondi senza input prima di nasconderli
     AUTOHIDE_MIN = 1;
@@ -159,8 +165,8 @@ uses
 
 const
     /// Dimensioni predefinite dei widget (pixel).
-    DefWidgetW: array[TDeviceKind] of Integer = (240, 230, 560, 240, 300, 230, 240);
-    DefWidgetH: array[TDeviceKind] of Integer = (230, 300, 230, 230, 230, 300, 230);
+    DefWidgetW: array[TDeviceKind] of Integer = (240, 230, 230, 560, 240, 300, 230, 230, 240);
+    DefWidgetH: array[TDeviceKind] of Integer = (230, 300, 300, 230, 230, 230, 300, 300, 230);
     DefLayout = lmBottom;
     DefSkin = 'rsi';     // skin predefinita (RSI)
     DefWidgetStyle = wsPanel;
@@ -277,15 +283,17 @@ end;
 //** servizio OBS, con la risoluzione nativa del monitor) e, per ogni
 //** tipologia, modello, dimensioni, dispositivo e ampiezza del movimento
 //** (joystick) predefiniti. I joystick predefiniti sono Virpil, con assi
-//** "0,1,2" (twist sull'asse Z).
+//** "0,1,2" (twist sull'asse Z); le manette (nascoste) hanno la leva sull'asse
+//** Z e il mini-stick su X e Y ("2,0,1"), con le ampiezze delle manette.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TAppConfig.SetDefaults;
 const
     DefModel: array[TDeviceKind] of string = (
-        'btnsx.panel', 'joysx.virpilobj', 'kbd.iso100', 'mouse.gaming', 'pad.xboxobj', 'joydx.virpilobj', 'btndx.grid16');
-    DefVisible: array[TDeviceKind] of Boolean = (False, True, True, True, False, True, False);
-    DefDevice: array[TDeviceKind] of Integer = (3, 1, 0, 0, 0, 0, 2);
+        'btnsx.panel', 'thrsx.generic', 'joysx.virpilobj', 'kbd.iso100', 'mouse.gaming', 'pad.xboxobj',
+        'joydx.virpilobj', 'thrdx.generic', 'btndx.grid16');
+    DefVisible: array[TDeviceKind] of Boolean = (False, False, True, True, True, False, True, False, False);
+    DefDevice: array[TDeviceKind] of Integer = (3, 4, 1, 0, 0, 0, 0, 5, 2);
 var
     K: TDeviceKind;
 begin
@@ -338,6 +346,16 @@ begin
         Widgets[K].ButtonOffset := 0;
         Widgets[K].Zoom := 1;
         Widgets[K].PanY := 0;
+        // manette: leva sull'asse Z, mini-stick su X e Y (vedi Thr.Base)
+        if K in [dkThrLeft, dkThrRight] then
+        begin
+            Widgets[K].AxisX := 2;
+            Widgets[K].AxisY := 0;
+            Widgets[K].AxisZ := 1;
+            Widgets[K].RangeX := DEF_THR_LEVER;
+            Widgets[K].RangeY := DEF_THR_MINI;
+            Widgets[K].RangeZ := DEF_THR_MINI;
+        end;
     end;
 end;
 

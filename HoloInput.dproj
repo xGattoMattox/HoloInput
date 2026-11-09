@@ -184,6 +184,9 @@
         <DCCReference Include="PULSANTI.DX\BtnDx.Panel.pas"/>
         <DCCReference Include="PULSANTI.SX\BtnSx.Grid16.pas"/>
         <DCCReference Include="PULSANTI.SX\BtnSx.Panel.pas"/>
+        <DCCReference Include="MANETTE\Thr.Base.pas"/>
+        <DCCReference Include="MANETTE\ThrDx.Generic.pas"/>
+        <DCCReference Include="MANETTE\ThrSx.Generic.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

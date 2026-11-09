@@ -5,6 +5,10 @@ Versions follow the exe's version info (`Major.Year.Month.Day`).
 
 ## [Unreleased]
 
+### Added
+
+- **Throttles.** Two new widgets, *Left throttle* and *Right throttle* (hidden by default, turn them on in *Setup → Devices*), with a generic 3D throttle: the lever moves forward and back with the main axis, the mini-stick tilts with its two axes, the hat lights up in the pressed direction and 6 buttons press and light up. In *XYZ axes* the first number is the lever and the other two the mini-stick (default `2,0,1`); *Setup → Range* has a new *Throttles* box for the lever and mini-stick ranges and their *Invert* options.
+
 ## [0.2026.11.8] - 2026-11-08
 
 ### Added
