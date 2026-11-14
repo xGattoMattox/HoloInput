@@ -21,9 +21,9 @@ type
     protected
         class function Spec: TObjStickSpec; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
-        class function DefaultAxes: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
+        class function sDefaultAxes: string; override;
     end;
 
 implementation
@@ -34,7 +34,7 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TJoySxVirpilObj.ModelId
+//** Nome funzione: TJoySxVirpilObj.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Virpil Alpha Prime + WarBRD (3D) (SX)" (chiave salvata nel
@@ -42,7 +42,7 @@ uses
 //** Data Ultima Modifica: 18/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TJoySxVirpilObj.ModelId: string;
+class function TJoySxVirpilObj.sModelId: string;
 begin
     Result := 'joysx.virpilobj';
 end;
@@ -50,16 +50,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TJoySxVirpilObj.DisplayName
+//** Nome funzione: TJoySxVirpilObj.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Virpil Alpha Prime + WarBRD (3D) (SX)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TJoySxVirpilObj.DisplayName: string;
+class function TJoySxVirpilObj.sDisplayName: string;
 begin
-    Result := Tr('model.joysx.virpilobj', 'Virpil Alpha Prime + WarBRD (3D) (SX)');
+    Result := sTr('model.joysx.virpilobj', 'Virpil Alpha Prime + WarBRD (3D) (SX)');
 end;
 
 //***********************************************************************************************************
@@ -82,7 +82,7 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TJoySxVirpilObj.DefaultAxes
+//** Nome funzione: TJoySxVirpilObj.sDefaultAxes
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Mappatura assi proposta dal Setup quando si sceglie il modello: "0,1,2".
@@ -92,7 +92,7 @@ end;
 //** Windows (indice 2), non R: X = asse X, Y = asse Y, twist = asse Z.
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TJoySxVirpilObj.DefaultAxes: string;
+class function TJoySxVirpilObj.sDefaultAxes: string;
 begin
     Result := '0,1,2';
 end;

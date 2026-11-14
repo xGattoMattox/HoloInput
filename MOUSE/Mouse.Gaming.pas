@@ -21,8 +21,8 @@ type
     protected
         function HasSideButtons: Boolean; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -33,14 +33,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseGaming.ModelId
+//** Nome funzione: TMouseGaming.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Mouse gaming 5 tasti" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 07/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseGaming.ModelId: string;
+class function TMouseGaming.sModelId: string;
 begin
     Result := 'mouse.gaming';
 end;
@@ -48,16 +48,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseGaming.DisplayName
+//** Nome funzione: TMouseGaming.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Mouse gaming 5 tasti" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseGaming.DisplayName: string;
+class function TMouseGaming.sDisplayName: string;
 begin
-    Result := Tr('model.mouse.gaming', 'Mouse gaming 5 tasti');
+    Result := sTr('model.mouse.gaming', 'Mouse gaming 5 tasti');
 end;
 
 //***********************************************************************************************************

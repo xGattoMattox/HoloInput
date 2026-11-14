@@ -20,8 +20,8 @@ type
     protected
         procedure BuildPanel; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -32,14 +32,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnDxGrid16.ModelId
+//** Nome funzione: TBtnDxGrid16.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Griglia 4x4 (16 pulsanti)" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 08/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnDxGrid16.ModelId: string;
+class function TBtnDxGrid16.sModelId: string;
 begin
     Result := 'btndx.grid16';
 end;
@@ -47,16 +47,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnDxGrid16.DisplayName
+//** Nome funzione: TBtnDxGrid16.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Griglia 4x4 (16 pulsanti)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnDxGrid16.DisplayName: string;
+class function TBtnDxGrid16.sDisplayName: string;
 begin
-    Result := Tr('model.btndx.grid16', 'Griglia 4x4 (16 pulsanti)');
+    Result := sTr('model.btndx.grid16', 'Griglia 4x4 (16 pulsanti)');
 end;
 
 //***********************************************************************************************************
@@ -78,11 +78,11 @@ const
 var
     R, C: Integer;
 begin
-    Kit.RBox(Root, 0, 0.1, PANEL_Z, 6.2, 6.5, 0.4, hsDim, axZ, 0.03, 40, 6);
-    Kit.Box(Root, 0, 0.1, FACE_Z - 0.01, 5.9, 6.2, 0.02, hsGhost);
+    oKit.oRBox(oRoot, 0, 0.1, PANEL_Z, 6.2, 6.5, 0.4, hsDim, axZ, 0.03, 40, 6);
+    oKit.oBox(oRoot, 0, 0.1, FACE_Z - 0.01, 5.9, 6.2, 0.02, hsGhost);
     for R := 0 to 3 do
         for C := 0 to 3 do
-            AddPush(MX((C - 1.5) * STEP), (R - 1.5) * STEP - 0.1, 0.95, R * 4 + C,
+            AddPush(dMX((C - 1.5) * STEP), (R - 1.5) * STEP - 0.1, 0.95, R * 4 + C,
                 IntToStr(R * 4 + C + 1));
     SetExtent(6.2, 6.5, 1.2);
 end;

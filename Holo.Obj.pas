@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Obj
 //** Scopo: Modelli 3D reali (file OBJ preparati con TOOLS\holo_prep.py) disegnati in stile ologramma.
-//** Data Ultima Modifica: 15/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: il file OBJ contiene due oggetti:
 //**    o holo_fill   -> triangoli: riempimento traslucido
@@ -37,73 +37,74 @@ uses
 type
     /// Contenuto di un file OBJ olografico.
     THoloObjData = record
-        Verts: TArray<TPoint3D>;   // vertici usati dai triangoli (saldati)
-        Tris: TArray<Integer>;     // 3 indici per triangolo
-        Lines: TArray<TPoint3D>;   // coppie di punti: inizio e fine di ogni segmento
-        function IsEmpty: Boolean;
+        aVerts: TArray<TPoint3D>;   // vertici usati dai triangoli (saldati)
+        aTris: TArray<Integer>;     // 3 indici per triangolo
+        aLines: TArray<TPoint3D>;   // coppie di punti: inizio e fine di ogni segmento
+        function bIsEmpty: Boolean;
         /// Ingombro di triangoli e linee. False se il modello e' vuoto.
-        function GetBounds(out AMin, AMax: TPoint3D): Boolean;
-        /// P := P * AScale (componente per componente) + AOffset.
+        function bGetBounds(out rAMin, rAMax: TPoint3D): Boolean;
+        /// P := P * rAScale (componente per componente) + rAOffset.
         /// Uno o tre fattori negativi specchiano il modello.
-        procedure Transform(const AScale, AOffset: TPoint3D);
-        /// Cambio di assi: nuovo X = AX . P, nuovo Y = AY . P, nuovo Z = AZ . P
+        procedure Transform(const rAScale, rAOffset: TPoint3D);
+        /// Cambio di assi: nuovo X = rAAxisX . P, nuovo Y = rAAxisY . P, nuovo Z = rAAxisZ . P
         /// (righe di una matrice di rotazione, es. per mettere in piedi un gamepad).
-        procedure Reorient(const AX, AY, AZ: TPoint3D);
+        procedure Reorient(const rAAxisX, rAAxisY, rAAxisZ: TPoint3D);
     end;
 
     /// Mesh olografica: riempimento + spigoli vivi + contorno dinamico.
     THoloObjMesh = class(THoloLines)
     private
-        FStyle: THoloStyle;
-        FActive: Boolean;
-        FFillScale: Single;
-        FShowSilhouette: Boolean;
-        FTriVB: TVertexBuffer;
-        FTriIB: TIndexBuffer;
-        FSilIB: TIndexBuffer;
-        FSilCount: Integer;
-        FFaceN, FFaceC: TArray<TPoint3D>;
-        FEdgeA, FEdgeB, FEdgeF0, FEdgeF1: TArray<Integer>;
-        FFront: TArray<Boolean>;
-        FCamera: TCamera;
-        FLastCam: TPoint3D;
-        FHasCam: Boolean;
-        FCamTol: Single;
-        FIndexFormat: TIndexFormat;
-        procedure BuildFill(const AData: THoloObjData);
-        procedure BuildEdges(const AData: THoloObjData);
-        function FindCamera: TCamera;
+        eFStyle: THoloStyle;
+        bFActive: Boolean;
+        dFFillScale: Single;
+        bFShowSilhouette: Boolean;
+        oFTriVB: TVertexBuffer;
+        oFTriIB: TIndexBuffer;
+        oFSilIB: TIndexBuffer;
+        iFSilCount: Integer;
+        aFFaceN, aFFaceC: TArray<TPoint3D>;
+        aFEdgeA, aFEdgeB, aFEdgeF0, aFEdgeF1: TArray<Integer>;
+        aFFront: TArray<Boolean>;
+        oFCamera: TCamera;
+        rFLastCam: TPoint3D;
+        bFHasCam: Boolean;
+        dFCamTol: Single;
+        eFIndexFormat: TIndexFormat;
+        procedure BuildFill(const rAData: THoloObjData);
+        procedure BuildEdges(const rAData: THoloObjData);
+        function oFindCamera: TCamera;
         procedure UpdateSilhouette;
     protected
         procedure Render; override;
-        function LineColor: TAlphaColor; override;
-        function GetActive: Boolean; override;
-        procedure SetActive(const Value: Boolean); override;
+        function iLineColor: TAlphaColor; override;
+        function bGetActive: Boolean; override;
+        procedure SetActive(const bValue: Boolean); override;
     public
-        constructor CreateMesh(AKit: THoloKit; AParent: TFmxObject;
-            const AData: THoloObjData; AStyle: THoloStyle);
+        constructor CreateMesh(oAKit: THoloKit; oAParent: TFmxObject;
+            const rAData: THoloObjData; eAStyle: THoloStyle);
         destructor Destroy; override;
         /// Moltiplica l'opacita' del riempimento: le superfici reali hanno molti
         /// strati sovrapposti (davanti + dietro), quindi va tenuta bassa.
-        property FillScale: Single read FFillScale write FFillScale;
-        property ShowSilhouette: Boolean read FShowSilhouette write FShowSilhouette;
-        property Style: THoloStyle read FStyle;
+        property dFillScale: Single read dFFillScale write dFFillScale;
+        property bShowSilhouette: Boolean read bFShowSilhouette write bFShowSilhouette;
+        property eStyle: THoloStyle read eFStyle;
     end;
 
 /// Apre un file della cartella OBJ (o la risorsa NOME_EXT); nil se non esiste.
-function OpenHoloAsset(const AName, AExt: string): TStream;
+function oOpenHoloAsset(const sAName, sAExt: string): TStream;
 /// Legge un OBJ olografico da stream.
-function ParseHoloObj(AStream: TStream; out AData: THoloObjData): Boolean;
+function bParseHoloObj(oAStream: TStream; out rAData: THoloObjData): Boolean;
 /// Carica OBJ\nome.obj (o la risorsa NOME_OBJ).
-function LoadHoloObj(const AName: string; out AData: THoloObjData): Boolean;
+function bLoadHoloObj(const sAName: string; out rAData: THoloObjData): Boolean;
 /// Carica OBJ\nome.ini (o la risorsa NOME_INI); nil se non esiste.
-function LoadHoloObjIni(const AName: string): TMemIniFile;
+function oLoadHoloObjIni(const sAName: string): TMemIniFile;
 
 implementation
 
 uses
     // serve per espandere inline TVertexBuffer.SetVertices (hint H2443)
-    System.RTLConsts;
+    System.RTLConsts,
+    Holo.Lang;
 
 type
     TControl3DAccess = class(TControl3D);
@@ -113,169 +114,175 @@ type
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: OpenHoloAsset
-//** Parametri di ingresso: AName, AExt: string
+//** Nome funzione: oOpenHoloAsset
+//** Parametri di ingresso: sAName, sAExt: string
 //** Parametri di uscita: Result: TStream
 //** Scopo: Trovare un file accanto all'exe o, in alternativa, la risorsa.
-//** Data Ultima Modifica: 13/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: prova <exe>\OBJ\nome.ext; se manca cerca la risorsa
-//** RCDATA NOME_EXT (maiuscolo). Restituisce uno stream da liberare.
+//** RCDATA NOME_EXT (maiuscolo). Restituisce uno stream da liberare. Nome o
+//** estensione con un percorso (bIsSafeFileId) restituiscono nil.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function OpenHoloAsset(const AName, AExt: string): TStream;
+function oOpenHoloAsset(const sAName, sAExt: string): TStream;
 var
-    FileName, ResName: string;
+    sFileName, sResName: string;
 begin
     Result := nil;
-    FileName := ExtractFilePath(ParamStr(0)) + 'OBJ' + PathDelim + LowerCase(AName) + '.' + LowerCase(AExt);
-    if FileExists(FileName) then
+    if not bIsSafeFileId(sAName) or not bIsSafeFileId(sAExt) then
+        Exit;
+    sFileName := ExtractFilePath(ParamStr(0)) + 'OBJ' + PathDelim + LowerCase(sAName) + '.'
+        + LowerCase(sAExt);
+    if FileExists(sFileName) then
     begin
         try
-            Result := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+            Result := TFileStream.Create(sFileName, fmOpenRead or fmShareDenyWrite);
             Exit;
         except
             Result := nil;
         end;
     end;
-    ResName := UpperCase(AName + '_' + AExt);
-    if FindResource(HInstance, PChar(ResName), RT_RCDATA) <> 0 then
-        Result := TResourceStream.Create(HInstance, ResName, RT_RCDATA);
+    sResName := UpperCase(sAName + '_' + sAExt);
+    if FindResource(HInstance, PChar(sResName), RT_RCDATA) <> 0 then
+        Result := TResourceStream.Create(HInstance, sResName, RT_RCDATA);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloObjData.IsEmpty
+//** Nome funzione: THoloObjData.bIsEmpty
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il modello OBJ letto non contiene ne' triangoli ne' linee.
 //** Data Ultima Modifica: 13/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloObjData.IsEmpty: Boolean;
+function THoloObjData.bIsEmpty: Boolean;
 begin
-    Result := (Length(Tris) = 0) and (Length(Lines) = 0);
+    Result := (Length(aTris) = 0) and (Length(aLines) = 0);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloObjData.GetBounds
+//** Nome funzione: THoloObjData.bGetBounds
 //** Parametri di ingresso: nessuno
-//** Parametri di uscita: Result: Boolean; AMin, AMax: TPoint3D (out)
+//** Parametri di uscita: Result: Boolean; rAMin, rAMax: TPoint3D (out)
 //** Scopo: Calcolare l'ingombro (minimo e massimo) di tutti i punti.
 //** Data Ultima Modifica: 13/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloObjData.GetBounds(out AMin, AMax: TPoint3D): Boolean;
+function THoloObjData.bGetBounds(out rAMin, rAMax: TPoint3D): Boolean;
 var
-    First: Boolean;
+    bFirst: Boolean;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Grow
-    //** Parametri di ingresso: P: TPoint3D
+    //** Parametri di ingresso: rAPoint: TPoint3D
     //** Parametri di uscita: nessuno
     //** Scopo: Allargare l'ingombro minimo/massimo per includere un punto.
     //** Data Ultima Modifica: 13/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Grow(const P: TPoint3D);
+    procedure Grow(const rAPoint: TPoint3D);
     begin
-        if First then
+        if bFirst then
         begin
-            AMin := P;
-            AMax := P;
-            First := False;
+            rAMin := rAPoint;
+            rAMax := rAPoint;
+            bFirst := False;
         end
         else
         begin
-            AMin := Point3D(Min(AMin.X, P.X), Min(AMin.Y, P.Y), Min(AMin.Z, P.Z));
-            AMax := Point3D(Max(AMax.X, P.X), Max(AMax.Y, P.Y), Max(AMax.Z, P.Z));
+            rAMin := Point3D(Min(rAMin.X, rAPoint.X), Min(rAMin.Y, rAPoint.Y), Min(rAMin.Z, rAPoint.Z));
+            rAMax := Point3D(Max(rAMax.X, rAPoint.X), Max(rAMax.Y, rAPoint.Y), Max(rAMax.Z, rAPoint.Z));
         end;
     end;
 
 var
-    P: TPoint3D;
+    rVert: TPoint3D;
 begin
-    First := True;
-    AMin := Point3D(0, 0, 0);
-    AMax := AMin;
-    for P in Verts do
-        Grow(P);
-    for P in Lines do
-        Grow(P);
-    Result := not First;
+    bFirst := True;
+    rAMin := Point3D(0, 0, 0);
+    rAMax := rAMin;
+    for rVert in aVerts do
+        Grow(rVert);
+    for rVert in aLines do
+        Grow(rVert);
+    Result := not bFirst;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjData.Transform
-//** Parametri di ingresso: AScale, AOffset: TPoint3D
+//** Parametri di ingresso: rAScale, rAOffset: TPoint3D
 //** Parametri di uscita: nessuno
 //** Scopo: Scalare/specchiare e spostare tutti i punti del modello.
 //** Data Ultima Modifica: 13/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloObjData.Transform(const AScale, AOffset: TPoint3D);
+procedure THoloObjData.Transform(const rAScale, rAOffset: TPoint3D);
 var
-    I: Integer;
+    iVert: Integer;
 begin
-    for I := 0 to High(Verts) do
-        Verts[I] := Point3D(Verts[I].X * AScale.X + AOffset.X, Verts[I].Y * AScale.Y + AOffset.Y,
-            Verts[I].Z * AScale.Z + AOffset.Z);
-    for I := 0 to High(Lines) do
-        Lines[I] := Point3D(Lines[I].X * AScale.X + AOffset.X, Lines[I].Y * AScale.Y + AOffset.Y,
-            Lines[I].Z * AScale.Z + AOffset.Z);
+    for iVert := 0 to High(aVerts) do
+        aVerts[iVert] := Point3D(aVerts[iVert].X * rAScale.X + rAOffset.X, aVerts[iVert].Y * rAScale.Y
+            + rAOffset.Y,
+            aVerts[iVert].Z * rAScale.Z + rAOffset.Z);
+    for iVert := 0 to High(aLines) do
+        aLines[iVert] := Point3D(aLines[iVert].X * rAScale.X + rAOffset.X, aLines[iVert].Y * rAScale.Y
+            + rAOffset.Y,
+            aLines[iVert].Z * rAScale.Z + rAOffset.Z);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjData.Reorient
-//** Parametri di ingresso: AX, AY, AZ: TPoint3D
+//** Parametri di ingresso: rAAxisX, rAAxisY, rAAxisZ: TPoint3D
 //** Parametri di uscita: nessuno
 //** Scopo: Ruotare tutti i punti con una matrice data per righe.
 //** Data Ultima Modifica: 13/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloObjData.Reorient(const AX, AY, AZ: TPoint3D);
+procedure THoloObjData.Reorient(const rAAxisX, rAAxisY, rAAxisZ: TPoint3D);
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: Rot
-    //** Parametri di ingresso: P: TPoint3D
+    //** Nome funzione: rRot
+    //** Parametri di ingresso: rAPoint: TPoint3D
     //** Parametri di uscita: Result: TPoint3D
     //** Scopo: Ruotare un punto con la matrice formata dai tre assi indicati.
     //** Data Ultima Modifica: 13/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function Rot(const P: TPoint3D): TPoint3D;
+    function rRot(const rAPoint: TPoint3D): TPoint3D;
     begin
-        Result := Point3D(AX.X * P.X + AX.Y * P.Y + AX.Z * P.Z,
-                          AY.X * P.X + AY.Y * P.Y + AY.Z * P.Z,
-                          AZ.X * P.X + AZ.Y * P.Y + AZ.Z * P.Z);
+        Result := Point3D(rAAxisX.X * rAPoint.X + rAAxisX.Y * rAPoint.Y + rAAxisX.Z * rAPoint.Z,
+                          rAAxisY.X * rAPoint.X + rAAxisY.Y * rAPoint.Y + rAAxisY.Z * rAPoint.Z,
+                          rAAxisZ.X * rAPoint.X + rAAxisZ.Y * rAPoint.Y + rAAxisZ.Z * rAPoint.Z);
     end;
 
 var
-    I: Integer;
+    iVert: Integer;
 begin
-    for I := 0 to High(Verts) do
-        Verts[I] := Rot(Verts[I]);
-    for I := 0 to High(Lines) do
-        Lines[I] := Rot(Lines[I]);
+    for iVert := 0 to High(aVerts) do
+        aVerts[iVert] := rRot(aVerts[iVert]);
+    for iVert := 0 to High(aLines) do
+        aLines[iVert] := rRot(aLines[iVert]);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: ParseHoloObj
-//** Parametri di ingresso: AStream: TStream
-//** Parametri di uscita: Result: Boolean; AData: THoloObjData (out)
+//** Nome funzione: bParseHoloObj
+//** Parametri di ingresso: oAStream: TStream
+//** Parametri di uscita: Result: Boolean; rAData: THoloObjData (out)
 //** Scopo: Leggere un OBJ olografico.
 //** Data Ultima Modifica: 13/10/2026
 //***********************************************************************************************************
@@ -288,192 +295,192 @@ end;
 //**    la stessa posizione (serve al calcolo del contorno).
 //***********************************************************************************************************
 //***********************************************************************************************************
-function ParseHoloObj(AStream: TStream; out AData: THoloObjData): Boolean;
+function bParseHoloObj(oAStream: TStream; out rAData: THoloObjData): Boolean;
 var
-    SL: TStringList;
-    FS: TFormatSettings;
-    All: TList<TPoint3D>;
-    Tris: TList<Integer>;
-    Lines: TList<TPoint3D>;
-    Remap: TArray<Integer>;
-    Weld: TDictionary<TPoint3D, Integer>;
-    Tok: TArray<string>;
-    Idx: TArray<Integer>;
-    S: string;
-    I, K, N, V: Integer;
+    oTextLines: TStringList;
+    rFormat: TFormatSettings;
+    oAll: TList<TPoint3D>;
+    oTris: TList<Integer>;
+    oLines: TList<TPoint3D>;
+    aRemap: TArray<Integer>;
+    oWeld: TDictionary<TPoint3D, Integer>;
+    aTok: TArray<string>;
+    aIdx: TArray<Integer>;
+    sLine: string;
+    iIndex, iToken, iCount, iVert: Integer;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: VertIndex
-    //** Parametri di ingresso: T: string
+    //** Nome funzione: iVertIndex
+    //** Parametri di ingresso: sAToken: string
     //** Parametri di uscita: Result: Integer
     //** Scopo: Ricavare l'indice (base 0) del vertice da un elemento di faccia OBJ del tipo v, v/vt
     //**        o v/vt/vn.
     //** Data Ultima Modifica: 13/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function VertIndex(const T: string): Integer;
+    function iVertIndex(const sAToken: string): Integer;
     var
-        P: Integer;
-        Num: string;
+        iSlash: Integer;
+        sNum: string;
     begin
-        P := Pos('/', T);
-        if P > 0 then
-            Num := Copy(T, 1, P - 1)
+        iSlash := Pos('/', sAToken);
+        if iSlash > 0 then
+            sNum := Copy(sAToken, 1, iSlash - 1)
         else
-            Num := T;
-        Result := StrToIntDef(Num, 0);
+            sNum := sAToken;
+        Result := StrToIntDef(sNum, 0);
         if Result > 0 then
             Dec(Result)
         else if Result < 0 then
-            Result := All.Count + Result
+            Result := oAll.Count + Result
         else
             Result := -1;
-        if Result >= All.Count then
+        if Result >= oAll.Count then
             Result := -1;
     end;
 
 begin
-    AData := Default(THoloObjData);
+    rAData := Default(THoloObjData);
     Result := False;
-    if AStream = nil then
+    if oAStream = nil then
         Exit;
-    FS := TFormatSettings.Invariant;
-    SL := TStringList.Create;
-    All := TList<TPoint3D>.Create;
-    Tris := TList<Integer>.Create;
-    Lines := TList<TPoint3D>.Create;
-    Weld := TDictionary<TPoint3D, Integer>.Create;
+    rFormat := TFormatSettings.Invariant;
+    oTextLines := TStringList.Create;
+    oAll := TList<TPoint3D>.Create;
+    oTris := TList<Integer>.Create;
+    oLines := TList<TPoint3D>.Create;
+    oWeld := TDictionary<TPoint3D, Integer>.Create;
     try
-        SL.LoadFromStream(AStream, TEncoding.UTF8);
-        for S in SL do
+        oTextLines.LoadFromStream(oAStream, TEncoding.UTF8);
+        for sLine in oTextLines do
         begin
-            if (Length(S) < 2) or (S[1] = '#') then
+            if (Length(sLine) < 2) or (sLine[1] = '#') then
                 Continue;
-            Tok := S.Split([' ', #9], TStringSplitOptions.ExcludeEmpty);
-            if Length(Tok) < 2 then
+            aTok := sLine.Split([' ', #9], TStringSplitOptions.ExcludeEmpty);
+            if Length(aTok) < 2 then
                 Continue;
-            if Tok[0] = 'v' then
+            if aTok[0] = 'v' then
             begin
-                if Length(Tok) >= 4 then
-                    All.Add(Point3D(StrToFloatDef(Tok[1], 0, FS), StrToFloatDef(Tok[2], 0, FS),
-                        StrToFloatDef(Tok[3], 0, FS)));
+                if Length(aTok) >= 4 then
+                    oAll.Add(Point3D(StrToFloatDef(aTok[1], 0, rFormat), StrToFloatDef(aTok[2], 0, rFormat),
+                        StrToFloatDef(aTok[3], 0, rFormat)));
             end
-            else if (Tok[0] = 'f') or (Tok[0] = 'l') then
+            else if (aTok[0] = 'f') or (aTok[0] = 'l') then
             begin
-                SetLength(Idx, Length(Tok) - 1);
-                N := 0;
-                for K := 1 to High(Tok) do
+                SetLength(aIdx, Length(aTok) - 1);
+                iCount := 0;
+                for iToken := 1 to High(aTok) do
                 begin
-                    V := VertIndex(Tok[K]);
-                    if V >= 0 then
+                    iVert := iVertIndex(aTok[iToken]);
+                    if iVert >= 0 then
                     begin
-                        Idx[N] := V;
-                        Inc(N);
+                        aIdx[iCount] := iVert;
+                        Inc(iCount);
                     end;
                 end;
-                if Tok[0] = 'f' then
-                    for K := 1 to N - 2 do
+                if aTok[0] = 'f' then
+                    for iToken := 1 to iCount - 2 do
                     begin
-                        Tris.Add(Idx[0]);
-                        Tris.Add(Idx[K]);
-                        Tris.Add(Idx[K + 1]);
+                        oTris.Add(aIdx[0]);
+                        oTris.Add(aIdx[iToken]);
+                        oTris.Add(aIdx[iToken + 1]);
                     end
                 else
-                    for K := 0 to N - 2 do
+                    for iToken := 0 to iCount - 2 do
                     begin
-                        Lines.Add(All[Idx[K]]);
-                        Lines.Add(All[Idx[K + 1]]);
+                        oLines.Add(oAll[aIdx[iToken]]);
+                        oLines.Add(oAll[aIdx[iToken + 1]]);
                     end;
             end;
         end;
 
         // solo i vertici dei triangoli, saldati per posizione
-        SetLength(Remap, All.Count);
-        for I := 0 to High(Remap) do
-            Remap[I] := -1;
-        SetLength(AData.Verts, All.Count);
-        N := 0;
-        SetLength(AData.Tris, Tris.Count);
-        for I := 0 to Tris.Count - 1 do
+        SetLength(aRemap, oAll.Count);
+        for iIndex := 0 to High(aRemap) do
+            aRemap[iIndex] := -1;
+        SetLength(rAData.aVerts, oAll.Count);
+        iCount := 0;
+        SetLength(rAData.aTris, oTris.Count);
+        for iIndex := 0 to oTris.Count - 1 do
         begin
-            V := Tris[I];
-            if Remap[V] < 0 then
+            iVert := oTris[iIndex];
+            if aRemap[iVert] < 0 then
             begin
-                if not Weld.TryGetValue(All[V], K) then
+                if not oWeld.TryGetValue(oAll[iVert], iToken) then
                 begin
-                    K := N;
-                    AData.Verts[N] := All[V];
-                    Inc(N);
-                    Weld.Add(All[V], K);
+                    iToken := iCount;
+                    rAData.aVerts[iCount] := oAll[iVert];
+                    Inc(iCount);
+                    oWeld.Add(oAll[iVert], iToken);
                 end;
-                Remap[V] := K;
+                aRemap[iVert] := iToken;
             end;
-            AData.Tris[I] := Remap[V];
+            rAData.aTris[iIndex] := aRemap[iVert];
         end;
-        SetLength(AData.Verts, N);
-        AData.Lines := Lines.ToArray;
-        Result := not AData.IsEmpty;
+        SetLength(rAData.aVerts, iCount);
+        rAData.aLines := oLines.ToArray;
+        Result := not rAData.bIsEmpty;
     finally
-        Weld.Free;
-        Lines.Free;
-        Tris.Free;
-        All.Free;
-        SL.Free;
+        oWeld.Free;
+        oLines.Free;
+        oTris.Free;
+        oAll.Free;
+        oTextLines.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: LoadHoloObj
-//** Parametri di ingresso: AName: string
-//** Parametri di uscita: Result: Boolean; AData: THoloObjData (out)
+//** Nome funzione: bLoadHoloObj
+//** Parametri di ingresso: sAName: string
+//** Parametri di uscita: Result: Boolean; rAData: THoloObjData (out)
 //** Scopo: Caricare un OBJ olografico per nome (file o risorsa).
 //** Data Ultima Modifica: 14/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function LoadHoloObj(const AName: string; out AData: THoloObjData): Boolean;
+function bLoadHoloObj(const sAName: string; out rAData: THoloObjData): Boolean;
 var
-    St: TStream;
+    oStream: TStream;
 begin
-    AData := Default(THoloObjData);
-    St := OpenHoloAsset(AName, 'obj');
+    rAData := Default(THoloObjData);
+    oStream := oOpenHoloAsset(sAName, 'obj');
     try
-        Result := (St <> nil) and ParseHoloObj(St, AData);
+        Result := (oStream <> nil) and bParseHoloObj(oStream, rAData);
     finally
-        St.Free;
+        oStream.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: LoadHoloObjIni
-//** Parametri di ingresso: AName: string
+//** Nome funzione: oLoadHoloObjIni
+//** Parametri di ingresso: sAName: string
 //** Parametri di uscita: Result: TMemIniFile
 //** Scopo: Caricare il file .ini di accompagnamento (posizione dei comandi).
 //** Data Ultima Modifica: 14/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function LoadHoloObjIni(const AName: string): TMemIniFile;
+function oLoadHoloObjIni(const sAName: string): TMemIniFile;
 var
-    St: TStream;
-    SL: TStringList;
+    oStream: TStream;
+    oLines: TStringList;
 begin
     Result := nil;
-    St := OpenHoloAsset(AName, 'ini');
-    if St = nil then
+    oStream := oOpenHoloAsset(sAName, 'ini');
+    if oStream = nil then
         Exit;
-    SL := TStringList.Create;
+    oLines := TStringList.Create;
     try
-        SL.LoadFromStream(St, TEncoding.UTF8);
+        oLines.LoadFromStream(oStream, TEncoding.UTF8);
         Result := TMemIniFile.Create('');
-        Result.SetStrings(SL);
+        Result.SetStrings(oLines);
     finally
-        SL.Free;
-        St.Free;
+        oLines.Free;
+        oStream.Free;
     end;
 end;
 
@@ -483,34 +490,34 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjMesh.CreateMesh
-//** Parametri di ingresso: AKit: THoloKit; AParent: TFmxObject; AData: THoloObjData; AStyle:
+//** Parametri di ingresso: oAKit: THoloKit; oAParent: TFmxObject; rAData: THoloObjData; eAStyle:
 //**                        THoloStyle
 //** Parametri di uscita: nuova istanza della classe
-//** Scopo: Creare la mesh olografica sotto AParent.
+//** Scopo: Creare la mesh olografica sotto oAParent.
 //** Data Ultima Modifica: 14/10/2026
 //***********************************************************************************************************
 //** Funzionamento: prepara i buffer del riempimento, la tabella degli spigoli
 //** per il contorno e le linee degli spigoli vivi.
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor THoloObjMesh.CreateMesh(AKit: THoloKit; AParent: TFmxObject;
-    const AData: THoloObjData; AStyle: THoloStyle);
+constructor THoloObjMesh.CreateMesh(oAKit: THoloKit; oAParent: TFmxObject;
+    const rAData: THoloObjData; eAStyle: THoloStyle);
 begin
     inherited Create(nil);
-    AttachKit(AKit);
-    FStyle := AStyle;
-    FFillScale := 0.35;
-    FShowSilhouette := True;
+    AttachKit(oAKit);
+    eFStyle := eAStyle;
+    dFFillScale := 0.35;
+    bFShowSilhouette := True;
     TControl3DAccess(Self).HitTest := False;
     ZWrite := False;
-    Parent := AParent;
-    if Length(AData.Verts) > 65000 then
-        FIndexFormat := TIndexFormat.UInt32
+    Parent := oAParent;
+    if Length(rAData.aVerts) > 65000 then
+        eFIndexFormat := TIndexFormat.UInt32
     else
-        FIndexFormat := TIndexFormat.UInt16;
-    BuildFill(AData);
-    BuildEdges(AData);
-    SetLines(AData.Lines);
+        eFIndexFormat := TIndexFormat.UInt16;
+    BuildFill(rAData);
+    BuildEdges(rAData);
+    SetLines(rAData.aLines);
 end;
 
 //***********************************************************************************************************
@@ -525,9 +532,9 @@ end;
 //***********************************************************************************************************
 destructor THoloObjMesh.Destroy;
 begin
-    FreeAndNil(FTriVB);
-    FreeAndNil(FTriIB);
-    FreeAndNil(FSilIB);
+    FreeAndNil(oFTriVB);
+    FreeAndNil(oFTriIB);
+    FreeAndNil(oFSilIB);
     inherited;
 end;
 
@@ -535,7 +542,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjMesh.BuildFill
-//** Parametri di ingresso: AData: THoloObjData
+//** Parametri di ingresso: rAData: THoloObjData
 //** Parametri di uscita: nessuno
 //** Scopo: Buffer dei triangoli e dati per orientamento delle facce.
 //** Data Ultima Modifica: 14/10/2026
@@ -545,34 +552,35 @@ end;
 //** normale e baricentro, usati per sapere se e' rivolta verso la camera.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloObjMesh.BuildFill(const AData: THoloObjData);
+procedure THoloObjMesh.BuildFill(const rAData: THoloObjData);
 var
-    I, NT: Integer;
-    A, B, C: TPoint3D;
+    iIndex, iTriCount: Integer;
+    rPointA, rPointB, rPointC: TPoint3D;
 begin
-    NT := Length(AData.Tris) div 3;
-    if (NT = 0) or (Length(AData.Verts) = 0) then
+    iTriCount := Length(rAData.aTris) div 3;
+    if (iTriCount = 0) or (Length(rAData.aVerts) = 0) then
         Exit;
-    FTriVB := TVertexBuffer.Create([TVertexFormat.Vertex], Length(AData.Verts));
-    for I := 0 to High(AData.Verts) do
-        FTriVB.Vertices[I] := AData.Verts[I];
-    FTriIB := TIndexBuffer.Create(NT * 6, FIndexFormat);
-    SetLength(FFaceN, NT);
-    SetLength(FFaceC, NT);
-    SetLength(FFront, NT);
-    for I := 0 to NT - 1 do
+    oFTriVB := TVertexBuffer.Create([TVertexFormat.Vertex], Length(rAData.aVerts));
+    for iIndex := 0 to High(rAData.aVerts) do
+        oFTriVB.Vertices[iIndex] := rAData.aVerts[iIndex];
+    oFTriIB := TIndexBuffer.Create(iTriCount * 6, eFIndexFormat);
+    SetLength(aFFaceN, iTriCount);
+    SetLength(aFFaceC, iTriCount);
+    SetLength(aFFront, iTriCount);
+    for iIndex := 0 to iTriCount - 1 do
     begin
-        FTriIB.Indices[I * 6] := AData.Tris[I * 3];
-        FTriIB.Indices[I * 6 + 1] := AData.Tris[I * 3 + 1];
-        FTriIB.Indices[I * 6 + 2] := AData.Tris[I * 3 + 2];
-        FTriIB.Indices[I * 6 + 3] := AData.Tris[I * 3];
-        FTriIB.Indices[I * 6 + 4] := AData.Tris[I * 3 + 2];
-        FTriIB.Indices[I * 6 + 5] := AData.Tris[I * 3 + 1];
-        A := AData.Verts[AData.Tris[I * 3]];
-        B := AData.Verts[AData.Tris[I * 3 + 1]];
-        C := AData.Verts[AData.Tris[I * 3 + 2]];
-        FFaceN[I] := (B - A).CrossProduct(C - A);
-        FFaceC[I] := Point3D((A.X + B.X + C.X) / 3, (A.Y + B.Y + C.Y) / 3, (A.Z + B.Z + C.Z) / 3);
+        oFTriIB.Indices[iIndex * 6] := rAData.aTris[iIndex * 3];
+        oFTriIB.Indices[iIndex * 6 + 1] := rAData.aTris[iIndex * 3 + 1];
+        oFTriIB.Indices[iIndex * 6 + 2] := rAData.aTris[iIndex * 3 + 2];
+        oFTriIB.Indices[iIndex * 6 + 3] := rAData.aTris[iIndex * 3];
+        oFTriIB.Indices[iIndex * 6 + 4] := rAData.aTris[iIndex * 3 + 2];
+        oFTriIB.Indices[iIndex * 6 + 5] := rAData.aTris[iIndex * 3 + 1];
+        rPointA := rAData.aVerts[rAData.aTris[iIndex * 3]];
+        rPointB := rAData.aVerts[rAData.aTris[iIndex * 3 + 1]];
+        rPointC := rAData.aVerts[rAData.aTris[iIndex * 3 + 2]];
+        aFFaceN[iIndex] := (rPointB - rPointA).CrossProduct(rPointC - rPointA);
+        aFFaceC[iIndex] := Point3D((rPointA.X + rPointB.X + rPointC.X) / 3, (rPointA.Y + rPointB.Y
+            + rPointC.Y) / 3, (rPointA.Z + rPointB.Z + rPointC.Z) / 3);
     end;
 end;
 
@@ -580,7 +588,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjMesh.BuildEdges
-//** Parametri di ingresso: AData: THoloObjData
+//** Parametri di ingresso: rAData: THoloObjData
 //** Parametri di uscita: nessuno
 //** Scopo: Tabella degli spigoli interni (condivisi da due triangoli).
 //** Data Ultima Modifica: 14/10/2026
@@ -590,95 +598,95 @@ end;
 //** di bordo (un solo triangolo) sono gia' nelle linee degli spigoli vivi.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloObjMesh.BuildEdges(const AData: THoloObjData);
+procedure THoloObjMesh.BuildEdges(const rAData: THoloObjData);
 var
-    Map: TDictionary<Int64, Integer>;
-    NT, T, K, A, B, E, N, Tmp, NI: Integer;
-    Key: Int64;
-    Lo, Hi: TPoint3D;
+    oMap: TDictionary<Int64, Integer>;
+    iTriCount, iTri, iCorner, iVertA, iVertB, iEdge, iEdgeCount, iTmp, iKeptCount: Integer;
+    iKey: Int64;
+    rBoundsMin, rBoundsMax: TPoint3D;
 begin
-    NT := Length(AData.Tris) div 3;
-    if NT = 0 then
+    iTriCount := Length(rAData.aTris) div 3;
+    if iTriCount = 0 then
         Exit;
-    SetLength(FEdgeA, NT * 3);
-    SetLength(FEdgeB, NT * 3);
-    SetLength(FEdgeF0, NT * 3);
-    SetLength(FEdgeF1, NT * 3);
-    N := 0;
-    Map := TDictionary<Int64, Integer>.Create(NT * 2);
+    SetLength(aFEdgeA, iTriCount * 3);
+    SetLength(aFEdgeB, iTriCount * 3);
+    SetLength(aFEdgeF0, iTriCount * 3);
+    SetLength(aFEdgeF1, iTriCount * 3);
+    iEdgeCount := 0;
+    oMap := TDictionary<Int64, Integer>.Create(iTriCount * 2);
     try
-        for T := 0 to NT - 1 do
-            for K := 0 to 2 do
+        for iTri := 0 to iTriCount - 1 do
+            for iCorner := 0 to 2 do
             begin
-                A := AData.Tris[T * 3 + K];
-                B := AData.Tris[T * 3 + (K + 1) mod 3];
-                if A > B then
+                iVertA := rAData.aTris[iTri * 3 + iCorner];
+                iVertB := rAData.aTris[iTri * 3 + (iCorner + 1) mod 3];
+                if iVertA > iVertB then
                 begin
-                    Tmp := A;
-                    A := B;
-                    B := Tmp;
+                    iTmp := iVertA;
+                    iVertA := iVertB;
+                    iVertB := iTmp;
                 end;
-                Key := (Int64(A) shl 32) or Int64(B);
-                if Map.TryGetValue(Key, E) then
+                iKey := (Int64(iVertA) shl 32) or Int64(iVertB);
+                if oMap.TryGetValue(iKey, iEdge) then
                 begin
-                    if FEdgeF1[E] < 0 then
-                        FEdgeF1[E] := T;
+                    if aFEdgeF1[iEdge] < 0 then
+                        aFEdgeF1[iEdge] := iTri;
                 end
                 else
                 begin
-                    FEdgeA[N] := A;
-                    FEdgeB[N] := B;
-                    FEdgeF0[N] := T;
-                    FEdgeF1[N] := -1;
-                    Map.Add(Key, N);
-                    Inc(N);
+                    aFEdgeA[iEdgeCount] := iVertA;
+                    aFEdgeB[iEdgeCount] := iVertB;
+                    aFEdgeF0[iEdgeCount] := iTri;
+                    aFEdgeF1[iEdgeCount] := -1;
+                    oMap.Add(iKey, iEdgeCount);
+                    Inc(iEdgeCount);
                 end;
             end;
     finally
-        Map.Free;
+        oMap.Free;
     end;
     // tiene solo gli spigoli con due facce
-    NI := 0;
-    for E := 0 to N - 1 do
-        if FEdgeF1[E] >= 0 then
+    iKeptCount := 0;
+    for iEdge := 0 to iEdgeCount - 1 do
+        if aFEdgeF1[iEdge] >= 0 then
         begin
-            FEdgeA[NI] := FEdgeA[E];
-            FEdgeB[NI] := FEdgeB[E];
-            FEdgeF0[NI] := FEdgeF0[E];
-            FEdgeF1[NI] := FEdgeF1[E];
-            Inc(NI);
+            aFEdgeA[iKeptCount] := aFEdgeA[iEdge];
+            aFEdgeB[iKeptCount] := aFEdgeB[iEdge];
+            aFEdgeF0[iKeptCount] := aFEdgeF0[iEdge];
+            aFEdgeF1[iKeptCount] := aFEdgeF1[iEdge];
+            Inc(iKeptCount);
         end;
-    SetLength(FEdgeA, NI);
-    SetLength(FEdgeB, NI);
-    SetLength(FEdgeF0, NI);
-    SetLength(FEdgeF1, NI);
+    SetLength(aFEdgeA, iKeptCount);
+    SetLength(aFEdgeB, iKeptCount);
+    SetLength(aFEdgeF0, iKeptCount);
+    SetLength(aFEdgeF1, iKeptCount);
     // tolleranza per "la camera non si e' mossa": 0,05% delle dimensioni
-    if AData.GetBounds(Lo, Hi) then
-        FCamTol := Max(1E-5, (Hi - Lo).Length * 0.0005)
+    if rAData.bGetBounds(rBoundsMin, rBoundsMax) then
+        dFCamTol := Max(1E-5, (rBoundsMax - rBoundsMin).Length * 0.0005)
     else
-        FCamTol := 1E-4;
+        dFCamTol := 1E-4;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloObjMesh.FindCamera
+//** Nome funzione: THoloObjMesh.oFindCamera
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TCamera
 //** Scopo: Trovare la camera del viewport che contiene la mesh.
 //** Data Ultima Modifica: 15/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloObjMesh.FindCamera: TCamera;
+function THoloObjMesh.oFindCamera: TCamera;
 var
-    P: TFmxObject;
+    oNode: TFmxObject;
 begin
     Result := nil;
-    P := Parent;
-    while (P <> nil) and not (P is TViewport3D) do
-        P := P.Parent;
-    if P is TViewport3D then
-        Result := TViewport3D(P).Camera;
+    oNode := Parent;
+    while (oNode <> nil) and not (oNode is TViewport3D) do
+        oNode := oNode.Parent;
+    if oNode is TViewport3D then
+        Result := TViewport3D(oNode).Camera;
 end;
 
 //***********************************************************************************************************
@@ -699,46 +707,46 @@ end;
 //***********************************************************************************************************
 procedure THoloObjMesh.UpdateSilhouette;
 var
-    V: TVector3D;
-    Cam: TPoint3D;
-    I, E, N: Integer;
+    rCamPos: TVector3D;
+    rCam: TPoint3D;
+    iFace, iEdge, iEdgeCount: Integer;
 begin
-    if (FTriVB = nil) or (Length(FEdgeA) = 0) then
+    if (oFTriVB = nil) or (Length(aFEdgeA) = 0) then
         Exit;
-    if FCamera = nil then
-        FCamera := FindCamera;
-    if FCamera = nil then
+    if oFCamera = nil then
+        oFCamera := oFindCamera;
+    if oFCamera = nil then
         Exit;
-    V := FCamera.AbsolutePosition;
-    Cam := AbsoluteToLocal3D(Point3D(V.X, V.Y, V.Z));
-    if FHasCam and ((Cam - FLastCam).Length < FCamTol) then
+    rCamPos := oFCamera.AbsolutePosition;
+    rCam := AbsoluteToLocal3D(Point3D(rCamPos.X, rCamPos.Y, rCamPos.Z));
+    if bFHasCam and ((rCam - rFLastCam).Length < dFCamTol) then
         Exit;
-    FHasCam := True;
-    FLastCam := Cam;
+    bFHasCam := True;
+    rFLastCam := rCam;
 
-    for I := 0 to High(FFaceN) do
-        FFront[I] := FFaceN[I].DotProduct(Cam - FFaceC[I]) > 0;
+    for iFace := 0 to High(aFFaceN) do
+        aFFront[iFace] := aFFaceN[iFace].DotProduct(rCam - aFFaceC[iFace]) > 0;
 
-    N := 0;
-    for E := 0 to High(FEdgeA) do
-        if FFront[FEdgeF0[E]] <> FFront[FEdgeF1[E]] then
-            Inc(N);
-    if N <> FSilCount then
+    iEdgeCount := 0;
+    for iEdge := 0 to High(aFEdgeA) do
+        if aFFront[aFEdgeF0[iEdge]] <> aFFront[aFEdgeF1[iEdge]] then
+            Inc(iEdgeCount);
+    if iEdgeCount <> iFSilCount then
     begin
-        FreeAndNil(FSilIB);
-        FSilCount := N;
-        if N > 0 then
-            FSilIB := TIndexBuffer.Create(N * 2, FIndexFormat);
+        FreeAndNil(oFSilIB);
+        iFSilCount := iEdgeCount;
+        if iEdgeCount > 0 then
+            oFSilIB := TIndexBuffer.Create(iEdgeCount * 2, eFIndexFormat);
     end;
-    if FSilIB = nil then
+    if oFSilIB = nil then
         Exit;
-    N := 0;
-    for E := 0 to High(FEdgeA) do
-        if FFront[FEdgeF0[E]] <> FFront[FEdgeF1[E]] then
+    iEdgeCount := 0;
+    for iEdge := 0 to High(aFEdgeA) do
+        if aFFront[aFEdgeF0[iEdge]] <> aFFront[aFEdgeF1[iEdge]] then
         begin
-            FSilIB.Indices[N] := FEdgeA[E];
-            FSilIB.Indices[N + 1] := FEdgeB[E];
-            Inc(N, 2);
+            oFSilIB.Indices[iEdgeCount] := aFEdgeA[iEdge];
+            oFSilIB.Indices[iEdgeCount + 1] := aFEdgeB[iEdge];
+            Inc(iEdgeCount, 2);
         end;
 end;
 
@@ -754,22 +762,22 @@ end;
 //***********************************************************************************************************
 procedure THoloObjMesh.Render;
 var
-    Op: Single;
+    dOpacity: Single;
 begin
-    if Kit = nil then
+    if oKit = nil then
         Exit;
-    Op := Kit.FillOpacity(FStyle, FActive) * FFillScale;
-    if (Op > 0) and (FTriVB <> nil) and (FTriIB <> nil) then
-        Context.DrawTriangles(FTriVB, FTriIB, Kit.FillMaterial(FStyle, FActive).Material,
-            AbsoluteOpacity * Op);
+    dOpacity := oKit.dFillOpacity(eFStyle, bFActive) * dFFillScale;
+    if (dOpacity > 0) and (oFTriVB <> nil) and (oFTriIB <> nil) then
+        Context.DrawTriangles(oFTriVB, oFTriIB, oKit.oFillMaterial(eFStyle, bFActive).Material,
+            AbsoluteOpacity * dOpacity);
     inherited;   // spigoli vivi (THoloLines)
-    if FShowSilhouette then
+    if bFShowSilhouette then
     begin
         UpdateSilhouette;
-        if FSilIB <> nil then
+        if oFSilIB <> nil then
         begin
-            Kit.LineMaterial.Color := LineColor;
-            Context.DrawLines(FTriVB, FSilIB, Kit.LineMaterial, AbsoluteOpacity * 0.85);
+            oKit.oLineMaterial.Color := iLineColor;
+            Context.DrawLines(oFTriVB, oFSilIB, oKit.oLineMaterial, AbsoluteOpacity * 0.85);
         end;
     end;
 end;
@@ -777,48 +785,48 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloObjMesh.LineColor
+//** Nome funzione: THoloObjMesh.iLineColor
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Colore delle linee del modello OBJ in base a stile e stato acceso/spento.
 //** Data Ultima Modifica: 15/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloObjMesh.LineColor: TAlphaColor;
+function THoloObjMesh.iLineColor: TAlphaColor;
 begin
-    Result := Kit.EdgeColor(FStyle, FActive);
+    Result := oKit.iEdgeColor(eFStyle, bFActive);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloObjMesh.GetActive
+//** Nome funzione: THoloObjMesh.bGetActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Restituire lo stato acceso (evidenziato) del modello OBJ.
 //** Data Ultima Modifica: 15/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloObjMesh.GetActive: Boolean;
+function THoloObjMesh.bGetActive: Boolean;
 begin
-    Result := FActive;
+    Result := bFActive;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloObjMesh.SetActive
-//** Parametri di ingresso: Value: Boolean
+//** Parametri di ingresso: bValue: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Accendere o spegnere l'evidenziazione del modello OBJ e ridisegnarlo.
 //** Data Ultima Modifica: 15/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloObjMesh.SetActive(const Value: Boolean);
+procedure THoloObjMesh.SetActive(const bValue: Boolean);
 begin
-    if FActive = Value then
+    if bFActive = bValue then
         Exit;
-    FActive := Value;
+    bFActive := bValue;
     Repaint;
 end;
 

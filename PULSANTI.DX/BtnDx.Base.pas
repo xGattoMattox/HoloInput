@@ -62,10 +62,10 @@ type
         destructor Destroy; override;
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
         procedure BindDevices(AInput: TInputManager; const B: TWidgetConfig); override;
-        function IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
-        function DeviceLabel(const B: TWidgetConfig): string; override;
-        class function Kind: TDeviceKind; override;
-        class function DefaultView: TModelView; override;
+        function bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
+        function sDeviceLabel(const B: TWidgetConfig): string; override;
+        class function eKind: TDeviceKind; override;
+        class function rDefaultView: TModelView; override;
     end;
 
 implementation
@@ -104,9 +104,9 @@ end;
 //** Data Ultima Modifica: 07/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TButtonBoxModel.Kind: TDeviceKind;
+class function TButtonBoxModel.eKind: TDeviceKind;
 begin
-    if Mirrored then
+    if bMirrored then
         Result := dkBoxLeft
     else
         Result := dkBoxRight;
@@ -115,19 +115,19 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TButtonBoxModel.DefaultView
+//** Nome funzione: TButtonBoxModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista di default, pannello inclinato e leggermente ruotato verso il centro.
 //** Data Ultima Modifica: 07/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TButtonBoxModel.DefaultView: TModelView;
+class function TButtonBoxModel.rDefaultView: TModelView;
 begin
-    if Mirrored then
-        Result := MakeView(-40, -10)
+    if bMirrored then
+        Result := rMakeView(-40, -10)
     else
-        Result := MakeView(-40, 10);
+        Result := rMakeView(-40, 10);
 end;
 
 //***********************************************************************************************************
@@ -142,37 +142,38 @@ end;
 //***********************************************************************************************************
 procedure TButtonBoxModel.BindDevices(AInput: TInputManager; const B: TWidgetConfig);
 begin
-    AInput.UseJoystick(B.DeviceIndex);
+    AInput.UseJoystick(B.iDeviceIndex);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TButtonBoxModel.IsConnected
+//** Nome funzione: TButtonBoxModel.bIsConnected
 //** Parametri di ingresso: S: TInputSnapshot; B: TWidgetConfig
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il joystick della pulsantiera risulta collegato.
 //** Data Ultima Modifica: 07/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TButtonBoxModel.IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
+function TButtonBoxModel.bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
 begin
-    Result := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)].Connected;
+    Result := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)].bConnected;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TButtonBoxModel.DeviceLabel
+//** Nome funzione: TButtonBoxModel.sDeviceLabel
 //** Parametri di ingresso: B: TWidgetConfig
 //** Parametri di uscita: Result: string
 //** Scopo: Etichetta del dispositivo mostrata nel widget (ID joystick e primo pulsante usato).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TButtonBoxModel.DeviceLabel(const B: TWidgetConfig): string;
+function TButtonBoxModel.sDeviceLabel(const B: TWidgetConfig): string;
 begin
-    Result := Format(Tr('widget.label.buttonbox', 'JOY ID %d  P%d+'), [B.DeviceIndex, B.ButtonOffset + 1]);
+    Result := Format(sTr('widget.label.buttonbox', 'JOY ID %d  P%d+'), [B.iDeviceIndex, B.iButtonOffset
+        + 1]);
 end;
 
 //***********************************************************************************************************
@@ -210,11 +211,11 @@ begin
     It.Kind := biPush;
     It.Index := AIndex;
     if ARound then
-        It.Shape := Kit.Cyl(Root, X, Y, FACE_Z - 0.2, ASize, 0.36, axZ)
+        It.Shape := oKit.oCyl(oRoot, X, Y, FACE_Z - 0.2, ASize, 0.36, axZ)
     else
-        It.Shape := Kit.RBox(Root, X, Y, FACE_Z - 0.18, ASize, ASize, 0.36, hsNormal, axZ, 0.14, 24);
+        It.Shape := oKit.oRBox(oRoot, X, Y, FACE_Z - 0.18, ASize, ASize, 0.36, hsNormal, axZ, 0.14, 24);
     It.Base := It.Shape.Position.Point;
-    Kit.Text(Root, X, Y + ASize / 2 + 0.2, FACE_Z - 0.02, 0.2, ALegend);
+    oKit.oText(oRoot, X, Y + ASize / 2 + 0.2, FACE_Z - 0.02, 0.2, ALegend);
     FItems.Add(It);
 end;
 
@@ -232,19 +233,19 @@ procedure TButtonBoxModel.AddToggle(X, Y: Single; AIndex: Integer; const ALegend
 var
     It: TBoxItem;
 begin
-    Kit.Cyl(Root, X, Y, FACE_Z - 0.06, 0.5, 0.12, axZ, hsDim);
-    Kit.RBox(Root, X, Y, FACE_Z - 0.03, 0.24, 0.6, 0.06, hsGhost, axZ, 0, 16);   // guida
+    oKit.oCyl(oRoot, X, Y, FACE_Z - 0.06, 0.5, 0.12, axZ, hsDim);
+    oKit.oRBox(oRoot, X, Y, FACE_Z - 0.03, 0.24, 0.6, 0.06, hsGhost, axZ, 0, 16);   // guida
     It := TBoxItem.Create;
     It.Kind := biToggle;
     It.Index := AIndex;
     // levetta conica (loft lungo Z) con pomello sferico in punta
-    It.Shape := Kit.Loft(Root, X, Y + TOGGLE_THROW, FACE_Z - 0.45, [
-        Sec(0.35, 0, 0, 0.10, 0.10),
-        Sec(-0.30, 0, 0, 0.065, 0.065),
-        Sec(-0.36, 0, 0, 0.05, 0.05)], hsNormal, 16, 4, axZ);
-    Kit.Ball(It.Shape, 0, 0, -0.42, 0.2, 0.2, 0.2, hsSolid);
+    It.Shape := oKit.oLoft(oRoot, X, Y + TOGGLE_THROW, FACE_Z - 0.45, [
+        rSec(0.35, 0, 0, 0.10, 0.10),
+        rSec(-0.30, 0, 0, 0.065, 0.065),
+        rSec(-0.36, 0, 0, 0.05, 0.05)], hsNormal, 16, 4, axZ);
+    oKit.oBall(It.Shape, 0, 0, -0.42, 0.2, 0.2, 0.2, hsSolid);
     It.Base := Point3D(X, Y, FACE_Z - 0.45);
-    Kit.Text(Root, X, Y + 0.55, FACE_Z - 0.02, 0.2, ALegend);
+    oKit.oText(oRoot, X, Y + 0.55, FACE_Z - 0.02, 0.2, ALegend);
     FItems.Add(It);
 end;
 
@@ -264,17 +265,17 @@ var
     It: TBoxItem;
     I: Integer;
 begin
-    Kit.Cyl(Root, X, Y, FACE_Z - 0.04, 1.1, 0.08, axZ, hsDim);
+    oKit.oCyl(oRoot, X, Y, FACE_Z - 0.04, 1.1, 0.08, axZ, hsDim);
     It := TBoxItem.Create;
     It.Kind := biEncoder;
     It.Index := AIndexCW;
     It.Index2 := AIndexCCW;
-    It.Pivot := Kit.Pivot(Root, X, Y, FACE_Z - 0.3);
-    It.Shape := Kit.Cyl(It.Pivot, 0, 0, 0, 0.8, 0.5, axZ, hsSolid);
-    Kit.Box(It.Pivot, 0, -0.3, -0.27, 0.08, 0.22, 0.04, hsGhost);    // tacca
+    It.Pivot := oKit.oPivot(oRoot, X, Y, FACE_Z - 0.3);
+    It.Shape := oKit.oCyl(It.Pivot, 0, 0, 0, 0.8, 0.5, axZ, hsSolid);
+    oKit.oBox(It.Pivot, 0, -0.3, -0.27, 0.08, 0.22, 0.04, hsGhost);    // tacca
     for I := 0 to 15 do                                                // zigrinatura
-        Kit.Box(It.Pivot, 0.41 * Cos(I * Pi / 8), 0.41 * Sin(I * Pi / 8), 0, 0.04, 0.04, 0.46, hsGhost);
-    Kit.Text(Root, X, Y + 0.75, FACE_Z - 0.02, 0.2, ALegend);
+        oKit.oBox(It.Pivot, 0.41 * Cos(I * Pi / 8), 0.41 * Sin(I * Pi / 8), 0, 0.04, 0.04, 0.46, hsGhost);
+    oKit.oText(oRoot, X, Y + 0.75, FACE_Z - 0.02, 0.2, ALegend);
     FItems.Add(It);
 end;
 
@@ -287,7 +288,7 @@ end;
 //** Scopo: Aggiornare i controlli con lo stato del joystick associato.
 //** Data Ultima Modifica: 08/10/2026
 //***********************************************************************************************************
-//** Funzionamento: legge i pulsanti a partire da ButtonOffset; aggiorna la
+//** Funzionamento: legge i pulsanti a partire da iButtonOffset; aggiorna la
 //** grafica solo quando lo stato cambia; per gli encoder ruota la manopola
 //** sul fronte di salita di ciascun impulso.
 //***********************************************************************************************************
@@ -298,16 +299,16 @@ var
     It: TBoxItem;
     P, P2: Boolean;
 begin
-    J := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)];
+    J := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)];
     for It in FItems do
     begin
-        P := J.Button(B.ButtonOffset + It.Index);
+        P := J.bButton(B.iButtonOffset + It.Index);
         case It.Kind of
             biPush:
                 if P <> It.Pressed then
                 begin
                     It.Pressed := P;
-                    It.Shape.Active := P;
+                    It.Shape.bActive := P;
                     if P then
                         It.Shape.Position.Z := It.Base.Z + PUSH_TRAVEL
                     else
@@ -317,7 +318,7 @@ begin
                 if P <> It.Pressed then
                 begin
                     It.Pressed := P;
-                    It.Shape.Active := P;
+                    It.Shape.bActive := P;
                     if P then
                         It.Shape.Position.Y := It.Base.Y - TOGGLE_THROW
                     else
@@ -325,7 +326,7 @@ begin
                 end;
             biEncoder:
                 begin
-                    P2 := J.Button(B.ButtonOffset + It.Index2);
+                    P2 := J.bButton(B.iButtonOffset + It.Index2);
                     if P and not It.Pressed then
                         It.Angle := It.Angle + ENCODER_STEP;
                     if P2 and not It.Pressed2 then
@@ -334,8 +335,8 @@ begin
                     begin
                         It.Pressed := P;
                         It.Pressed2 := P2;
-                        It.Pivot.RotationAngle.Z := Rot(It.Angle);
-                        It.Shape.Active := P or P2;
+                        It.Pivot.RotationAngle.Z := dRot(It.Angle);
+                        It.Shape.bActive := P or P2;
                     end;
                 end;
         end;

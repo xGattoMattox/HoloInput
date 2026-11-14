@@ -2,8 +2,8 @@
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.Lang
-//** Scopo: Localizzazione delle scritte dell'interfaccia (Tr / TrBuiltin) e file di lingua.
-//** Data Ultima Modifica: 04/11/2026
+//** Scopo: Localizzazione delle scritte dell'interfaccia (Tr / sTrBuiltin) e file di lingua.
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: ogni scritta mostrata a video passa da Tr(chiave, testo
 //** predefinito): il testo predefinito (italiano) e' scritto nel codice e viene
@@ -26,7 +26,7 @@
 //** finisce con degli spazi va racchiuso tra virgolette ("   testo").
 //** I testi usati con Format contengono i segnaposto %d / %s, da mantenere
 //** nello stesso ordine.
-//** TrBuiltin(chiave, testo predefinito) usa solo i testi incorporati nell'exe
+//** sTrBuiltin(chiave, testo predefinito) usa solo i testi incorporati nell'exe
 //** (lingua corrente se e' incorporata, altrimenti inglese): serve per le
 //** scritte che non devono essere modificabili dai file della cartella LANG,
 //** come la pagina Info del Setup (dati dell'autore e del software).
@@ -42,20 +42,23 @@ uses
 type
     /// Una lingua disponibile.
     TLangInfo = record
-        Id: string;      // nome del file senza estensione (es. 'english'): salvato nel .ini
-        Name: string;    // nome mostrato nel Setup ([Lingua] Nome)
+        sId: string;      // nome del file senza estensione (es. 'english'): salvato nel .ini
+        sName: string;    // nome mostrato nel Setup ([Lingua] Nome)
     end;
 
 const
     DEF_LANGUAGE = 'italiano';
 
-function Tr(const AKey, ADefault: string): string;
-function TrBuiltin(const AKey, ADefault: string): string;
-procedure LoadLanguage(const AId: string);
-function CurrentLanguage: string;
-function LanguageVersion: Integer;
-function AvailableLanguages: TArray<TLangInfo>;
-function DecodeLangText(const S: string): string;
+function sTr(const sAKey, sADefault: string): string;
+function sTrBuiltin(const sAKey, sADefault: string): string;
+procedure LoadLanguage(const sAId: string);
+function sCurrentLanguage: string;
+function iLanguageVersion: Integer;
+function aAvailableLanguages: TArray<TLangInfo>;
+function sDecodeLangText(const sAText: string): string;
+/// True se sAName puo' essere usato come nome di file in una cartella dell'app (niente percorsi:
+/// vuoto, "..", "\", "/", ":" o caratteri di controllo non sono ammessi).
+function bIsSafeFileId(const sAName: string): Boolean;
 
 implementation
 
@@ -68,22 +71,48 @@ const
     SEC_TEXT = 'Testi';
 
 var
-    GTexts: TDictionary<string, string>;
-    GBuiltin: TDictionary<string, string>;   // testi incorporati nell'exe (TrBuiltin)
-    GCurrent: string;
-    GVersion: Integer;
+    oGTexts: TDictionary<string, string>;
+    oGBuiltin: TDictionary<string, string>;   // testi incorporati nell'exe (sTrBuiltin)
+    sGCurrent: string;
+    iGVersion: Integer;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: LangFolder
+//** Nome funzione: bIsSafeFileId
+//** Parametri di ingresso: sAName: string
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Verificare che un nome letto dal .ini sia un semplice nome di file, senza percorso.
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//** Funzionamento: un nome come "..\..\altro" farebbe leggere un file fuori
+//** dalla cartella prevista (LANG, OBJ): sono rifiutati il nome vuoto, ".."
+//** e i caratteri \ / : e di controllo. Spazi, punti singoli e lettere
+//** accentate restano ammessi (es. "deutsch v2").
+//***********************************************************************************************************
+//***********************************************************************************************************
+function bIsSafeFileId(const sAName: string): Boolean;
+var
+    cCharacter: Char;
+begin
+    Result := (sAName <> '') and not sAName.Contains('..');
+    if Result then
+        for cCharacter in sAName do
+            if (cCharacter < ' ') or CharInSet(cCharacter, ['\', '/', ':']) then
+                Exit(False);
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: sLangFolder
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Cartella dei file di lingua (LANG accanto all'eseguibile), con il separatore finale.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function LangFolder: string;
+function sLangFolder: string;
 begin
     Result := ExtractFilePath(ParamStr(0)) + 'LANG' + PathDelim;
 end;
@@ -91,8 +120,8 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: OpenLangResource
-//** Parametri di ingresso: AId: string
+//** Nome funzione: oOpenLangResource
+//** Parametri di ingresso: sAId: string
 //** Parametri di uscita: Result: TMemIniFile
 //** Scopo: Aprire i testi di una lingua incorporati nell'exe (risorsa RCDATA LANG_<ID>); nil se la
 //**        lingua non e' incorporata.
@@ -102,62 +131,63 @@ end;
 //** liberato dal chiamante.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function OpenLangResource(const AId: string): TMemIniFile;
+function oOpenLangResource(const sAId: string): TMemIniFile;
 var
-    ResName: string;
-    RS: TResourceStream;
-    L: TStringList;
+    sResName: string;
+    oStream: TResourceStream;
+    oLines: TStringList;
 begin
     Result := nil;
-    if AId = '' then
+    if sAId = '' then
         Exit;
-    ResName := 'LANG_' + UpperCase(AId);
-    if FindResource(HInstance, PChar(ResName), RT_RCDATA) = 0 then
+    sResName := 'LANG_' + UpperCase(sAId);
+    if FindResource(HInstance, PChar(sResName), RT_RCDATA) = 0 then
         Exit;
-    RS := TResourceStream.Create(HInstance, ResName, RT_RCDATA);
-    L := TStringList.Create;
+    oStream := TResourceStream.Create(HInstance, sResName, RT_RCDATA);
+    oLines := TStringList.Create;
     try
-        L.LoadFromStream(RS, TEncoding.UTF8);
+        oLines.LoadFromStream(oStream, TEncoding.UTF8);
         Result := TMemIniFile.Create('');
-        Result.SetStrings(L);
+        Result.SetStrings(oLines);
     finally
-        L.Free;
-        RS.Free;
+        oLines.Free;
+        oStream.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: OpenLangIni
-//** Parametri di ingresso: AId: string
+//** Nome funzione: oOpenLangIni
+//** Parametri di ingresso: sAId: string
 //** Parametri di uscita: Result: TMemIniFile
 //** Scopo: Aprire il file di una lingua (cartella LANG o risorsa incorporata); nil se non esiste.
-//** Data Ultima Modifica: 04/11/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: prima cerca LANG\<id>.ini accanto all'exe, poi la risorsa
-//** incorporata (OpenLangResource); il file e' letto come UTF-8. L'oggetto
+//** incorporata (oOpenLangResource); il file e' letto come UTF-8. Un nome con
+//** un percorso (bIsSafeFileId) restituisce nil. L'oggetto
 //** restituito va liberato dal chiamante.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function OpenLangIni(const AId: string): TMemIniFile;
+function oOpenLangIni(const sAId: string): TMemIniFile;
 var
-    FileName: string;
+    sFileName: string;
 begin
     Result := nil;
-    if AId = '' then
+    if not bIsSafeFileId(sAId) then
         Exit;
-    FileName := LangFolder + LowerCase(AId) + '.ini';
-    if FileExists(FileName) then
-        Exit(TMemIniFile.Create(FileName, TEncoding.UTF8));
-    Result := OpenLangResource(AId);
+    sFileName := sLangFolder + LowerCase(sAId) + '.ini';
+    if FileExists(sFileName) then
+        Exit(TMemIniFile.Create(sFileName, TEncoding.UTF8));
+    Result := oOpenLangResource(sAId);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: DecodeLangText
-//** Parametri di ingresso: S: string
+//** Nome funzione: sDecodeLangText
+//** Parametri di ingresso: sAText: string
 //** Parametri di uscita: Result: string
 //** Scopo: Convertire un testo letto dal file di lingua nel testo da mostrare.
 //** Data Ultima Modifica: 30/10/2026
@@ -168,80 +198,81 @@ end;
 //** come sono.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function DecodeLangText(const S: string): string;
+function sDecodeLangText(const sAText: string): string;
 var
-    T: string;
-    I: Integer;
-    SB: TStringBuilder;
+    sText: string;
+    iPos: Integer;
+    oBuilder: TStringBuilder;
 begin
-    T := S;
-    if (Length(T) >= 2) and (T[1] = '"') and (T[Length(T)] = '"') then
-        T := Copy(T, 2, Length(T) - 2);
-    SB := TStringBuilder.Create;
+    sText := sAText;
+    if (Length(sText) >= 2) and (sText[1] = '"') and (sText[Length(sText)] = '"') then
+        sText := Copy(sText, 2, Length(sText) - 2);
+    oBuilder := TStringBuilder.Create;
     try
-        I := 1;
-        while I <= Length(T) do
+        iPos := 1;
+        while iPos <= Length(sText) do
         begin
-            if (T[I] = '\') and (I < Length(T)) and CharInSet(T[I + 1], ['n', 'N', '\']) then
+            if (sText[iPos] = '\') and (iPos < Length(sText)) and CharInSet(sText[iPos + 1], ['n', 'N',
+                '\']) then
             begin
-                if T[I + 1] = '\' then
-                    SB.Append('\')
+                if sText[iPos + 1] = '\' then
+                    oBuilder.Append('\')
                 else
-                    SB.Append(sLineBreak);
-                Inc(I, 2);
+                    oBuilder.Append(sLineBreak);
+                Inc(iPos, 2);
             end
             else
             begin
-                SB.Append(T[I]);
-                Inc(I);
+                oBuilder.Append(sText[iPos]);
+                Inc(iPos);
             end;
         end;
-        Result := SB.ToString;
+        Result := oBuilder.ToString;
     finally
-        SB.Free;
+        oBuilder.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: Tr
-//** Parametri di ingresso: AKey, ADefault: string
+//** Nome funzione: sTr
+//** Parametri di ingresso: sAKey, sADefault: string
 //** Parametri di uscita: Result: string
-//** Scopo: Testo della scritta AKey nella lingua corrente, oppure ADefault se la lingua non la
+//** Scopo: Testo della scritta sAKey nella lingua corrente, oppure sADefault se la lingua non la
 //**        contiene.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function Tr(const AKey, ADefault: string): string;
+function sTr(const sAKey, sADefault: string): string;
 begin
-    if (GTexts <> nil) and GTexts.TryGetValue(LowerCase(AKey), Result) then
+    if (oGTexts <> nil) and oGTexts.TryGetValue(LowerCase(sAKey), Result) then
         Exit;
-    Result := ADefault;
+    Result := sADefault;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TrBuiltin
-//** Parametri di ingresso: AKey, ADefault: string
+//** Nome funzione: sTrBuiltin
+//** Parametri di ingresso: sAKey, sADefault: string
 //** Parametri di uscita: Result: string
 //** Scopo: Come Tr, ma solo con i testi incorporati nell'exe (non modificabili dalla cartella LANG).
 //** Data Ultima Modifica: 04/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TrBuiltin(const AKey, ADefault: string): string;
+function sTrBuiltin(const sAKey, sADefault: string): string;
 begin
-    if (GBuiltin <> nil) and GBuiltin.TryGetValue(LowerCase(AKey), Result) then
+    if (oGBuiltin <> nil) and oGBuiltin.TryGetValue(LowerCase(sAKey), Result) then
         Exit;
-    Result := ADefault;
+    Result := sADefault;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: LoadLanguage
-//** Parametri di ingresso: AId: string
+//** Parametri di ingresso: sAId: string
 //** Parametri di uscita: nessuno
 //** Scopo: Caricare i testi di una lingua (nome del file senza estensione, es. 'english').
 //** Data Ultima Modifica: 04/11/2026
@@ -249,100 +280,100 @@ end;
 //** Funzionamento: svuota il dizionario e lo riempie con la sezione [Testi]
 //** del file della lingua; se il file non esiste resta vuoto e valgono i testi
 //** predefiniti del codice (italiano). Carica a parte i testi incorporati
-//** nell'exe per TrBuiltin (lingua corrente, oppure inglese se la lingua non
-//** e' incorporata). Incrementa LanguageVersion, cosi' chi
+//** nell'exe per sTrBuiltin (lingua corrente, oppure inglese se la lingua non
+//** e' incorporata). Incrementa iLanguageVersion, cosi' chi
 //** ha costruito scritte (es. i modelli 3D con le legende) sa di doverle
 //** rifare.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure LoadLanguage(const AId: string);
+procedure LoadLanguage(const sAId: string);
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Fill
-    //** Parametri di ingresso: AIni: TMemIniFile; ADict: TDictionary<string, string>
+    //** Parametri di ingresso: oAIni: TMemIniFile; oADict: TDictionary<string, string>
     //** Parametri di uscita: nessuno
     //** Scopo: Copiare nel dizionario i testi della sezione [Testi] di un file di lingua e liberare
-    //**        AIni (nil = nessun testo).
+    //**        oAIni (nil = nessun testo).
     //** Data Ultima Modifica: 04/11/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Fill(AIni: TMemIniFile; ADict: TDictionary<string, string>);
+    procedure Fill(oAIni: TMemIniFile; oADict: TDictionary<string, string>);
     var
-        Lines: TStringList;
-        I: Integer;
-        Key: string;
+        oLines: TStringList;
+        iLine: Integer;
+        sKey: string;
     begin
-        if AIni = nil then
+        if oAIni = nil then
             Exit;
-        Lines := TStringList.Create;
+        oLines := TStringList.Create;
         try
-            AIni.ReadSectionValues(SEC_TEXT, Lines);
-            for I := 0 to Lines.Count - 1 do
+            oAIni.ReadSectionValues(SEC_TEXT, oLines);
+            for iLine := 0 to oLines.Count - 1 do
             begin
-                Key := LowerCase(Trim(Lines.Names[I]));
-                if Key <> '' then
-                    ADict.AddOrSetValue(Key, DecodeLangText(Lines.ValueFromIndex[I]));
+                sKey := LowerCase(Trim(oLines.Names[iLine]));
+                if sKey <> '' then
+                    oADict.AddOrSetValue(sKey, sDecodeLangText(oLines.ValueFromIndex[iLine]));
             end;
         finally
-            Lines.Free;
-            AIni.Free;
+            oLines.Free;
+            oAIni.Free;
         end;
     end;
 
 var
-    Res: TMemIniFile;
+    oRes: TMemIniFile;
 begin
-    GTexts.Clear;
-    GBuiltin.Clear;
-    GCurrent := LowerCase(Trim(AId));
-    if GCurrent = '' then
-        GCurrent := DEF_LANGUAGE;
-    Fill(OpenLangIni(GCurrent), GTexts);
-    // testi non modificabili (TrBuiltin): solo quelli incorporati, in inglese per
+    oGTexts.Clear;
+    oGBuiltin.Clear;
+    sGCurrent := LowerCase(Trim(sAId));
+    if sGCurrent = '' then
+        sGCurrent := DEF_LANGUAGE;
+    Fill(oOpenLangIni(sGCurrent), oGTexts);
+    // testi non modificabili (sTrBuiltin): solo quelli incorporati, in inglese per
     // le lingue aggiunte dall'utente
-    Res := OpenLangResource(GCurrent);
-    if Res = nil then
-        Res := OpenLangResource('english');
-    Fill(Res, GBuiltin);
-    Inc(GVersion);
+    oRes := oOpenLangResource(sGCurrent);
+    if oRes = nil then
+        oRes := oOpenLangResource('english');
+    Fill(oRes, oGBuiltin);
+    Inc(iGVersion);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: CurrentLanguage
+//** Nome funzione: sCurrentLanguage
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Id della lingua caricata (es. 'italiano').
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function CurrentLanguage: string;
+function sCurrentLanguage: string;
 begin
-    Result := GCurrent;
+    Result := sGCurrent;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: LanguageVersion
+//** Nome funzione: iLanguageVersion
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Integer
 //** Scopo: Contatore che cambia a ogni caricamento di lingua (per rifare le scritte gia' costruite).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function LanguageVersion: Integer;
+function iLanguageVersion: Integer;
 begin
-    Result := GVersion;
+    Result := iGVersion;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: AvailableLanguages
+//** Nome funzione: aAvailableLanguages
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TArray<TLangInfo>
 //** Scopo: Elenco delle lingue disponibili (incorporate e file nella cartella LANG).
@@ -354,50 +385,50 @@ end;
 //** riescono ad aprire vengono saltate.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function AvailableLanguages: TArray<TLangInfo>;
+function aAvailableLanguages: TArray<TLangInfo>;
 var
-    Ids: TStringList;
-    S: string;
-    I: Integer;
-    Ini: TMemIniFile;
-    Info: TLangInfo;
+    oIds: TStringList;
+    sEntry: string;
+    iLang: Integer;
+    oIni: TMemIniFile;
+    rInfo: TLangInfo;
 begin
     Result := nil;
-    Ids := TStringList.Create;
+    oIds := TStringList.Create;
     try
-        Ids.Sorted := True;
-        Ids.Duplicates := dupIgnore;
-        Ids.CaseSensitive := False;
-        for S in BUILTIN_LANGS do
-            Ids.Add(S);
-        if DirectoryExists(LangFolder) then
-            for S in TDirectory.GetFiles(LangFolder, '*.ini') do
-                Ids.Add(LowerCase(TPath.GetFileNameWithoutExtension(S)));
-        for I := 0 to Ids.Count - 1 do
+        oIds.Sorted := True;
+        oIds.Duplicates := dupIgnore;
+        oIds.CaseSensitive := False;
+        for sEntry in BUILTIN_LANGS do
+            oIds.Add(sEntry);
+        if DirectoryExists(sLangFolder) then
+            for sEntry in TDirectory.GetFiles(sLangFolder, '*.ini') do
+                oIds.Add(LowerCase(TPath.GetFileNameWithoutExtension(sEntry)));
+        for iLang := 0 to oIds.Count - 1 do
         begin
-            Ini := OpenLangIni(Ids[I]);
-            if Ini = nil then
+            oIni := oOpenLangIni(oIds[iLang]);
+            if oIni = nil then
                 Continue;
             try
-                Info.Id := Ids[I];
-                Info.Name := DecodeLangText(Ini.ReadString(SEC_INFO, 'Nome', Ids[I]));
+                rInfo.sId := oIds[iLang];
+                rInfo.sName := sDecodeLangText(oIni.ReadString(SEC_INFO, 'Nome', oIds[iLang]));
             finally
-                Ini.Free;
+                oIni.Free;
             end;
-            Result := Result + [Info];
+            Result := Result + [rInfo];
         end;
     finally
-        Ids.Free;
+        oIds.Free;
     end;
 end;
 
 initialization
-    GTexts := TDictionary<string, string>.Create;
-    GBuiltin := TDictionary<string, string>.Create;
-    GCurrent := DEF_LANGUAGE;
+    oGTexts := TDictionary<string, string>.Create;
+    oGBuiltin := TDictionary<string, string>.Create;
+    sGCurrent := DEF_LANGUAGE;
 
 finalization
-    FreeAndNil(GBuiltin);
-    FreeAndNil(GTexts);
+    FreeAndNil(oGBuiltin);
+    FreeAndNil(oGTexts);
 
 end.

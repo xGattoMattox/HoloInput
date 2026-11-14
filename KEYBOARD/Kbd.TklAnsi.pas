@@ -18,8 +18,8 @@ type
     protected
         procedure Layout; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -30,14 +30,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdTklAnsi.ModelId
+//** Nome funzione: TKbdTklAnsi.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Tastiera TKL ANSI" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 05/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdTklAnsi.ModelId: string;
+class function TKbdTklAnsi.sModelId: string;
 begin
     Result := 'kbd.tklansi';
 end;
@@ -45,16 +45,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdTklAnsi.DisplayName
+//** Nome funzione: TKbdTklAnsi.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Tastiera TKL ANSI" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdTklAnsi.DisplayName: string;
+class function TKbdTklAnsi.sDisplayName: string;
 begin
-    Result := Tr('model.kbd.tklansi', 'Tastiera TKL ANSI');
+    Result := sTr('model.kbd.tklansi', 'Tastiera TKL ANSI');
 end;
 
 //***********************************************************************************************************

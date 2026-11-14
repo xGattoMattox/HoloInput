@@ -21,9 +21,9 @@ uses
 type
     TSkinAnvil = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAnvil.Id: string;
+class function TSkinAnvil.sId: string;
 begin
     Result := 'anvil';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinAnvil.DisplayName
+//** Nome funzione: TSkinAnvil.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Anvil Aerospace" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAnvil.DisplayName: string;
+class function TSkinAnvil.sDisplayName: string;
 begin
-    Result := Tr('skin.anvil', 'Anvil Aerospace');
+    Result := sTr('skin.anvil', 'Anvil Aerospace');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAnvil.Colors: TSkinColors;
+class function TSkinAnvil.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FF9CB65A), TAlphaColor($FFFFC845), TAlphaColor($FF10140C));
+    Result := rMakeSkinColors(TAlphaColor($FF9CB65A), TAlphaColor($FFFFC845), TAlphaColor($FF10140C));
 end;
 
 initialization

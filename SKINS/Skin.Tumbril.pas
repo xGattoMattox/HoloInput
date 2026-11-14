@@ -21,9 +21,9 @@ uses
 type
     TSkinTumbril = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinTumbril.Id: string;
+class function TSkinTumbril.sId: string;
 begin
     Result := 'tumbril';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinTumbril.DisplayName
+//** Nome funzione: TSkinTumbril.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Tumbril Land Systems" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinTumbril.DisplayName: string;
+class function TSkinTumbril.sDisplayName: string;
 begin
-    Result := Tr('skin.tumbril', 'Tumbril Land Systems');
+    Result := sTr('skin.tumbril', 'Tumbril Land Systems');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinTumbril.Colors: TSkinColors;
+class function TSkinTumbril.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFD2AE72), TAlphaColor($FF4FC3F7), TAlphaColor($FF15120D));
+    Result := rMakeSkinColors(TAlphaColor($FFD2AE72), TAlphaColor($FF4FC3F7), TAlphaColor($FF15120D));
 end;
 
 initialization

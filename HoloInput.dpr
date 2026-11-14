@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome programma: HoloInput
 //** Scopo: Overlay olografico delle periferiche di input (programma principale).
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: Delphi 13 CE - FireMonkey - Windows (Win64 / Win32).
 //**
@@ -25,6 +25,9 @@
 //** un aggiornamento il nuovo exe parte con "--after-update <pid>" e
 //** FinishPendingUpdate (qui sotto) aspetta la chiusura del vecchio processo.
 //**
+//** Holo.SafeDll e' la prima unit: la sua initialization limita la ricerca
+//** delle DLL alla cartella di sistema prima di tutto il resto.
+//**
 //** Per aggiungere un dispositivo o una skin basta aggiungere la unit qui sotto:
 //** si registra da sola nella propria sezione initialization.
 //***********************************************************************************************************
@@ -32,6 +35,8 @@
 program HoloInput;
 
 uses
+    // per prima: limita la ricerca delle DLL a System32 prima che le altre unit ne carichino
+    Holo.SafeDll in 'Holo.SafeDll.pas',
     System.StartUpCopy,
     FMX.Forms,
     Holo.Main in 'Holo.Main.pas' {frmMain},

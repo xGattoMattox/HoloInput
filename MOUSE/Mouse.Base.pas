@@ -47,8 +47,8 @@ type
         procedure Build; override;
     public
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
-        class function Kind: TDeviceKind; override;
-        class function DefaultView: TModelView; override;
+        class function eKind: TDeviceKind; override;
+        class function rDefaultView: TModelView; override;
     end;
 
 implementation
@@ -66,7 +66,7 @@ const
 //** Data Ultima Modifica: 05/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseModel.Kind: TDeviceKind;
+class function TMouseModel.eKind: TDeviceKind;
 begin
     Result := dkMouse;
 end;
@@ -74,16 +74,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseModel.DefaultView
+//** Nome funzione: TMouseModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista predefinita del mouse, inclinato verso l'osservatore.
 //** Data Ultima Modifica: 06/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseModel.DefaultView: TModelView;
+class function TMouseModel.rDefaultView: TModelView;
 begin
-    Result := MakeView(-55, 0);
+    Result := rMakeView(-55, 0);
 end;
 
 //***********************************************************************************************************
@@ -160,57 +160,57 @@ begin
     FMatH := 7.4;
 
     // tappetino con bordo arrotondato
-    Kit.RBox(Root, 0, 0, 0.95, FMatW, FMatH, 0.08, hsDim, axZ, 0, 40, 6);
-    Kit.Box(Root, 0, 0, 0.9, FMatW - 0.4, FMatH - 0.4, 0.02, hsGhost);
+    oKit.oRBox(oRoot, 0, 0, 0.95, FMatW, FMatH, 0.08, hsDim, axZ, 0, 40, 6);
+    oKit.oBox(oRoot, 0, 0, 0.9, FMatW - 0.4, FMatH - 0.4, 0.02, hsGhost);
 
-    FBody := Kit.Pivot(Root, 0, 0, 0);
-    FTilt := Kit.Pivot(FBody, 0, 0, 0.3);
+    FBody := oKit.oPivot(oRoot, 0, 0, 0);
+    FTilt := oKit.oPivot(FBody, 0, 0, 0.3);
 
     // scocca: loft lungo Y (dalla punta al dorso), 9 sezioni x 32 lati,
     // gobba ergonomica spostata verso il dorso, vita ai lati per la presa
     //       Y            CX  CZ      A           B     N
-    Kit.Loft(FTilt, 0, 0, 0, [
-        Sec(-0.50 * BL, 0,  0.25, 0.30 * BW, 0.18, 2.4),
-        Sec(-0.42 * BL, 0,  0.12, 0.46 * BW, 0.38, 2.4),
-        Sec(-0.28 * BL, 0,  0.00, 0.49 * BW, 0.52, 2.4),
-        Sec(-0.10 * BL, 0, -0.08, 0.47 * BW, 0.62, 2.4),
-        Sec( 0.08 * BL, 0, -0.14, 0.47 * BW, 0.68, 2.4),
-        Sec( 0.25 * BL, 0, -0.12, 0.50 * BW, 0.66, 2.4),
-        Sec( 0.38 * BL, 0, -0.02, 0.48 * BW, 0.55, 2.4),
-        Sec( 0.46 * BL, 0,  0.10, 0.40 * BW, 0.40, 2.4),
-        Sec( 0.50 * BL, 0,  0.25, 0.22 * BW, 0.22, 2.4)], hsSolid, 32, 2);
+    oKit.oLoft(FTilt, 0, 0, 0, [
+        rSec(-0.50 * BL, 0,  0.25, 0.30 * BW, 0.18, 2.4),
+        rSec(-0.42 * BL, 0,  0.12, 0.46 * BW, 0.38, 2.4),
+        rSec(-0.28 * BL, 0,  0.00, 0.49 * BW, 0.52, 2.4),
+        rSec(-0.10 * BL, 0, -0.08, 0.47 * BW, 0.62, 2.4),
+        rSec( 0.08 * BL, 0, -0.14, 0.47 * BW, 0.68, 2.4),
+        rSec( 0.25 * BL, 0, -0.12, 0.50 * BW, 0.66, 2.4),
+        rSec( 0.38 * BL, 0, -0.02, 0.48 * BW, 0.55, 2.4),
+        rSec( 0.46 * BL, 0,  0.10, 0.40 * BW, 0.40, 2.4),
+        rSec( 0.50 * BL, 0,  0.25, 0.22 * BW, 0.22, 2.4)], hsSolid, 32, 2);
 
     // pulsanti principali (placche arrotondate sopra la scocca)
-    FBtnL := Kit.RBox(FTilt, -BW * 0.235, -BL * 0.28, -0.58, BW * 0.43, BL * 0.36, 0.12,
+    FBtnL := oKit.oRBox(FTilt, -BW * 0.235, -BL * 0.28, -0.58, BW * 0.43, BL * 0.36, 0.12,
         hsNormal, axZ, 0.08, 20);
-    FBtnR := Kit.RBox(FTilt, BW * 0.235, -BL * 0.28, -0.58, BW * 0.43, BL * 0.36, 0.12,
+    FBtnR := oKit.oRBox(FTilt, BW * 0.235, -BL * 0.28, -0.58, BW * 0.43, BL * 0.36, 0.12,
         hsNormal, axZ, 0.08, 20);
 
     // rotella
-    FWheelAxis := Kit.Pivot(FTilt, 0, -BL * 0.30, -0.62);
+    FWheelAxis := oKit.oPivot(FTilt, 0, -BL * 0.30, -0.62);
     FWheelAxis.RotationAngle.Z := 90;
-    FWheel := Kit.Cyl(FWheelAxis, 0, 0, 0, 0.62, 0.26, axY, hsSolid);
+    FWheel := oKit.oCyl(FWheelAxis, 0, 0, 0, 0.62, 0.26, axY, hsSolid);
     for I := 0 to 5 do
     begin
         A := I * Pi / 3;
-        Kit.Box(FWheel, 0.31 * Cos(A), 0, 0.31 * Sin(A), 0.07, 0.28, 0.07, hsGhost);
+        oKit.oBox(FWheel, 0.31 * Cos(A), 0, 0.31 * Sin(A), 0.07, 0.28, 0.07, hsGhost);
     end;
 
     if HasSideButtons then
     begin
-        FBtnX1 := Kit.RBox(FTilt, -BW / 2 - 0.04, BL * 0.02, -0.12, 0.14, 0.55, 0.26,
+        FBtnX1 := oKit.oRBox(FTilt, -BW / 2 - 0.04, BL * 0.02, -0.12, 0.14, 0.55, 0.26,
             hsNormal, axX, 0, 16);
-        FBtnX2 := Kit.RBox(FTilt, -BW / 2 - 0.04, -BL * 0.14, -0.12, 0.14, 0.55, 0.26,
+        FBtnX2 := oKit.oRBox(FTilt, -BW / 2 - 0.04, -BL * 0.14, -0.12, 0.14, 0.55, 0.26,
             hsNormal, axX, 0, 16);
-        FDpi := Kit.RBox(FTilt, 0, -BL * 0.06, -0.72, 0.28, 0.4, 0.1, hsDim, axZ, 0.1, 16);
+        FDpi := oKit.oRBox(FTilt, 0, -BL * 0.06, -0.72, 0.28, 0.4, 0.1, hsDim, axZ, 0.1, 16);
     end;
 
     // radar della velocita'
     FRadarCenter := Point3D(FMatW / 2 - 1.0, FMatH / 2 - 1.0, 0.8);
-    Kit.Cyl(Root, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 1.5, 0.04, axZ, hsGhost);
-    Kit.Box(Root, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 1.4, 0.02, 0.02, hsDim);
-    Kit.Box(Root, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 0.02, 1.4, 0.02, hsDim);
-    FRadarDot := Kit.Ball(Root, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z - 0.05,
+    oKit.oCyl(oRoot, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 1.5, 0.04, axZ, hsGhost);
+    oKit.oBox(oRoot, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 1.4, 0.02, 0.02, hsDim);
+    oKit.oBox(oRoot, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z, 0.02, 1.4, 0.02, hsDim);
+    FRadarDot := oKit.oBall(oRoot, FRadarCenter.X, FRadarCenter.Y, FRadarCenter.Z - 0.05,
         0.22, 0.22, 0.22, hsSolid);
 
     SetExtent(FMatW, FMatH, 2.2);
@@ -228,9 +228,9 @@ end;
 //***********************************************************************************************************
 procedure TMouseModel.SetButton(AShape: THoloLines; APressed: Boolean);
 begin
-    if (AShape = nil) or (AShape.Active = APressed) then
+    if (AShape = nil) or (AShape.bActive = APressed) then
         Exit;
-    AShape.Active := APressed;
+    AShape.bActive := APressed;
     if APressed then
         AShape.Position.Z := AShape.Position.Z + BTN_TRAVEL
     else
@@ -247,7 +247,7 @@ end;
 //** Data Ultima Modifica: 06/10/2026
 //***********************************************************************************************************
 //** Funzionamento:
-//**  - posizione: PosX/PosY (-1..+1, accumulate, senza ricentraggio) mappate
+//**  - posizione: dPosX/dPosY (-1..+1, accumulate, senza ricentraggio) mappate
 //**    sull'area utile del tappetino;
 //**  - inclinazione: proporzionale alla velocita' smussata;
 //**  - pulsanti: corsa + colore accento; rotella: angolo accumulato e lampo
@@ -260,30 +260,30 @@ var
     M: TMouseState;
     RX, RY: Single;
 begin
-    M := S.Mouse;
+    M := S.rMouse;
     RX := FMatW / 2 - BodyWidth / 2 - 0.3;
     RY := FMatH / 2 - BodyLength / 2 - 0.3;
-    FBody.Position.X := M.PosX * RX;
-    FBody.Position.Y := M.PosY * RY;
+    FBody.Position.X := M.dPosX * RX;
+    FBody.Position.Y := M.dPosY * RY;
 
-    FTilt.RotationAngle.Y := Rot(-M.VelX * 14);
-    FTilt.RotationAngle.X := Rot(M.VelY * 14);
+    FTilt.RotationAngle.Y := dRot(-M.dVelX * 14);
+    FTilt.RotationAngle.X := dRot(M.dVelY * 14);
 
-    if M.Buttons <> FLastBtn then
+    if M.iButtons <> FLastBtn then
     begin
-        FLastBtn := M.Buttons;
-        SetButton(FBtnL, M.Pressed(MBTN_LEFT));
-        SetButton(FBtnR, M.Pressed(MBTN_RIGHT));
-        SetButton(FBtnX1, M.Pressed(MBTN_X1));
-        SetButton(FBtnX2, M.Pressed(MBTN_X2));
+        FLastBtn := M.iButtons;
+        SetButton(FBtnL, M.bPressed(MBTN_LEFT));
+        SetButton(FBtnR, M.bPressed(MBTN_RIGHT));
+        SetButton(FBtnX1, M.bPressed(MBTN_X1));
+        SetButton(FBtnX2, M.bPressed(MBTN_X2));
     end;
 
-    FWheel.RotationAngle.Y := M.WheelAngle;
-    FWheel.Active := M.Pressed(MBTN_MIDDLE) or (M.WheelPulse > 0.05);
+    FWheel.RotationAngle.Y := M.dWheelAngle;
+    FWheel.bActive := M.bPressed(MBTN_MIDDLE) or (M.dWheelPulse > 0.05);
 
-    FRadarDot.Position.X := FRadarCenter.X + M.VelX * 0.65;
-    FRadarDot.Position.Y := FRadarCenter.Y + M.VelY * 0.65;
-    FRadarDot.Active := (Abs(M.VelX) + Abs(M.VelY)) > 0.15;
+    FRadarDot.Position.X := FRadarCenter.X + M.dVelX * 0.65;
+    FRadarDot.Position.Y := FRadarCenter.Y + M.dVelY * 0.65;
+    FRadarDot.bActive := (Abs(M.dVelX) + Abs(M.dVelY)) > 0.15;
 end;
 
 end.

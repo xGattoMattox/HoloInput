@@ -52,39 +52,39 @@ uses
 type
     TfrmMain = class(TForm)
     private
-        FConfig: TAppConfig;
-        FInput: TInputManager;
-        FColors: TSkinColors;
-        FContainer: TLayout;
-        FWidgets: array[TDeviceKind] of TDeviceWidget;
-        FToolbar: TLayout;
-        FBtnSetup, FBtnLock, FBtnExit, FStatus, FCredits: THoloButton;
-        FTimer: TTimer;
-        FClock: TStopwatch;
-        FLastTime: Double;
-        FLocked: Boolean;
-        FDirty: Boolean;
-        FSetupOpen: Boolean;
-        FToolbarHot: Boolean;     // mouse sulla barra comandi (solo da bloccato)
-        FFormOrigin: TPointF;
-        FWeb: TWebOverlayServer;  // servizio Browser Source per OBS
-        FObsActive: Boolean;      // servizio OBS avviato (overlay occultato)
-        FObsFrames: Integer;      // fotogrammi preparati dall'avvio del servizio
-        FObsMs: Int64;            // tempo di cattura e composizione dell'ultimo fotogramma (thread principale)
-        FObsLastCapture: Double;  // istante dell'ultimo fotogramma (secondi di FClock)
-        FObsFpsT0: Double;        // inizio della misura dei fotogrammi al secondo
-        FObsFpsCount: Integer;    // fotogrammi preparati dall'inizio della misura
-        FObsFpsValue: Integer;    // fotogrammi al secondo effettivi (ultima misura)
-        FObsError: string;        // ultimo errore della preparazione dei fotogrammi
+        oFConfig: TAppConfig;
+        oFInput: TInputManager;
+        rFColors: TSkinColors;
+        oFContainer: TLayout;
+        aFWidgets: array[TDeviceKind] of TDeviceWidget;
+        oFToolbar: TLayout;
+        oFBtnSetup, oFBtnLock, oFBtnExit, oFStatus, oFCredits: THoloButton;
+        oFTimer: TTimer;
+        rFClock: TStopwatch;
+        dFLastTime: Double;
+        bFLocked: Boolean;
+        bFDirty: Boolean;
+        bFSetupOpen: Boolean;
+        bFToolbarHot: Boolean;     // mouse sulla barra comandi (solo da bloccato)
+        rFFormOrigin: TPointF;
+        oFWeb: TWebOverlayServer;  // servizio Browser Source per OBS
+        bFObsActive: Boolean;      // servizio OBS avviato (overlay occultato)
+        iFObsFrames: Integer;      // fotogrammi preparati dall'avvio del servizio
+        iFObsMs: Int64;            // tempo di cattura e composizione dell'ultimo fotogramma (thread principale)
+        dFObsLastCapture: Double;  // istante dell'ultimo fotogramma (secondi di rFClock)
+        dFObsFpsT0: Double;        // inizio della misura dei fotogrammi al secondo
+        iFObsFpsCount: Integer;    // fotogrammi preparati dall'inizio della misura
+        iFObsFpsValue: Integer;    // fotogrammi al secondo effettivi (ultima misura)
+        sFObsError: string;        // ultimo errore della preparazione dei fotogrammi
         procedure BuildUI;
         procedure ApplyConfig;
         procedure LayoutWidgets;
         procedure ApplyWindowStyles;
-        procedure SetLocked(AValue: Boolean);
+        procedure SetLocked(bAValue: Boolean);
         procedure UpdateToolbar;
-        function StreamerActive: Boolean;
-        function BarHeight: Single;
-        function IsShown(AKind: TDeviceKind): Boolean;
+        function bStreamerActive: Boolean;
+        function dBarHeight: Single;
+        function bIsShown(eAKind: TDeviceKind): Boolean;
         procedure ToggleStreamer;
         procedure UpdateHotZone;
         procedure SaveConfig;
@@ -92,26 +92,26 @@ type
         procedure ShowDisclaimer;
         procedure AutoStartObs;
         procedure ToggleOverlay;
-        function StartObs: Boolean;
+        function bStartObs: Boolean;
         procedure StopObs;
         procedure ApplyObsHiding;
-        procedure MoveToMonitor(const AMonitor: TMonitorDesc);
+        procedure MoveToMonitor(const rAMonitor: TMonitorDesc);
         procedure CaptureObsFrame;
-        function ObsStatusText: string;
-        procedure TimerTick(Sender: TObject);
-        procedure HotkeyPressed(Sender: TObject; AHotkeyId: Integer);
-        procedure WidgetMoved(Sender: TObject);
-        procedure WidgetResized(Sender: TObject);
-        procedure WidgetViewChanged(Sender: TObject);
-        procedure SetupObsFpsChange(Sender: TObject; AFps: Integer);
+        function sObsStatusText: string;
+        procedure TimerTick(oSender: TObject);
+        procedure HotkeyPressed(oSender: TObject; iAHotkeyId: Integer);
+        procedure WidgetMoved(oSender: TObject);
+        procedure WidgetResized(oSender: TObject);
+        procedure WidgetViewChanged(oSender: TObject);
+        procedure SetupObsFpsChange(oSender: TObject; iAFps: Integer);
         procedure StartupUpdateCheck;
         procedure StartUpdateCheck;
         procedure CheckUpdatesNow;
-        procedure UpdateFound(const AInfo: TUpdateInfo; AManual: Boolean);
-        procedure InstallUpdate(const AInfo: TUpdateInfo);
-        procedure BtnSetupClick(Sender: TObject);
-        procedure BtnLockClick(Sender: TObject);
-        procedure BtnExitClick(Sender: TObject);
+        procedure UpdateFound(const rAInfo: TUpdateInfo; bAManual: Boolean);
+        procedure InstallUpdate(const rAInfo: TUpdateInfo);
+        procedure BtnSetupClick(oSender: TObject);
+        procedure BtnLockClick(oSender: TObject);
+        procedure BtnExitClick(oSender: TObject);
     protected
         procedure DoShow; override;
     public
@@ -132,7 +132,7 @@ uses
 var
     /// True dalla distruzione della finestra principale: i risultati del controllo
     /// degli aggiornamenti in arrivo dal thread vengono ignorati.
-    GMainClosing: Boolean = False;
+    bGMainClosing: Boolean = False;
 
 type
     /// Una fila (riga o colonna) di widget nei layout predefiniti.
@@ -171,46 +171,46 @@ const
 //***********************************************************************************************************
 constructor TfrmMain.Create(AOwner: TComponent);
 var
-    HasIni: Boolean;
+    bHasIni: Boolean;
 begin
     inherited;
-    FConfig := TAppConfig.Create;
-    HasIni := FileExists(TAppConfig.DefaultFileName);
-    if HasIni then
+    oFConfig := TAppConfig.Create;
+    bHasIni := FileExists(TAppConfig.sDefaultFileName);
+    if bHasIni then
     try
-        FConfig.LoadFromFile(TAppConfig.DefaultFileName);
+        oFConfig.LoadFromFile(TAppConfig.sDefaultFileName);
     except
-        FConfig.SetDefaults;
+        oFConfig.SetDefaults;
     end;
 
-    FInput := TInputManager.Create;
-    FInput.OnHotkey := HotkeyPressed;
-    FInput.RegisterHotkeys;
+    oFInput := TInputManager.Create;
+    oFInput.mOnHotkey := HotkeyPressed;
+    oFInput.bRegisterHotkeys;
 
-    LoadLanguage(FConfig.Language);
-    FLocked := HasIni and FConfig.StartLocked;
+    LoadLanguage(oFConfig.sLanguage);
+    bFLocked := bHasIni and oFConfig.bStartLocked;
     BuildUI;
     ApplyConfig;
 
-    FClock := TStopwatch.StartNew;
-    FLastTime := 0;
-    FTimer := TTimer.Create(Self);
-    FTimer.Interval := 15;
-    FTimer.OnTimer := TimerTick;
-    FTimer.Enabled := True;
+    rFClock := TStopwatch.StartNew;
+    dFLastTime := 0;
+    oFTimer := TTimer.Create(Self);
+    oFTimer.Interval := 15;
+    oFTimer.OnTimer := TimerTick;
+    oFTimer.Enabled := True;
 
     // servizio Browser Source per OBS: fermo finche' non lo si avvia dal Setup
-    FWeb := TWebOverlayServer.Create;
+    oFWeb := TWebOverlayServer.Create;
 
     // primo avvio: avviso legale (Holo.Disclaimer), finche' non viene accettato;
     // altrimenti, se richiesto, avvio automatico del servizio OBS
-    if not FConfig.DisclaimerAccepted then
+    if not oFConfig.bDisclaimerAccepted then
         TThread.ForceQueue(nil,
             procedure
             begin
                 ShowDisclaimer;
             end)
-    else if FConfig.ObsAutoStart then
+    else if oFConfig.bObsAutoStart then
         TThread.ForceQueue(nil,
             procedure
             begin
@@ -219,7 +219,7 @@ begin
 
     // aggiornamenti: messaggio dopo un aggiornamento appena installato oppure
     // controllo (in background) di una nuova versione su GitHub
-    if FConfig.DisclaimerAccepted then
+    if oFConfig.bDisclaimerAccepted then
         TThread.ForceQueue(nil,
             procedure
             begin
@@ -239,16 +239,16 @@ end;
 //***********************************************************************************************************
 destructor TfrmMain.Destroy;
 begin
-    GMainClosing := True;
-    if FTimer <> nil then
-        FTimer.Enabled := False;
-    FObsActive := False;
-    FreeAndNil(FWeb);
-    if FDirty then
+    bGMainClosing := True;
+    if oFTimer <> nil then
+        oFTimer.Enabled := False;
+    bFObsActive := False;
+    FreeAndNil(oFWeb);
+    if bFDirty then
         SaveConfig;
-    FreeAndNil(FInput);
+    FreeAndNil(oFInput);
     inherited;
-    FreeAndNil(FConfig);
+    FreeAndNil(oFConfig);
 end;
 
 //***********************************************************************************************************
@@ -266,69 +266,69 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.BuildUI;
 var
-    K: TDeviceKind;
-    X: Single;
+    eDevice: TDeviceKind;
+    dPosX: Single;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: MakeButton
-    //** Parametri di ingresso: AText: string; AWidth: Single; AClick: TNotifyEvent
+    //** Nome funzione: oMakeButton
+    //** Parametri di ingresso: sAText: string; dAWidth: Single; mAClick: TNotifyEvent
     //** Parametri di uscita: Result: THoloButton
     //** Scopo: Creare un pulsante della barra comandi con testo, larghezza e gestore del click,
     //**        accodandolo ai precedenti.
     //** Data Ultima Modifica: 29/09/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function MakeButton(const AText: string; AWidth: Single; AClick: TNotifyEvent): THoloButton;
+    function oMakeButton(const sAText: string; dAWidth: Single; mAClick: TNotifyEvent): THoloButton;
     begin
         Result := THoloButton.Create(Self);
-        Result.Parent := FToolbar;
-        Result.Text := AText;
-        Result.SetBounds(X, 0, AWidth, TOOLBAR_H);
-        Result.OnClick := AClick;
-        X := X + AWidth + 6;
+        Result.Parent := oFToolbar;
+        Result.sText := sAText;
+        Result.SetBounds(dPosX, 0, dAWidth, TOOLBAR_H);
+        Result.OnClick := mAClick;
+        dPosX := dPosX + dAWidth + 6;
     end;
 
 begin
-    FContainer := TLayout.Create(Self);
-    FContainer.Parent := Self;
-    FContainer.Align := TAlignLayout.Client;
-    FContainer.HitTest := False;
+    oFContainer := TLayout.Create(Self);
+    oFContainer.Parent := Self;
+    oFContainer.Align := TAlignLayout.Client;
+    oFContainer.HitTest := False;
 
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        FWidgets[K] := TDeviceWidget.CreateWidget(Self, K);
-        FWidgets[K].Parent := FContainer;
-        FWidgets[K].Visible := False;
-        FWidgets[K].OnMoved := WidgetMoved;
-        FWidgets[K].OnResized := WidgetResized;
-        FWidgets[K].OnViewChanged := WidgetViewChanged;
+        aFWidgets[eDevice] := TDeviceWidget.CreateWidget(Self, eDevice);
+        aFWidgets[eDevice].Parent := oFContainer;
+        aFWidgets[eDevice].Visible := False;
+        aFWidgets[eDevice].mOnMoved := WidgetMoved;
+        aFWidgets[eDevice].mOnResized := WidgetResized;
+        aFWidgets[eDevice].mOnViewChanged := WidgetViewChanged;
     end;
 
-    FToolbar := TLayout.Create(Self);
-    FToolbar.Parent := FContainer;
-    FToolbar.HitTest := False;
-    FToolbar.Width := TOOLBAR_W;
-    FToolbar.Height := BAR_H;
+    oFToolbar := TLayout.Create(Self);
+    oFToolbar.Parent := oFContainer;
+    oFToolbar.HitTest := False;
+    oFToolbar.Width := TOOLBAR_W;
+    oFToolbar.Height := BAR_H;
 
-    X := 0;
+    dPosX := 0;
     // i testi dei pulsanti vengono scritti (nella lingua corrente) da UpdateToolbar
-    FBtnSetup := MakeButton('', 90, BtnSetupClick);
-    FBtnLock := MakeButton('', 160, BtnLockClick);
-    FBtnExit := MakeButton('', 80, BtnExitClick);
-    FStatus := MakeButton('', TOOLBAR_W - X, nil);
-    FStatus.Passive := True;
-    FStatus.FontSize := 10;
+    oFBtnSetup := oMakeButton('', 90, BtnSetupClick);
+    oFBtnLock := oMakeButton('', 160, BtnLockClick);
+    oFBtnExit := oMakeButton('', 80, BtnExitClick);
+    oFStatus := oMakeButton('', TOOLBAR_W - dPosX, nil);
+    oFStatus.bPassive := True;
+    oFStatus.dFontSize := 10;
 
     // etichetta dei crediti sotto i pulsanti, larga quanto tutta la barra
-    FCredits := THoloButton.Create(Self);
-    FCredits.Parent := FToolbar;
-    FCredits.SetBounds(0, TOOLBAR_H + CREDITS_GAP, TOOLBAR_W, CREDITS_H);
-    FCredits.Passive := True;
-    FCredits.KeepCase := True;
-    FCredits.FontSize := 11;
-    FCredits.Text := Tr('main.credits', CREDITS_TEXT);
+    oFCredits := THoloButton.Create(Self);
+    oFCredits.Parent := oFToolbar;
+    oFCredits.SetBounds(0, TOOLBAR_H + CREDITS_GAP, TOOLBAR_W, CREDITS_H);
+    oFCredits.bPassive := True;
+    oFCredits.bKeepCase := True;
+    oFCredits.dFontSize := 11;
+    oFCredits.sText := sTr('main.credits', CREDITS_TEXT);
 end;
 
 //***********************************************************************************************************
@@ -348,17 +348,17 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.ApplyConfig;
 var
-    K: TDeviceKind;
-    SkinCls: TSkinClass;
-    W: TDeviceWidget;
+    eDevice: TDeviceKind;
+    oSkinCls: TSkinClass;
+    oWidget: TDeviceWidget;
 begin
-    SkinCls := FindSkin(FConfig.SkinId);
-    if SkinCls <> nil then
-        FColors := SkinCls.Colors
+    oSkinCls := oFindSkin(oFConfig.sSkinId);
+    if oSkinCls <> nil then
+        rFColors := oSkinCls.rColors
     else
-        FColors := DefaultSkinColors;
+        rFColors := rDefaultSkinColors;
 
-    if FConfig.StayOnTop then
+    if oFConfig.bStayOnTop then
     begin
         if FormStyle <> TFormStyle.StayOnTop then
             FormStyle := TFormStyle.StayOnTop;
@@ -366,28 +366,28 @@ begin
     else if FormStyle <> TFormStyle.Normal then
         FormStyle := TFormStyle.Normal;
 
-    FInput.MouseRange := FConfig.MouseRange;
-    FInput.ClearUsage;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    oFInput.dMouseRange := oFConfig.iMouseRange;
+    oFInput.ClearUsage;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        W := FWidgets[K];
-        W.Visible := IsShown(K);
-        if W.Visible then
+        oWidget := aFWidgets[eDevice];
+        oWidget.Visible := bIsShown(eDevice);
+        if oWidget.Visible then
         begin
-            W.SetStyle(FConfig.WidgetStyle = wsDeviceOnly, FConfig.BaseEffects);
-            W.SetAutoHide(FConfig.AutoHide, FConfig.AutoHideSecs);
-            W.Configure(FConfig.Widgets[K], FColors, FConfig.ShowLegends);
-            W.BindDevices(FInput);
+            oWidget.SetStyle(oFConfig.eWidgetStyle = wsDeviceOnly, oFConfig.bBaseEffects);
+            oWidget.SetAutoHide(oFConfig.bAutoHide, oFConfig.iAutoHideSecs);
+            oWidget.Configure(oFConfig.aWidgets[eDevice], rFColors, oFConfig.bShowLegends);
+            oWidget.BindDevices(oFInput);
         end;
-        W.EditMode := not FLocked;
+        oWidget.bEditMode := not bFLocked;
     end;
 
-    FBtnSetup.SetColors(FColors);
-    FBtnLock.SetColors(FColors);
-    FBtnExit.SetColors(FColors);
-    FStatus.SetColors(FColors);
-    FCredits.SetColors(FColors);
-    FContainer.Opacity := FConfig.Opacity;
+    oFBtnSetup.SetColors(rFColors);
+    oFBtnLock.SetColors(rFColors);
+    oFBtnExit.SetColors(rFColors);
+    oFStatus.SetColors(rFColors);
+    oFCredits.SetColors(rFColors);
+    oFContainer.Opacity := oFConfig.dOpacity;
 
     LayoutWidgets;
     UpdateToolbar;
@@ -426,110 +426,110 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.LayoutWidgets;
 var
-    K: TDeviceKind;
-    Rects: array[TDeviceKind] of TRectF;
-    Vis: TKindLine;
-    Lines: TArray<TKindLine>;
-    WA, U, TB, F: TRectF;
-    M, G, X, Y, LineL, LineT, LTop, LLeft, BlockH, TBx, BH: Single;
-    I: Integer;
-    First, Horiz: Boolean;
-    C: TWidgetConfig;
+    eDevice: TDeviceKind;
+    aRects: array[TDeviceKind] of TRectF;
+    aVis: TKindLine;
+    aLines: TArray<TKindLine>;
+    rWorkArea, rUnion, rBarRect, rFormRect: TRectF;
+    dMargin, dGap, dPosX, dPosY, dLineL, dLineT, dLTop, dLLeft, dBlockH, dTBx, dToolbarHeight: Single;
+    iLineIndex: Integer;
+    bFirst, bHoriz: Boolean;
+    rWidget: TWidgetConfig;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: Along
-    //** Parametri di ingresso: AKind: TDeviceKind; AHoriz: Boolean
+    //** Nome funzione: dAlong
+    //** Parametri di ingresso: eAKind: TDeviceKind; bAHoriz: Boolean
     //** Parametri di uscita: Result: Single
     //** Scopo: Dimensione di un widget lungo la direzione della fila (larghezza in orizzontale,
     //**        altezza in verticale).
     //** Data Ultima Modifica: 21/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function Along(AKind: TDeviceKind; AHoriz: Boolean): Single;
+    function dAlong(eAKind: TDeviceKind; bAHoriz: Boolean): Single;
     begin
-        if AHoriz then
-            Result := FConfig.Widgets[AKind].W
+        if bAHoriz then
+            Result := oFConfig.aWidgets[eAKind].iW
         else
-            Result := FConfig.Widgets[AKind].H;
+            Result := oFConfig.aWidgets[eAKind].iH;
     end;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: Across
-    //** Parametri di ingresso: AKind: TDeviceKind; AHoriz: Boolean
+    //** Nome funzione: dAcross
+    //** Parametri di ingresso: eAKind: TDeviceKind; bAHoriz: Boolean
     //** Parametri di uscita: Result: Single
     //** Scopo: Dimensione di un widget nella direzione trasversale alla fila (altezza in
     //**        orizzontale, larghezza in verticale).
     //** Data Ultima Modifica: 21/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function Across(AKind: TDeviceKind; AHoriz: Boolean): Single;
+    function dAcross(eAKind: TDeviceKind; bAHoriz: Boolean): Single;
     begin
-        Result := Along(AKind, not AHoriz);
+        Result := dAlong(eAKind, not bAHoriz);
     end;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: LineLen
-    //** Parametri di ingresso: ALine: TKindLine; AHoriz: Boolean
+    //** Nome funzione: dLineLen
+    //** Parametri di ingresso: aALine: TKindLine; bAHoriz: Boolean
     //** Parametri di uscita: Result: Single
     //** Scopo: Lunghezza di una fila di widget, spazi tra i widget compresi.
     //** Data Ultima Modifica: 21/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function LineLen(const ALine: TKindLine; AHoriz: Boolean): Single;
+    function dLineLen(const aALine: TKindLine; bAHoriz: Boolean): Single;
     var
-        J: Integer;
+        iItem: Integer;
     begin
         Result := 0;
-        for J := 0 to High(ALine) do
+        for iItem := 0 to High(aALine) do
         begin
-            if J > 0 then
-                Result := Result + G;
-            Result := Result + Along(ALine[J], AHoriz);
+            if iItem > 0 then
+                Result := Result + dGap;
+            Result := Result + dAlong(aALine[iItem], bAHoriz);
         end;
     end;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: LineThick
-    //** Parametri di ingresso: ALine: TKindLine; AHoriz: Boolean
+    //** Nome funzione: dLineThick
+    //** Parametri di ingresso: aALine: TKindLine; bAHoriz: Boolean
     //** Parametri di uscita: Result: Single
     //** Scopo: Spessore di una fila di widget, cioe' la dimensione trasversale del widget piu'
     //**        grande.
     //** Data Ultima Modifica: 21/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function LineThick(const ALine: TKindLine; AHoriz: Boolean): Single;
+    function dLineThick(const aALine: TKindLine; bAHoriz: Boolean): Single;
     var
-        J: Integer;
+        iItem: Integer;
     begin
         Result := 0;
-        for J := 0 to High(ALine) do
-            Result := Max(Result, Across(ALine[J], AHoriz));
+        for iItem := 0 to High(aALine) do
+            Result := Max(Result, dAcross(aALine[iItem], bAHoriz));
     end;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: SplitLines
-    //** Parametri di ingresso: AHoriz: Boolean; ALimit: Single
+    //** Nome funzione: aSplitLines
+    //** Parametri di ingresso: bAHoriz: Boolean; dALimit: Single
     //** Parametri di uscita: Result: TArray<TKindLine>
-    //** Scopo: Divide i widget visibili in file che non superano ALimit.
+    //** Scopo: Divide i widget visibili in file che non superano dALimit.
     //** Data Ultima Modifica: 21/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function SplitLines(AHoriz: Boolean; ALimit: Single): TArray<TKindLine>;
+    function aSplitLines(bAHoriz: Boolean; dALimit: Single): TArray<TKindLine>;
     var
-        Acc: TArray<TKindLine>;
-        Line: TKindLine;
-        Len, Sz: Single;
-        J: Integer;
+        aAcc: TArray<TKindLine>;
+        aLine: TKindLine;
+        dLen, dSize: Single;
+        iItem: Integer;
 
         //***********************************************************************************************************
         //***********************************************************************************************************
@@ -543,193 +543,199 @@ var
         //***********************************************************************************************************
         procedure Flush;
         begin
-            if Length(Line) = 0 then
+            if Length(aLine) = 0 then
                 Exit;
-            SetLength(Acc, Length(Acc) + 1);
-            Acc[High(Acc)] := Line;
-            Line := nil;
-            Len := 0;
+            SetLength(aAcc, Length(aAcc) + 1);
+            aAcc[High(aAcc)] := aLine;
+            aLine := nil;
+            dLen := 0;
         end;
 
     begin
-        Acc := nil;
-        Line := nil;
-        Len := 0;
-        for J := 0 to High(Vis) do
+        aAcc := nil;
+        aLine := nil;
+        dLen := 0;
+        for iItem := 0 to High(aVis) do
         begin
-            Sz := Along(Vis[J], AHoriz);
-            if (Length(Line) > 0) and (Len + G + Sz > ALimit) then
+            dSize := dAlong(aVis[iItem], bAHoriz);
+            if (Length(aLine) > 0) and (dLen + dGap + dSize > dALimit) then
                 Flush;
-            if Length(Line) > 0 then
-                Len := Len + G;
-            Len := Len + Sz;
-            SetLength(Line, Length(Line) + 1);
-            Line[High(Line)] := Vis[J];
+            if Length(aLine) > 0 then
+                dLen := dLen + dGap;
+            dLen := dLen + dSize;
+            SetLength(aLine, Length(aLine) + 1);
+            aLine[High(aLine)] := aVis[iItem];
         end;
         Flush;
-        Result := Acc;
+        Result := aAcc;
     end;
 
 begin
-    WA := RectF(Screen.WorkAreaLeft, Screen.WorkAreaTop,
+    rWorkArea := RectF(Screen.WorkAreaLeft, Screen.WorkAreaTop,
         Screen.WorkAreaLeft + Screen.WorkAreaWidth, Screen.WorkAreaTop + Screen.WorkAreaHeight);
-    M := FConfig.Margin;
-    BH := BarHeight;
-    G := FConfig.Spacing;
+    dMargin := oFConfig.iMargin;
+    dToolbarHeight := dBarHeight;
+    dGap := oFConfig.iSpacing;
 
-    Vis := nil;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    aVis := nil;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        Rects[K] := RectF(0, 0, 0, 0);
-        if IsShown(K) then
+        aRects[eDevice] := RectF(0, 0, 0, 0);
+        if bIsShown(eDevice) then
         begin
-            SetLength(Vis, Length(Vis) + 1);
-            Vis[High(Vis)] := K;
+            SetLength(aVis, Length(aVis) + 1);
+            aVis[High(aVis)] := eDevice;
         end;
     end;
 
     // barra comandi: SEMPRE in basso al centro del monitor, qualunque sia il layout
-    TBx := WA.Left + (WA.Width - TOOLBAR_W) / 2;
-    TB := RectF(TBx, WA.Bottom - M - BH, TBx + TOOLBAR_W, WA.Bottom - M);
+    dTBx := rWorkArea.Left + (rWorkArea.Width - TOOLBAR_W) / 2;
+    rBarRect := RectF(dTBx, rWorkArea.Bottom - dMargin - dToolbarHeight, dTBx + TOOLBAR_W, rWorkArea.Bottom
+        - dMargin);
 
-    case FConfig.Layout of
+    case oFConfig.eLayout of
         lmBottom, lmTop:
             begin
-                Horiz := True;
-                Lines := SplitLines(Horiz, WA.Width - 2 * M);
-                if FConfig.Layout = lmBottom then
-                    Y := TB.Top - G          // la fila in basso si appoggia sopra la barra
+                bHoriz := True;
+                aLines := aSplitLines(bHoriz, rWorkArea.Width - 2 * dMargin);
+                if oFConfig.eLayout = lmBottom then
+                    dPosY := rBarRect.Top - dGap          // la fila in basso si appoggia sopra la barra
                 else
-                    Y := WA.Top + M;
-                for I := 0 to High(Lines) do
+                    dPosY := rWorkArea.Top + dMargin;
+                for iLineIndex := 0 to High(aLines) do
                 begin
-                    LineL := LineLen(Lines[I], Horiz);
-                    LineT := LineThick(Lines[I], Horiz);
-                    X := WA.Left + (WA.Width - LineL) / 2;
-                    if FConfig.Layout = lmBottom then
-                        LTop := Y - LineT
+                    dLineL := dLineLen(aLines[iLineIndex], bHoriz);
+                    dLineT := dLineThick(aLines[iLineIndex], bHoriz);
+                    dPosX := rWorkArea.Left + (rWorkArea.Width - dLineL) / 2;
+                    if oFConfig.eLayout = lmBottom then
+                        dLTop := dPosY - dLineT
                     else
-                        LTop := Y;
-                    for K in Lines[I] do
+                        dLTop := dPosY;
+                    for eDevice in aLines[iLineIndex] do
                     begin
-                        C := FConfig.Widgets[K];
-                        if FConfig.Layout = lmBottom then
-                            Rects[K] := RectF(X, LTop + LineT - C.H, X + C.W, LTop + LineT)
+                        rWidget := oFConfig.aWidgets[eDevice];
+                        if oFConfig.eLayout = lmBottom then
+                            aRects[eDevice] := RectF(dPosX, dLTop + dLineT - rWidget.iH, dPosX + rWidget.iW,
+                                dLTop + dLineT)
                         else
-                            Rects[K] := RectF(X, LTop, X + C.W, LTop + C.H);
-                        X := X + C.W + G;
+                            aRects[eDevice] := RectF(dPosX, dLTop, dPosX + rWidget.iW, dLTop + rWidget.iH);
+                        dPosX := dPosX + rWidget.iW + dGap;
                     end;
-                    if FConfig.Layout = lmBottom then
-                        Y := LTop - G
+                    if oFConfig.eLayout = lmBottom then
+                        dPosY := dLTop - dGap
                     else
-                        Y := LTop + LineT + G;
+                        dPosY := dLTop + dLineT + dGap;
                 end;
             end;
 
         lmRight, lmLeft:
             begin
-                Horiz := False;
-                Lines := SplitLines(Horiz, WA.Height - 2 * M);
-                BlockH := 0;
-                for I := 0 to High(Lines) do
-                    BlockH := Max(BlockH, LineLen(Lines[I], Horiz));
-                LTop := Max(WA.Top + M, WA.Top + (WA.Height - BlockH) / 2);
-                if FConfig.Layout = lmRight then
-                    X := WA.Right - M
+                bHoriz := False;
+                aLines := aSplitLines(bHoriz, rWorkArea.Height - 2 * dMargin);
+                dBlockH := 0;
+                for iLineIndex := 0 to High(aLines) do
+                    dBlockH := Max(dBlockH, dLineLen(aLines[iLineIndex], bHoriz));
+                dLTop := Max(rWorkArea.Top + dMargin, rWorkArea.Top + (rWorkArea.Height - dBlockH) / 2);
+                if oFConfig.eLayout = lmRight then
+                    dPosX := rWorkArea.Right - dMargin
                 else
-                    X := WA.Left + M;
-                for I := 0 to High(Lines) do
+                    dPosX := rWorkArea.Left + dMargin;
+                for iLineIndex := 0 to High(aLines) do
                 begin
-                    LineL := LineLen(Lines[I], Horiz);
-                    LineT := LineThick(Lines[I], Horiz);
-                    if FConfig.Layout = lmRight then
-                        LLeft := X - LineT
+                    dLineL := dLineLen(aLines[iLineIndex], bHoriz);
+                    dLineT := dLineThick(aLines[iLineIndex], bHoriz);
+                    if oFConfig.eLayout = lmRight then
+                        dLLeft := dPosX - dLineT
                     else
-                        LLeft := X;
-                    Y := LTop + (BlockH - LineL) / 2;
-                    for K in Lines[I] do
+                        dLLeft := dPosX;
+                    dPosY := dLTop + (dBlockH - dLineL) / 2;
+                    for eDevice in aLines[iLineIndex] do
                     begin
-                        C := FConfig.Widgets[K];
-                        if FConfig.Layout = lmRight then
-                            Rects[K] := RectF(LLeft + LineT - C.W, Y, LLeft + LineT, Y + C.H)
+                        rWidget := oFConfig.aWidgets[eDevice];
+                        if oFConfig.eLayout = lmRight then
+                            aRects[eDevice] := RectF(dLLeft + dLineT - rWidget.iW, dPosY, dLLeft + dLineT,
+                                dPosY + rWidget.iH)
                         else
-                            Rects[K] := RectF(LLeft, Y, LLeft + C.W, Y + C.H);
-                        Y := Y + C.H + G;
+                            aRects[eDevice] := RectF(dLLeft, dPosY, dLLeft + rWidget.iW, dPosY + rWidget.iH);
+                        dPosY := dPosY + rWidget.iH + dGap;
                     end;
-                    if FConfig.Layout = lmRight then
-                        X := LLeft - G
+                    if oFConfig.eLayout = lmRight then
+                        dPosX := dLLeft - dGap
                     else
-                        X := LLeft + LineT + G;
+                        dPosX := dLLeft + dLineT + dGap;
                 end;
             end;
 
     else  // lmCustom
-        for K in Vis do
+        for eDevice in aVis do
         begin
-            C := FConfig.Widgets[K];
-            Rects[K] := RectF(C.X, C.Y, C.X + C.W, C.Y + C.H);
+            rWidget := oFConfig.aWidgets[eDevice];
+            aRects[eDevice] := RectF(rWidget.iX, rWidget.iY, rWidget.iX + rWidget.iW, rWidget.iY
+                + rWidget.iH);
         end;
     end;
 
     // layout predefiniti: se qualche widget finirebbe sopra la barra comandi,
     // tutto il gruppo sale quanto basta (senza superare il bordo superiore)
-    if FConfig.Layout in [lmTop, lmRight, lmLeft] then
+    if oFConfig.eLayout in [lmTop, lmRight, lmLeft] then
     begin
-        Y := 0;
-        for K in Vis do
-            if (Rects[K].Right > TB.Left - G) and (Rects[K].Left < TB.Right + G) then
-                Y := Max(Y, Rects[K].Bottom - (TB.Top - G));
-        if Y > 0 then
+        dPosY := 0;
+        for eDevice in aVis do
+            if (aRects[eDevice].Right > rBarRect.Left - dGap) and (aRects[eDevice].Left < rBarRect.Right
+                + dGap) then
+                dPosY := Max(dPosY, aRects[eDevice].Bottom - (rBarRect.Top - dGap));
+        if dPosY > 0 then
         begin
-            LTop := WA.Bottom;
-            for K in Vis do
-                LTop := Min(LTop, Rects[K].Top);
-            Y := Min(Y, Max(0, LTop - (WA.Top + M)));
-            for K in Vis do
-                Rects[K].Offset(0, -Y);
+            dLTop := rWorkArea.Bottom;
+            for eDevice in aVis do
+                dLTop := Min(dLTop, aRects[eDevice].Top);
+            dPosY := Min(dPosY, Max(0, dLTop - (rWorkArea.Top + dMargin)));
+            for eDevice in aVis do
+                aRects[eDevice].Offset(0, -dPosY);
         end;
     end;
 
     // posizioni calcolate -> X/Y (mostrate nel setup)
-    if FConfig.Layout <> lmCustom then
-        for K in Vis do
+    if oFConfig.eLayout <> lmCustom then
+        for eDevice in aVis do
         begin
-            FConfig.Widgets[K].X := Round(Rects[K].Left);
-            FConfig.Widgets[K].Y := Round(Rects[K].Top);
+            oFConfig.aWidgets[eDevice].iX := Round(aRects[eDevice].Left);
+            oFConfig.aWidgets[eDevice].iY := Round(aRects[eDevice].Top);
         end;
 
-    First := True;
-    U := RectF(0, 0, 0, 0);
-    for K in Vis do
+    bFirst := True;
+    rUnion := RectF(0, 0, 0, 0);
+    for eDevice in aVis do
     begin
-        if First then
-            U := Rects[K]
+        if bFirst then
+            rUnion := aRects[eDevice]
         else
-            U := TRectF.Union(U, Rects[K]);
-        First := False;
+            rUnion := TRectF.Union(rUnion, aRects[eDevice]);
+        bFirst := False;
     end;
 
-    if First then
-        U := TB
+    if bFirst then
+        rUnion := rBarRect
     else
-        U := TRectF.Union(U, TB);
+        rUnion := TRectF.Union(rUnion, rBarRect);
 
-    if FLocked then
+    if bFLocked then
     begin
-        F := U;
-        F.Inflate(2, 2);
+        rFormRect := rUnion;
+        rFormRect.Inflate(2, 2);
     end
     else
-        F := RectF(Screen.DesktopLeft, Screen.DesktopTop,
+        rFormRect := RectF(Screen.DesktopLeft, Screen.DesktopTop,
             Screen.DesktopLeft + Screen.DesktopWidth, Screen.DesktopTop + Screen.DesktopHeight);
 
-    FFormOrigin := F.TopLeft;
-    SetBounds(Round(F.Left), Round(F.Top), Round(F.Width), Round(F.Height));
+    rFFormOrigin := rFormRect.TopLeft;
+    SetBounds(Round(rFormRect.Left), Round(rFormRect.Top), Round(rFormRect.Width), Round(rFormRect.Height));
 
-    for K in Vis do
-        FWidgets[K].SetBounds(Rects[K].Left - FFormOrigin.X, Rects[K].Top - FFormOrigin.Y,
-            Rects[K].Width, Rects[K].Height);
-    FToolbar.Position.Point := PointF(TB.Left - FFormOrigin.X, TB.Top - FFormOrigin.Y);
+    for eDevice in aVis do
+        aFWidgets[eDevice].SetBounds(aRects[eDevice].Left - rFFormOrigin.X, aRects[eDevice].Top
+            - rFFormOrigin.Y,
+            aRects[eDevice].Width, aRects[eDevice].Height);
+    oFToolbar.Position.Point := PointF(rBarRect.Left - rFFormOrigin.X, rBarRect.Top - rFFormOrigin.Y);
 end;
 
 //***********************************************************************************************************
@@ -743,7 +749,7 @@ end;
 //***********************************************************************************************************
 //** Funzionamento: in modalita' bloccata aggiunge WS_EX_NOACTIVATE (il gioco
 //** non perde il fuoco) e WS_EX_TRANSPARENT (i click attraversano la
-//** finestra), tranne quando il mouse e' sulla barra comandi (FToolbarHot):
+//** finestra), tranne quando il mouse e' sulla barra comandi (bFToolbarHot):
 //** in quel caso la finestra riceve i click e i pulsanti funzionano.
 //** In modalita' sbloccata li rimuove entrambi. La trasparenza per-pixel e'
 //** gestita da FMX (Transparency = True nel .fmx).
@@ -751,24 +757,24 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.ApplyWindowStyles;
 var
-    H: HWND;
-    Ex, NewEx: NativeInt;
+    hWindow: HWND;
+    iExStyle, iNewEx: NativeInt;
 begin
     if Handle = nil then
         Exit;
-    H := FmxHandleToHWND(Handle);
-    if H = 0 then
+    hWindow := FmxHandleToHWND(Handle);
+    if hWindow = 0 then
         Exit;
-    Ex := GetWindowLongPtr(H, GWL_EXSTYLE);
-    NewEx := Ex and not NativeInt(WS_EX_TRANSPARENT or WS_EX_NOACTIVATE);
-    if FLocked then
+    iExStyle := GetWindowLongPtr(hWindow, GWL_EXSTYLE);
+    iNewEx := iExStyle and not NativeInt(WS_EX_TRANSPARENT or WS_EX_NOACTIVATE);
+    if bFLocked then
     begin
-        NewEx := NewEx or WS_EX_NOACTIVATE;
-        if not FToolbarHot then
-            NewEx := NewEx or WS_EX_TRANSPARENT;
+        iNewEx := iNewEx or WS_EX_NOACTIVATE;
+        if not bFToolbarHot then
+            iNewEx := iNewEx or WS_EX_TRANSPARENT;
     end;
-    if NewEx <> Ex then
-        SetWindowLongPtr(H, GWL_EXSTYLE, NewEx);
+    if iNewEx <> iExStyle then
+        SetWindowLongPtr(hWindow, GWL_EXSTYLE, iNewEx);
 end;
 
 //***********************************************************************************************************
@@ -789,21 +795,21 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.UpdateHotZone;
 var
-    P: TPointF;
-    R: TRectF;
-    Over: Boolean;
+    rMousePos: TPointF;
+    rBarRect: TRectF;
+    bOver: Boolean;
 begin
-    Over := False;
-    if FLocked and Visible and not FSetupOpen then
+    bOver := False;
+    if bFLocked and Visible and not bFSetupOpen then
     begin
-        P := ScreenToClient(Screen.MousePos);
-        R := FToolbar.AbsoluteRect;
-        R.Inflate(4, 4);
-        Over := R.Contains(P);
+        rMousePos := ScreenToClient(Screen.MousePos);
+        rBarRect := oFToolbar.AbsoluteRect;
+        rBarRect.Inflate(4, 4);
+        bOver := rBarRect.Contains(rMousePos);
     end;
-    if Over = FToolbarHot then
+    if bOver = bFToolbarHot then
         Exit;
-    FToolbarHot := Over;
+    bFToolbarHot := bOver;
     ApplyWindowStyles;
     UpdateToolbar;
 end;
@@ -833,7 +839,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.SetLocked
-//** Parametri di ingresso: AValue: Boolean
+//** Parametri di ingresso: bAValue: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Passare tra modalita' bloccata e sbloccata.
 //** Data Ultima Modifica: 29/09/2026
@@ -843,15 +849,15 @@ end;
 //** posizioni eventualmente modificate a mano.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.SetLocked(AValue: Boolean);
+procedure TfrmMain.SetLocked(bAValue: Boolean);
 var
-    K: TDeviceKind;
+    eDevice: TDeviceKind;
 begin
-    FLocked := AValue;
-    FToolbarHot := False;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
-        FWidgets[K].EditMode := not FLocked;
-    if FLocked and FDirty then
+    bFLocked := bAValue;
+    bFToolbarHot := False;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+        aFWidgets[eDevice].bEditMode := not bFLocked;
+    if bFLocked and bFDirty then
         SaveConfig;
     LayoutWidgets;
     UpdateToolbar;
@@ -861,7 +867,7 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TfrmMain.StreamerActive
+//** Nome funzione: TfrmMain.bStreamerActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: True se la modalita' streamer e' attiva E il suo tasto rapido funziona (altrimenti non
@@ -869,24 +875,24 @@ end;
 //** Data Ultima Modifica: 24/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TfrmMain.StreamerActive: Boolean;
+function TfrmMain.bStreamerActive: Boolean;
 begin
-    Result := FConfig.StreamerMode and FInput.StreamerHotkeyOk;
+    Result := oFConfig.bStreamerMode and oFInput.bStreamerHotkeyOk;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TfrmMain.BarHeight
+//** Nome funzione: TfrmMain.dBarHeight
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Single
 //** Scopo: Altezza della barra comandi (solo etichetta in modalita' streamer).
 //** Data Ultima Modifica: 24/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TfrmMain.BarHeight: Single;
+function TfrmMain.dBarHeight: Single;
 begin
-    if StreamerActive then
+    if bStreamerActive then
         Result := CREDITS_H
     else
         Result := BAR_H;
@@ -895,18 +901,18 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TfrmMain.IsShown
-//** Parametri di ingresso: AKind: TDeviceKind
+//** Nome funzione: TfrmMain.bIsShown
+//** Parametri di ingresso: eAKind: TDeviceKind
 //** Parametri di uscita: Result: Boolean
 //** Scopo: True se il widget va mostrato: deve essere attivo nel setup e, per la tastiera, la
 //**        modalita' privacy deve essere spenta.
 //** Data Ultima Modifica: 24/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TfrmMain.IsShown(AKind: TDeviceKind): Boolean;
+function TfrmMain.bIsShown(eAKind: TDeviceKind): Boolean;
 begin
-    Result := FConfig.Widgets[AKind].Visible and
-        not ((AKind = dkKeyboard) and FConfig.PrivacyMode);
+    Result := oFConfig.aWidgets[eAKind].bVisible and
+        not ((eAKind = dkKeyboard) and oFConfig.bPrivacyMode);
 end;
 
 //***********************************************************************************************************
@@ -924,7 +930,7 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.ToggleStreamer;
 begin
-    FConfig.StreamerMode := not FConfig.StreamerMode;
+    oFConfig.bStreamerMode := not oFConfig.bStreamerMode;
     SaveConfig;
     UpdateToolbar;
     LayoutWidgets;
@@ -946,46 +952,46 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.UpdateToolbar;
 var
-    Streamer: Boolean;
+    bStreamer: Boolean;
 begin
-    Streamer := StreamerActive;
-    FBtnSetup.Visible := not Streamer;
-    FBtnLock.Visible := not Streamer;
-    FBtnExit.Visible := not Streamer;
-    FStatus.Visible := not Streamer;
-    if Streamer then
+    bStreamer := bStreamerActive;
+    oFBtnSetup.Visible := not bStreamer;
+    oFBtnLock.Visible := not bStreamer;
+    oFBtnExit.Visible := not bStreamer;
+    oFStatus.Visible := not bStreamer;
+    if bStreamer then
     begin
-        FCredits.Position.Y := 0;
-        FCredits.Text := Tr('main.credits', CREDITS_TEXT) + Tr('main.streamerhint', STREAMER_HINT);
+        oFCredits.Position.Y := 0;
+        oFCredits.sText := sTr('main.credits', CREDITS_TEXT) + sTr('main.streamerhint', STREAMER_HINT);
     end
     else
     begin
-        FCredits.Position.Y := TOOLBAR_H + CREDITS_GAP;
-        FCredits.Text := Tr('main.credits', CREDITS_TEXT);
+        oFCredits.Position.Y := TOOLBAR_H + CREDITS_GAP;
+        oFCredits.sText := sTr('main.credits', CREDITS_TEXT);
     end;
-    FToolbar.Height := BarHeight;
+    oFToolbar.Height := dBarHeight;
 
-    FBtnSetup.Text := Tr('main.btn.setup', 'Setup');
-    FBtnExit.Text := Tr('main.btn.exit', 'Esci');
-    if FLocked then
+    oFBtnSetup.sText := sTr('main.btn.setup', 'Setup');
+    oFBtnExit.sText := sTr('main.btn.exit', 'Esci');
+    if bFLocked then
     begin
-        FBtnLock.Text := Tr('main.btn.unlock', 'Sblocca layout');
-        FBtnLock.Highlight := True;
-        FStatus.Text := Tr('main.status.locked', 'BLOCCATO  ' + #$00B7 + '  CTRL+ALT+F12 PER SBLOCCARE');
-        if FToolbarHot then
-            FToolbar.Opacity := 1
+        oFBtnLock.sText := sTr('main.btn.unlock', 'Sblocca layout');
+        oFBtnLock.bHighlight := True;
+        oFStatus.sText := sTr('main.status.locked', 'BLOCCATO  ' + #$00B7 + '  CTRL+ALT+F12 PER SBLOCCARE');
+        if bFToolbarHot then
+            oFToolbar.Opacity := 1
         else
-            FToolbar.Opacity := 0.55;
+            oFToolbar.Opacity := 0.55;
     end
     else
     begin
-        FBtnLock.Text := Tr('main.btn.lock', 'Blocca layout');
-        FBtnLock.Highlight := False;
-        FStatus.Text := Tr('main.status.edit', 'MODIFICA  ' + #$00B7 + '  TRASCINA I WIDGET');
-        FToolbar.Opacity := 1;
+        oFBtnLock.sText := sTr('main.btn.lock', 'Blocca layout');
+        oFBtnLock.bHighlight := False;
+        oFStatus.sText := sTr('main.status.edit', 'MODIFICA  ' + #$00B7 + '  TRASCINA I WIDGET');
+        oFToolbar.Opacity := 1;
     end;
-    if not FInput.HotkeysOk then
-        FStatus.Text := FStatus.Text + Tr('main.status.nohotkeys', '  (HOTKEY NON DISPONIBILI)');
+    if not oFInput.bHotkeysOk then
+        oFStatus.sText := oFStatus.sText + sTr('main.status.nohotkeys', '  (HOTKEY NON DISPONIBILI)');
 end;
 
 //***********************************************************************************************************
@@ -1001,12 +1007,12 @@ end;
 procedure TfrmMain.SaveConfig;
 begin
     try
-        FConfig.SaveToFile(TAppConfig.DefaultFileName);
-        FDirty := False;
+        oFConfig.SaveToFile(TAppConfig.sDefaultFileName);
+        bFDirty := False;
     except
-        on E: Exception do
-            ShowMessage(Tr('main.err.save', 'Impossibile salvare la configurazione:') + sLineBreak +
-                E.Message);
+        on oError: Exception do
+            ShowMessage(sTr('main.err.save', 'Impossibile salvare la configurazione:') + sLineBreak +
+                oError.Message);
     end;
 end;
 
@@ -1014,47 +1020,47 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.TimerTick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Ciclo principale (~60 fps).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //** Funzionamento: misura il tempo trascorso, aggiorna lo snapshot degli input
 //** e lo passa a tutti i widget visibili; con il servizio OBS attivo prepara
-//** un fotogramma per OBS al ritmo scelto (ObsFps) e misura i fotogrammi al
+//** un fotogramma per OBS al ritmo scelto (iObsFps) e misura i fotogrammi al
 //** secondo effettivi.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.TimerTick(Sender: TObject);
+procedure TfrmMain.TimerTick(oSender: TObject);
 var
-    T, DT: Double;
-    K: TDeviceKind;
-    S: PInputSnapshot;
+    dTime, dDeltaTime: Double;
+    eDevice: TDeviceKind;
+    pSnapshot: PInputSnapshot;
 begin
-    T := FClock.Elapsed.TotalSeconds;
-    DT := EnsureRange(T - FLastTime, 0, 0.1);
-    FLastTime := T;
+    dTime := rFClock.Elapsed.TotalSeconds;
+    dDeltaTime := EnsureRange(dTime - dFLastTime, 0, 0.1);
+    dFLastTime := dTime;
     UpdateHotZone;
-    FInput.Poll(DT);
-    S := FInput.StatePtr;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
-        if FWidgets[K].Visible then
-            FWidgets[K].Tick(S^, DT, FConfig.Animations);
+    oFInput.Poll(dDeltaTime);
+    pSnapshot := oFInput.pStatePtr;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+        if aFWidgets[eDevice].Visible then
+            aFWidgets[eDevice].Tick(pSnapshot^, dDeltaTime, oFConfig.bAnimations);
 
     // servizio OBS: un fotogramma ogni 1/fps secondi (il timer gira a ~64 Hz,
     // la tolleranza del 10% evita di saltare un tick per pochi decimi di ms)
-    if FObsActive then
+    if bFObsActive then
     begin
-        if T - FObsLastCapture >= 0.9 / Max(1, FConfig.ObsFps) then
+        if dTime - dFObsLastCapture >= 0.9 / Max(1, oFConfig.iObsFps) then
         begin
-            FObsLastCapture := T;
+            dFObsLastCapture := dTime;
             CaptureObsFrame;
         end;
-        if T - FObsFpsT0 >= 1 then
+        if dTime - dFObsFpsT0 >= 1 then
         begin
-            FObsFpsValue := Round(FObsFpsCount / (T - FObsFpsT0));
-            FObsFpsCount := 0;
-            FObsFpsT0 := T;
+            iFObsFpsValue := Round(iFObsFpsCount / (dTime - dFObsFpsT0));
+            iFObsFpsCount := 0;
+            dFObsFpsT0 := dTime;
         end;
     end;
 end;
@@ -1063,7 +1069,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.HotkeyPressed
-//** Parametri di ingresso: Sender: TObject; AHotkeyId: Integer
+//** Parametri di ingresso: oSender: TObject; iAHotkeyId: Integer
 //** Parametri di uscita: nessuno
 //** Scopo: Gestire le hotkey globali.
 //** Data Ultima Modifica: 05/11/2026
@@ -1076,21 +1082,21 @@ end;
 //** del Setup la barra comandi e l'etichetta sottostante sono di nuovo visibili.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.HotkeyPressed(Sender: TObject; AHotkeyId: Integer);
+procedure TfrmMain.HotkeyPressed(oSender: TObject; iAHotkeyId: Integer);
 begin
     TThread.ForceQueue(nil,
         procedure
         begin
-            case AHotkeyId of
-                HK_LOCK:    if not FSetupOpen and not FObsActive then SetLocked(not FLocked);
+            case iAHotkeyId of
+                HK_LOCK:    if not bFSetupOpen and not bFObsActive then SetLocked(not bFLocked);
                 HK_SETUP:
                     begin
-                        if FConfig.StreamerMode and not FSetupOpen then
+                        if oFConfig.bStreamerMode and not bFSetupOpen then
                             ToggleStreamer;   // la barra comandi torna visibile
                         OpenSetup;
                     end;
                 HK_VISIBLE: ToggleOverlay;
-                HK_STREAMER: if not FSetupOpen and not FObsActive then ToggleStreamer;
+                HK_STREAMER: if not bFSetupOpen and not bFObsActive then ToggleStreamer;
             end;
         end);
 end;
@@ -1107,7 +1113,7 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.ToggleOverlay;
 begin
-    if FSetupOpen or FObsActive then
+    if bFSetupOpen or bFObsActive then
         Exit;
     if Visible then
         Hide
@@ -1122,7 +1128,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.WidgetMoved
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Memorizzare la nuova posizione di un widget trascinato.
 //** Data Ultima Modifica: 30/09/2026
@@ -1134,16 +1140,16 @@ end;
 //** coordinate desktop e ricalcola la barra comandi.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.WidgetMoved(Sender: TObject);
+procedure TfrmMain.WidgetMoved(oSender: TObject);
 var
-    W: TDeviceWidget;
+    oWidget: TDeviceWidget;
 begin
-    W := Sender as TDeviceWidget;
-    if FConfig.Layout <> lmCustom then
-        FConfig.SetLayout(lmCustom);
-    FConfig.Widgets[W.Kind].X := Round(FFormOrigin.X + W.Position.X);
-    FConfig.Widgets[W.Kind].Y := Round(FFormOrigin.Y + W.Position.Y);
-    FDirty := True;
+    oWidget := oSender as TDeviceWidget;
+    if oFConfig.eLayout <> lmCustom then
+        oFConfig.SetLayout(lmCustom);
+    oFConfig.aWidgets[oWidget.eKind].iX := Round(rFFormOrigin.X + oWidget.Position.X);
+    oFConfig.aWidgets[oWidget.eKind].iY := Round(rFFormOrigin.Y + oWidget.Position.Y);
+    bFDirty := True;
     LayoutWidgets;
 end;
 
@@ -1151,7 +1157,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.WidgetResized
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Memorizzare le nuove dimensioni di un widget ridimensionato col mouse.
 //** Data Ultima Modifica: 23/10/2026
@@ -1163,19 +1169,19 @@ end;
 //** dal lato sinistro o da quello superiore).
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.WidgetResized(Sender: TObject);
+procedure TfrmMain.WidgetResized(oSender: TObject);
 var
-    W: TDeviceWidget;
+    oWidget: TDeviceWidget;
 begin
-    W := Sender as TDeviceWidget;
-    FConfig.Widgets[W.Kind].W := Round(W.Width);
-    FConfig.Widgets[W.Kind].H := Round(W.Height);
-    if FConfig.Layout = lmCustom then
+    oWidget := oSender as TDeviceWidget;
+    oFConfig.aWidgets[oWidget.eKind].iW := Round(oWidget.Width);
+    oFConfig.aWidgets[oWidget.eKind].iH := Round(oWidget.Height);
+    if oFConfig.eLayout = lmCustom then
     begin
-        FConfig.Widgets[W.Kind].X := Round(FFormOrigin.X + W.Position.X);
-        FConfig.Widgets[W.Kind].Y := Round(FFormOrigin.Y + W.Position.Y);
+        oFConfig.aWidgets[oWidget.eKind].iX := Round(rFFormOrigin.X + oWidget.Position.X);
+        oFConfig.aWidgets[oWidget.eKind].iY := Round(rFFormOrigin.Y + oWidget.Position.Y);
     end;
-    FDirty := True;
+    bFDirty := True;
     LayoutWidgets;
 end;
 
@@ -1183,7 +1189,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.WidgetViewChanged
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Memorizzare la vista di un widget ruotata con il tasto destro o zoomata con la rotella
 //**        del mouse.
@@ -1196,16 +1202,16 @@ end;
 //** Il pulsante Default del Setup riporta la vista a quella predefinita.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.WidgetViewChanged(Sender: TObject);
+procedure TfrmMain.WidgetViewChanged(oSender: TObject);
 var
-    W: TDeviceWidget;
+    oWidget: TDeviceWidget;
 begin
-    W := Sender as TDeviceWidget;
-    FConfig.Widgets[W.Kind].Tilt := W.ViewTilt;
-    FConfig.Widgets[W.Kind].Yaw := W.ViewYaw;
-    FConfig.Widgets[W.Kind].Zoom := W.ViewZoom;
-    FConfig.Widgets[W.Kind].PanY := W.ViewPanY;
-    FDirty := True;
+    oWidget := oSender as TDeviceWidget;
+    oFConfig.aWidgets[oWidget.eKind].dTilt := oWidget.dViewTilt;
+    oFConfig.aWidgets[oWidget.eKind].dYaw := oWidget.dViewYaw;
+    oFConfig.aWidgets[oWidget.eKind].dZoom := oWidget.dViewZoom;
+    oFConfig.aWidgets[oWidget.eKind].dPanY := oWidget.dViewPanY;
+    bFDirty := True;
 end;
 
 //***********************************************************************************************************
@@ -1229,72 +1235,72 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.OpenSetup;
 var
-    Tmp: TAppConfig;
-    Dlg: TfrmSetup;
-    Res: TModalResult;
-    Act: TObsAction;
-    Upd: Boolean;
+    oTmp: TAppConfig;
+    oDlg: TfrmSetup;
+    eRes: TModalResult;
+    eAct: TObsAction;
+    bUpd: Boolean;
 begin
-    if FSetupOpen then
+    if bFSetupOpen then
         Exit;
-    FSetupOpen := True;
-    FToolbarHot := False;
-    FTimer.Enabled := False;
+    bFSetupOpen := True;
+    bFToolbarHot := False;
+    oFTimer.Enabled := False;
     Hide;
-    Act := oaNone;
-    Upd := False;
-    Tmp := TAppConfig.Create;
+    eAct := oaNone;
+    bUpd := False;
+    oTmp := TAppConfig.Create;
     try
-        Tmp.Assign(FConfig);
+        oTmp.Assign(oFConfig);
         // cambiando lingua il setup si chiude con mrRetry e si riapre nella nuova
         // lingua, mantenendo le modifiche non ancora salvate (sono in Tmp)
         repeat
-            Dlg := TfrmSetup.CreateSetup(nil, Tmp, FInput);
+            oDlg := TfrmSetup.CreateSetup(nil, oTmp, oFInput);
             try
-                Dlg.OnObsFpsChange := SetupObsFpsChange;
-                Dlg.SetObsState(FObsActive, ObsStatusText);
-                Res := Dlg.ShowModal;
-                Act := Dlg.ObsAction;
-                Upd := Dlg.UpdateRequested;
+                oDlg.mOnObsFpsChange := SetupObsFpsChange;
+                oDlg.SetObsState(bFObsActive, sObsStatusText);
+                eRes := oDlg.ShowModal;
+                eAct := oDlg.eObsAction;
+                bUpd := oDlg.bUpdateRequested;
             finally
-                Dlg.Free;
+                oDlg.Free;
             end;
-            if Res = mrRetry then
-                LoadLanguage(Tmp.Language);
-        until Res <> mrRetry;
-        if Res = mrOk then
+            if eRes = mrRetry then
+                LoadLanguage(oTmp.sLanguage);
+        until eRes <> mrRetry;
+        if eRes = mrOk then
         begin
-            FConfig.Assign(Tmp);
+            oFConfig.Assign(oTmp);
             SaveConfig;
         end;
         // lingua definitiva: quella salvata (chiudendo senza salvare torna la precedente)
-        if not SameText(CurrentLanguage, FConfig.Language) then
-            LoadLanguage(FConfig.Language);
+        if not SameText(sCurrentLanguage, oFConfig.sLanguage) then
+            LoadLanguage(oFConfig.sLanguage);
     finally
-        Tmp.Free;
-        FSetupOpen := False;
+        oTmp.Free;
+        bFSetupOpen := False;
     end;
     ApplyConfig;
     // servizio OBS: avvio/arresto chiesto dalla pagina OBS; con Salva e il servizio
     // gia' attivo lo si riavvia, cosi' valgono subito porta e risoluzione nuove
-    if Res = mrOk then
-        case Act of
-            oaStart: StartObs;
+    if eRes = mrOk then
+        case eAct of
+            oaStart: bStartObs;
             oaStop:  StopObs;
         else
-            if FObsActive then
-                StartObs;
+            if bFObsActive then
+                bStartObs;
         end;
-    if FObsActive then
+    if bFObsActive then
         ApplyObsHiding
     else
     begin
         Show;
         ApplyWindowStyles;
     end;
-    FTimer.Enabled := True;
+    oFTimer.Enabled := True;
     // pulsante "Controlla aggiornamenti" della pagina Info
-    if (Res = mrOk) and Upd then
+    if (eRes = mrOk) and bUpd then
         CheckUpdatesNow;
 end;
 
@@ -1308,7 +1314,7 @@ end;
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: nasconde l'overlay e ferma il rendering mentre l'avviso e'
-//** aperto (FSetupOpen blocca anche setup e blocco del layout dalle hotkey).
+//** aperto (bFSetupOpen blocca anche setup e blocco del layout dalle hotkey).
 //** Con "Accetto" salva nel .ini l'accettazione e la lingua e la skin scelte
 //** nell'avviso, applica la configurazione e rimostra l'overlay; con
 //** "Rifiuto" chiude l'applicazione senza salvare (l'avviso ricomparira' al
@@ -1318,30 +1324,30 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.ShowDisclaimer;
 var
-    Accepted: Boolean;
+    bAccepted: Boolean;
 begin
-    FSetupOpen := True;
-    FTimer.Enabled := False;
+    bFSetupOpen := True;
+    oFTimer.Enabled := False;
     Hide;
     try
-        Accepted := RunDisclaimer(FConfig);
+        bAccepted := bRunDisclaimer(oFConfig);
     finally
-        FSetupOpen := False;
+        bFSetupOpen := False;
     end;
-    if not Accepted then
+    if not bAccepted then
     begin
         Application.Terminate;
         Close;
         Exit;
     end;
-    FConfig.DisclaimerAccepted := True;
+    oFConfig.bDisclaimerAccepted := True;
     SaveConfig;
     ApplyConfig;
     Show;
     ApplyWindowStyles;
-    FTimer.Enabled := True;
+    oFTimer.Enabled := True;
     AutoStartObs;
-    if FConfig.CheckUpdates then
+    if oFConfig.bCheckUpdates then
         StartUpdateCheck;
 end;
 
@@ -1356,22 +1362,22 @@ end;
 //***********************************************************************************************************
 //** Funzionamento: solo con l'opzione "Avvia il servizio all'avvio di
 //** HoloInput" attiva e se il servizio non e' gia' attivo; avviato il server
-//** occulta l'overlay come scelto nel Setup. Se la porta e' occupata StartObs
+//** occulta l'overlay come scelto nel Setup. Se la porta e' occupata bStartObs
 //** mostra l'errore e l'overlay resta visibile.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.AutoStartObs;
 begin
-    if FObsActive or FSetupOpen or not FConfig.ObsAutoStart then
+    if bFObsActive or bFSetupOpen or not oFConfig.bObsAutoStart then
         Exit;
-    if StartObs then
+    if bStartObs then
         ApplyObsHiding;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TfrmMain.StartObs
+//** Nome funzione: TfrmMain.bStartObs
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Avviare (o riavviare con i nuovi parametri) il servizio Browser Source per OBS.
@@ -1384,30 +1390,30 @@ end;
 //** della finestra e' gestito da OpenSetup; i fotogrammi li prepara TimerTick.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TfrmMain.StartObs: Boolean;
+function TfrmMain.bStartObs: Boolean;
 begin
     Result := False;
-    if not FLocked then
+    if not bFLocked then
         SetLocked(True);
     try
-        FWeb.Start(FConfig.ObsPort, FConfig.ObsWidth, FConfig.ObsHeight);
+        oFWeb.Start(oFConfig.iObsPort, oFConfig.iObsWidth, oFConfig.iObsHeight);
     except
-        on E: Exception do
+        on oError: Exception do
         begin
-            FObsActive := False;
-            ShowMessage(Format(Tr('obs.err.start', 'Impossibile avviare il servizio OBS sulla porta %d:'),
-                [FConfig.ObsPort]) + sLineBreak + E.Message);
+            bFObsActive := False;
+            ShowMessage(Format(sTr('obs.err.start', 'Impossibile avviare il servizio OBS sulla porta %d:'),
+                [oFConfig.iObsPort]) + sLineBreak + oError.Message);
             Exit;
         end;
     end;
-    FObsActive := True;
-    FObsFrames := 0;
-    FObsMs := 0;
-    FObsError := '';
-    FObsLastCapture := 0;
-    FObsFpsT0 := FClock.Elapsed.TotalSeconds;
-    FObsFpsCount := 0;
-    FObsFpsValue := 0;
+    bFObsActive := True;
+    iFObsFrames := 0;
+    iFObsMs := 0;
+    sFObsError := '';
+    dFObsLastCapture := 0;
+    dFObsFpsT0 := rFClock.Elapsed.TotalSeconds;
+    iFObsFpsCount := 0;
+    iFObsFpsValue := 0;
     Result := True;
 end;
 
@@ -1428,12 +1434,12 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.StartupUpdateCheck;
 begin
-    if JustUpdated then
-        HoloMessage(Tr('update.done.title', 'HoloInput aggiornato'),
-            Format(Tr('update.done.text', 'HoloInput e'' stato aggiornato alla versione %s.' + sLineBreak +
-            sLineBreak + 'Le novita'' sono nel file CHANGELOG.md accanto all''eseguibile.'), [AppVersion]),
-            FColors)
-    else if FConfig.CheckUpdates then
+    if bJustUpdated then
+        HoloMessage(sTr('update.done.title', 'HoloInput aggiornato'),
+            Format(sTr('update.done.text', 'HoloInput e'' stato aggiornato alla versione %s.' + sLineBreak +
+            sLineBreak + 'Le novita'' sono nel file CHANGELOG.md accanto all''eseguibile.'), [sAppVersion]),
+            rFColors)
+    else if oFConfig.bCheckUpdates then
         StartUpdateCheck;
 end;
 
@@ -1454,21 +1460,21 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.StartUpdateCheck;
 var
-    Cur: string;
+    sCur: string;
 begin
-    Cur := AppVersion;   // letta qui, nel thread principale
+    sCur := sAppVersion;   // letta qui, nel thread principale
     TThread.CreateAnonymousThread(
         procedure
         var
-            Info: TUpdateInfo;
-            Err: string;
+            rInfo: TUpdateInfo;
+            sErr: string;
         begin
-            if CheckForUpdate(Cur, Info, Err) then
+            if bCheckForUpdate(sCur, rInfo, sErr) then
                 TThread.Queue(nil,
                     procedure
                     begin
-                        if not GMainClosing then
-                            UpdateFound(Info, False);
+                        if not bGMainClosing then
+                            UpdateFound(rInfo, False);
                     end);
         end).Start;
 end;
@@ -1489,22 +1495,22 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.CheckUpdatesNow;
 var
-    Info: TUpdateInfo;
-    Err: string;
+    rInfo: TUpdateInfo;
+    sErr: string;
 begin
-    if CheckForUpdate(AppVersion, Info, Err) then
-        UpdateFound(Info, True)
+    if bCheckForUpdate(sAppVersion, rInfo, sErr) then
+        UpdateFound(rInfo, True)
     else
-        HoloMessage(Tr('update.checkfail.title', 'Controllo aggiornamenti'),
-            Format(Tr('update.checkfail.text', 'Impossibile controllare gli aggiornamenti:' + sLineBreak +
-            '%s'), [Err]), FColors);
+        HoloMessage(sTr('update.checkfail.title', 'Controllo aggiornamenti'),
+            Format(sTr('update.checkfail.text', 'Impossibile controllare gli aggiornamenti:' + sLineBreak +
+            '%s'), [sErr]), rFColors);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.UpdateFound
-//** Parametri di ingresso: AInfo: TUpdateInfo; AManual: Boolean
+//** Parametri di ingresso: rAInfo: TUpdateInfo; bAManual: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Proporre l'aggiornamento se la release trovata e' piu' recente della versione in uso.
 //** Data Ultima Modifica: 06/11/2026
@@ -1512,84 +1518,84 @@ end;
 //** Funzionamento: senza novita' risponde solo al controllo manuale. Il
 //** controllo automatico non disturba mentre il Setup e' aperto o il servizio
 //** OBS e' attivo (si ripropone al prossimo avvio). Chiede conferma con la
-//** finestra delle novita' (AskUpdate: Aggiorna / Piu' tardi) e con Aggiorna
+//** finestra delle novita' (bAskUpdate: Aggiorna / Piu' tardi) e con Aggiorna
 //** passa a InstallUpdate.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.UpdateFound(const AInfo: TUpdateInfo; AManual: Boolean);
+procedure TfrmMain.UpdateFound(const rAInfo: TUpdateInfo; bAManual: Boolean);
 var
-    Cur: string;
+    sCur: string;
 begin
-    Cur := AppVersion;
-    if not UpdateAvailable(AInfo, Cur) then
+    sCur := sAppVersion;
+    if not bUpdateAvailable(rAInfo, sCur) then
     begin
-        if AManual then
-            HoloMessage(Tr('update.none.title', 'Nessun aggiornamento'),
-                Format(Tr('update.none.text', 'Stai gia'' usando la versione piu'' recente di HoloInput ' +
-                '(%s).'), [Cur]), FColors);
+        if bAManual then
+            HoloMessage(sTr('update.none.title', 'Nessun aggiornamento'),
+                Format(sTr('update.none.text', 'Stai gia'' usando la versione piu'' recente di HoloInput ' +
+                '(%s).'), [sCur]), rFColors);
         Exit;
     end;
-    if not AManual and (FSetupOpen or FObsActive) then
+    if not bAManual and (bFSetupOpen or bFObsActive) then
         Exit;
-    if AskUpdate(AInfo, Cur, FColors) then
-        InstallUpdate(AInfo);
+    if bAskUpdate(rAInfo, sCur, rFColors) then
+        InstallUpdate(rAInfo);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.InstallUpdate
-//** Parametri di ingresso: AInfo: TUpdateInfo
+//** Parametri di ingresso: rAInfo: TUpdateInfo
 //** Parametri di uscita: nessuno
 //** Scopo: Scaricare e installare l'aggiornamento (finestra con la barra di progresso), poi
 //**        riavviare HoloInput.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: durante l'aggiornamento le hotkey e il Setup sono bloccati
-//** (FSetupOpen). Se l'installazione riesce ferma il servizio OBS, avvia il
+//** (bFSetupOpen). Se l'installazione riesce ferma il servizio OBS, avvia il
 //** nuovo exe (che aspetta la chiusura di questo) e chiude l'applicazione. Se
 //** non riesce mostra l'errore e propone di aprire la pagina della release per
 //** scaricare la nuova versione a mano; se l'utente annulla non mostra nulla.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.InstallUpdate(const AInfo: TUpdateInfo);
+procedure TfrmMain.InstallUpdate(const rAInfo: TUpdateInfo);
 var
-    Ok: Boolean;
-    Err: string;
+    bInstalled: Boolean;
+    sErr: string;
 begin
-    FSetupOpen := True;
+    bFSetupOpen := True;
     try
-        Ok := RunUpdate(AInfo, FColors, Err);
+        bInstalled := bRunUpdate(rAInfo, rFColors, sErr);
     finally
-        FSetupOpen := False;
+        bFSetupOpen := False;
     end;
-    if Ok then
+    if bInstalled then
     begin
-        if FObsActive then
+        if bFObsActive then
             StopObs;
-        if RestartAfterUpdate then
+        if bRestartAfterUpdate then
         begin
-            GMainClosing := True;
+            bGMainClosing := True;
             Close;
         end
         else
-            HoloMessage(Tr('update.fail.title', 'Aggiornamento non riuscito'),
-                Tr('update.restart.text', 'L''aggiornamento e'' stato installato: chiudi e riapri ' +
-                'HoloInput per usare la nuova versione.'), FColors);
+            HoloMessage(sTr('update.fail.title', 'Aggiornamento non riuscito'),
+                sTr('update.restart.text', 'L''aggiornamento e'' stato installato: chiudi e riapri ' +
+                'HoloInput per usare la nuova versione.'), rFColors);
         Exit;
     end;
-    if (Err <> '') and HoloConfirm(Tr('update.fail.title', 'Aggiornamento non riuscito'),
-        Format(Tr('update.fail.text', '%s' + sLineBreak + sLineBreak + 'Puoi scaricare la nuova versione ' +
-        'a mano dalla pagina della release.'), [Err]), FColors, Tr('update.fail.open', 'Apri la pagina'),
-        Tr('update.fail.close', 'Chiudi')) then
-        OpenUrl(AInfo.PageUrl);
+    if (sErr <> '') and bHoloConfirm(sTr('update.fail.title', 'Aggiornamento non riuscito'),
+        Format(sTr('update.fail.text', '%s' + sLineBreak + sLineBreak + 'Puoi scaricare la nuova versione ' +
+        'a mano dalla pagina della release.'), [sErr]), rFColors, sTr('update.fail.open', 'Apri la pagina'),
+        sTr('update.fail.close', 'Chiudi')) then
+        OpenUrl(rAInfo.sPageUrl);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.SetupObsFpsChange
-//** Parametri di ingresso: Sender: TObject; AFps: Integer
+//** Parametri di ingresso: oSender: TObject; iAFps: Integer
 //** Parametri di uscita: nessuno
 //** Scopo: Fermare e riavviare subito il servizio OBS con i nuovi fotogrammi al secondo scelti nel Setup.
 //** Data Ultima Modifica: 05/11/2026
@@ -1600,16 +1606,16 @@ end;
 //** OBS del Setup. I fotogrammi ripartono alla chiusura del Setup, come sempre.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.SetupObsFpsChange(Sender: TObject; AFps: Integer);
+procedure TfrmMain.SetupObsFpsChange(oSender: TObject; iAFps: Integer);
 begin
-    if not FObsActive or (FConfig.ObsFps = AFps) then
+    if not bFObsActive or (oFConfig.iObsFps = iAFps) then
         Exit;
-    FConfig.ObsFps := AFps;
+    oFConfig.iObsFps := iAFps;
     SaveConfig;
     StopObs;
-    StartObs;
-    if Sender is TfrmSetup then
-        TfrmSetup(Sender).SetObsState(FObsActive, ObsStatusText);
+    bStartObs;
+    if oSender is TfrmSetup then
+        TfrmSetup(oSender).SetObsState(bFObsActive, sObsStatusText);
 end;
 
 //***********************************************************************************************************
@@ -1629,8 +1635,8 @@ end;
 //***********************************************************************************************************
 procedure TfrmMain.StopObs;
 begin
-    FObsActive := False;
-    FWeb.Stop;
+    bFObsActive := False;
+    oFWeb.Stop;
 end;
 
 //***********************************************************************************************************
@@ -1648,24 +1654,24 @@ end;
 //** scelto (MoveToMonitor, prima di mostrarla per non farla comparire sul
 //** principale e di nuovo dopo, nel caso Show ne ripristini la posizione).
 //** Se il monitor scelto non e' piu' collegato la finestra va fuori dallo
-//** schermo. FFormOrigin non cambia, quindi i fotogrammi usano sempre le
+//** schermo. rFFormOrigin non cambia, quindi i fotogrammi usano sempre le
 //** posizioni dei widget sullo schermo principale. I diversi modi servono a
 //** verificare quale continua a disegnare i widget (vedi CaptureObsFrame).
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.ApplyObsHiding;
 var
-    Mon: TMonitorDesc;
+    rMon: TMonitorDesc;
 begin
-    if (FConfig.ObsHideMode = OBS_HIDE_MONITOR) and FindMonitor(FConfig.ObsMonitor, Mon) and
-        not Mon.Primary then
+    if (oFConfig.iObsHideMode = OBS_HIDE_MONITOR) and bFindMonitor(oFConfig.sObsMonitor, rMon) and
+        not rMon.bPrimary then
     begin
-        MoveToMonitor(Mon);
+        MoveToMonitor(rMon);
         Show;
-        MoveToMonitor(Mon);
+        MoveToMonitor(rMon);
         ApplyWindowStyles;
     end
-    else if FConfig.ObsHideMode <> OBS_HIDE_WINDOW then
+    else if oFConfig.iObsHideMode <> OBS_HIDE_WINDOW then
     begin
         SetBounds(Round(Screen.DesktopLeft) - Width - 200, Round(Screen.DesktopTop), Width, Height);
         Show;
@@ -1679,7 +1685,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.MoveToMonitor
-//** Parametri di ingresso: AMonitor: TMonitorDesc
+//** Parametri di ingresso: rAMonitor: TMonitorDesc
 //** Parametri di uscita: nessuno
 //** Scopo: Spostare la finestra dell'overlay su un altro monitor (servizio OBS attivo).
 //** Data Ultima Modifica: 31/10/2026
@@ -1691,28 +1697,28 @@ end;
 //** monitor principale. Le dimensioni non cambiano.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.MoveToMonitor(const AMonitor: TMonitorDesc);
+procedure TfrmMain.MoveToMonitor(const rAMonitor: TMonitorDesc);
 var
-    H: HWND;
-    WR, PR, MR: TRect;
-    X, Y: Integer;
+    hWindow: HWND;
+    rWindowRect, rPrimaryRect, rMonitorRect: TRect;
+    iPosX, iPosY: Integer;
 begin
     if Handle = nil then
         Exit;
-    H := FmxHandleToHWND(Handle);
-    if (H = 0) or not GetWindowRect(H, WR) then
+    hWindow := FmxHandleToHWND(Handle);
+    if (hWindow = 0) or not GetWindowRect(hWindow, rWindowRect) then
         Exit;
-    PR := PrimaryMonitorRect;
-    MR := AMonitor.Bounds;
-    if MR.CenterPoint.X < PR.CenterPoint.X then
-        X := MR.Right - WR.Width
+    rPrimaryRect := rPrimaryMonitorRect;
+    rMonitorRect := rAMonitor.rBounds;
+    if rMonitorRect.CenterPoint.X < rPrimaryRect.CenterPoint.X then
+        iPosX := rMonitorRect.Right - rWindowRect.Width
     else
-        X := MR.Left;
-    if MR.CenterPoint.Y < PR.CenterPoint.Y then
-        Y := MR.Bottom - WR.Height
+        iPosX := rMonitorRect.Left;
+    if rMonitorRect.CenterPoint.Y < rPrimaryRect.CenterPoint.Y then
+        iPosY := rMonitorRect.Bottom - rWindowRect.Height
     else
-        Y := MR.Top;
-    SetWindowPos(H, 0, X, Y, 0, 0, SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE);
+        iPosY := rMonitorRect.Top;
+    SetWindowPos(hWindow, 0, iPosX, iPosY, 0, 0, SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE);
 end;
 
 //***********************************************************************************************************
@@ -1736,130 +1742,133 @@ end;
 //**    nell'area, con l'opacita' globale dell'overlay;
 //** 3) copia i pixel e li consegna al server (SubmitFrame): compressione PNG
 //**    e invio a OBS avvengono in altri thread, il thread principale fa solo
-//**    cattura e composizione (tempo in FObsMs).
+//**    cattura e composizione (tempo in iFObsMs).
 //** Le fotografie vengono fatte prima di aprire la scena della bitmap finale
 //** (una scena alla volta). Gli errori finiscono nello stato del servizio.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TfrmMain.CaptureObsFrame;
 var
-    K: TDeviceKind;
-    Shots: array[TDeviceKind] of TBitmap;
-    Rects: array[TDeviceKind] of TRectF;
-    Frame: TBitmap;
-    W: TDeviceWidget;
-    SX, SY, SW, SH: Single;
-    U, R: TRectF;
-    Crop: TRect;
-    Data: TBitmapData;
-    Pix: TBytes;
-    Y, RowLen: Integer;
-    Bgr, Any: Boolean;
-    Watch: TStopwatch;
+    eDevice: TDeviceKind;
+    aShots: array[TDeviceKind] of TBitmap;
+    aRects: array[TDeviceKind] of TRectF;
+    oFrame: TBitmap;
+    oWidget: TDeviceWidget;
+    dScaleX, dScaleY, dScreenWidth, dScreenHeight: Single;
+    rUnion, rRect: TRectF;
+    rCrop: TRect;
+    oData: TBitmapData;
+    aPix: TBytes;
+    iRow, iRowLen: Integer;
+    bBgr, bAny: Boolean;
+    rWatch: TStopwatch;
 begin
-    if not FObsActive or FSetupOpen then
+    if not bFObsActive or bFSetupOpen then
         Exit;
-    Watch := TStopwatch.StartNew;
+    rWatch := TStopwatch.StartNew;
     // scala: dalla dimensione del monitor principale in coordinate FMX alla risoluzione del servizio
-    SW := Screen.Size.Width;
-    SH := Screen.Size.Height;
-    if (SW < 1) or (SH < 1) then
+    dScreenWidth := Screen.Size.Width;
+    dScreenHeight := Screen.Size.Height;
+    if (dScreenWidth < 1) or (dScreenHeight < 1) then
         Exit;
-    SX := FConfig.ObsWidth / SW;
-    SY := FConfig.ObsHeight / SH;
+    dScaleX := oFConfig.iObsWidth / dScreenWidth;
+    dScaleY := oFConfig.iObsHeight / dScreenHeight;
 
     // rettangolo di ogni widget visibile nella pagina e area che li contiene tutti
-    Any := False;
-    U := RectF(0, 0, 0, 0);
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    bAny := False;
+    rUnion := RectF(0, 0, 0, 0);
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        Shots[K] := nil;
-        Rects[K] := RectF(0, 0, 0, 0);
+        aShots[eDevice] := nil;
+        aRects[eDevice] := RectF(0, 0, 0, 0);
         // i widget nascosti da "nascondi i widget inattivi" non entrano nel fotogramma
-        if FWidgets[K].Visible and (FWidgets[K].ShowAlpha > 0.01) then
+        if aFWidgets[eDevice].Visible and (aFWidgets[eDevice].dShowAlpha > 0.01) then
         begin
-            W := FWidgets[K];
-            Rects[K] := RectF((FFormOrigin.X + W.Position.X) * SX, (FFormOrigin.Y + W.Position.Y) * SY,
-                (FFormOrigin.X + W.Position.X + W.Width) * SX, (FFormOrigin.Y + W.Position.Y + W.Height) * SY);
-            if Any then
-                U := TRectF.Union(U, Rects[K])
+            oWidget := aFWidgets[eDevice];
+            aRects[eDevice] := RectF((rFFormOrigin.X + oWidget.Position.X) * dScaleX, (rFFormOrigin.Y
+                + oWidget.Position.Y) * dScaleY,
+                (rFFormOrigin.X + oWidget.Position.X + oWidget.Width) * dScaleX, (rFFormOrigin.Y + oWidget.Position.Y + oWidget.Height) * dScaleY);
+            if bAny then
+                rUnion := TRectF.Union(rUnion, aRects[eDevice])
             else
-                U := Rects[K];
-            Any := True;
+                rUnion := aRects[eDevice];
+            bAny := True;
         end;
     end;
-    Crop := Rect(0, 0, 0, 0);
-    if Any then
-        Crop := TRect.Intersect(Rect(Floor(U.Left), Floor(U.Top), Ceil(U.Right), Ceil(U.Bottom)),
-            Rect(0, 0, FConfig.ObsWidth, FConfig.ObsHeight));
-    if Crop.IsEmpty then
+    rCrop := Rect(0, 0, 0, 0);
+    if bAny then
+        rCrop := TRect.Intersect(Rect(Floor(rUnion.Left), Floor(rUnion.Top), Ceil(rUnion.Right),
+            Ceil(rUnion.Bottom)),
+            Rect(0, 0, oFConfig.iObsWidth, oFConfig.iObsHeight));
+    if rCrop.IsEmpty then
     begin
         // nessun widget nella pagina: OBS mostra la pagina vuota
-        FWeb.SubmitFrame(nil, Rect(0, 0, 0, 0), True);
-        Inc(FObsFrames);
-        Inc(FObsFpsCount);
+        oFWeb.SubmitFrame(nil, Rect(0, 0, 0, 0), True);
+        Inc(iFObsFrames);
+        Inc(iFObsFpsCount);
         Exit;
     end;
 
-    Frame := nil;
+    oFrame := nil;
     try
         try
-            for K := Low(TDeviceKind) to High(TDeviceKind) do
-                if FWidgets[K].Visible and (FWidgets[K].ShowAlpha > 0.01) then
-                    Shots[K] := FWidgets[K].MakeScreenshot;
+            for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+                if aFWidgets[eDevice].Visible and (aFWidgets[eDevice].dShowAlpha > 0.01) then
+                    aShots[eDevice] := aFWidgets[eDevice].MakeScreenshot;
 
-            Frame := TBitmap.Create(Crop.Width, Crop.Height);
-            if Frame.Canvas.BeginScene then
+            oFrame := TBitmap.Create(rCrop.Width, rCrop.Height);
+            if oFrame.Canvas.BeginScene then
             try
-                Frame.Canvas.Clear(TAlphaColors.Null);
-                for K := Low(TDeviceKind) to High(TDeviceKind) do
-                    if Shots[K] <> nil then
+                oFrame.Canvas.Clear(TAlphaColors.Null);
+                for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+                    if aShots[eDevice] <> nil then
                     begin
-                        R := Rects[K];
-                        R.Offset(-Crop.Left, -Crop.Top);
-                        Frame.Canvas.DrawBitmap(Shots[K], RectF(0, 0, Shots[K].Width, Shots[K].Height), R,
-                            FConfig.Opacity * FWidgets[K].ShowAlpha, False);
+                        rRect := aRects[eDevice];
+                        rRect.Offset(-rCrop.Left, -rCrop.Top);
+                        oFrame.Canvas.DrawBitmap(aShots[eDevice], RectF(0, 0, aShots[eDevice].Width,
+                            aShots[eDevice].Height), rRect,
+                            oFConfig.dOpacity * aFWidgets[eDevice].dShowAlpha, False);
                     end;
             finally
-                Frame.Canvas.EndScene;
+                oFrame.Canvas.EndScene;
             end;
 
             // copia dei pixel (righe consecutive) per il thread di codifica
-            Pix := nil;
-            Bgr := True;
-            if Frame.Map(TMapAccess.Read, Data) then
+            aPix := nil;
+            bBgr := True;
+            if oFrame.Map(TMapAccess.Read, oData) then
             try
-                Bgr := Data.PixelFormat <> TPixelFormat.RGBA;
-                RowLen := Data.Width * 4;
-                SetLength(Pix, RowLen * Data.Height);
-                for Y := 0 to Data.Height - 1 do
-                    Move(PByte(Data.GetScanline(Y))^, Pix[Y * RowLen], RowLen);
+                bBgr := oData.PixelFormat <> TPixelFormat.RGBA;
+                iRowLen := oData.Width * 4;
+                SetLength(aPix, iRowLen * oData.Height);
+                for iRow := 0 to oData.Height - 1 do
+                    Move(PByte(oData.GetScanline(iRow))^, aPix[iRow * iRowLen], iRowLen);
             finally
-                Frame.Unmap(Data);
+                oFrame.Unmap(oData);
             end;
-            if Pix <> nil then
+            if aPix <> nil then
             begin
-                FWeb.SubmitFrame(Pix, Crop, Bgr);
-                Inc(FObsFrames);
-                Inc(FObsFpsCount);
+                oFWeb.SubmitFrame(aPix, rCrop, bBgr);
+                Inc(iFObsFrames);
+                Inc(iFObsFpsCount);
             end;
-            FObsMs := Watch.ElapsedMilliseconds;
-            FObsError := '';
+            iFObsMs := rWatch.ElapsedMilliseconds;
+            sFObsError := '';
         except
-            on E: Exception do
-                FObsError := E.Message;
+            on oError: Exception do
+                sFObsError := oError.Message;
         end;
     finally
-        Frame.Free;
-        for K := Low(TDeviceKind) to High(TDeviceKind) do
-            Shots[K].Free;
+        oFrame.Free;
+        for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+            aShots[eDevice].Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TfrmMain.ObsStatusText
+//** Nome funzione: TfrmMain.sObsStatusText
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Testo dello stato del servizio OBS mostrato nella pagina OBS del Setup.
@@ -1873,58 +1882,59 @@ end;
 //** l'eventuale errore e l'avviso se OBS non e' collegato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TfrmMain.ObsStatusText: string;
+function TfrmMain.sObsStatusText: string;
 var
-    Mode: string;
-    Mon: TMonitorDesc;
+    sMode: string;
+    rMon: TMonitorDesc;
 begin
-    if not FObsActive then
-        Exit(Tr('obs.status.stopped', 'Servizio fermo.'));
-    case FConfig.ObsHideMode of
+    if not bFObsActive then
+        Exit(sTr('obs.status.stopped', 'Servizio fermo.'));
+    case oFConfig.iObsHideMode of
         OBS_HIDE_OFFSCREEN:
-            Mode := Tr('setup.obs.hide.offscreen', 'Sposta la finestra fuori dallo schermo');
+            sMode := sTr('setup.obs.hide.offscreen', 'Sposta la finestra fuori dallo schermo');
         OBS_HIDE_MONITOR:
-            if FindMonitor(FConfig.ObsMonitor, Mon) and not Mon.Primary then
-                Mode := Format(Tr('obs.status.monitor', 'finestra su %s'), [MonitorText(Mon)])
+            if bFindMonitor(oFConfig.sObsMonitor, rMon) and not rMon.bPrimary then
+                sMode := Format(sTr('obs.status.monitor', 'finestra su %s'), [sMonitorText(rMon)])
             else
-                Mode := Tr('obs.status.nomonitor', 'monitor scelto non collegato: finestra fuori dallo schermo');
+                sMode := sTr('obs.status.nomonitor', 'monitor scelto non collegato: finestra fuori dallo schermo');
     else
-        Mode := Tr('setup.obs.hide.window', 'Nascondi la finestra');
+        sMode := sTr('setup.obs.hide.window', 'Nascondi la finestra');
     end;
-    Result := Format(Tr('obs.status.running',
+    Result := Format(sTr('obs.status.running',
         'ATTIVO su %s  ' + #$00B7 + '  %d x %d  ' + #$00B7 + '  %d fps  ' + #$00B7 + '  %s'),
-        [FWeb.Url, FConfig.ObsWidth, FConfig.ObsHeight, FConfig.ObsFps, Mode]) + sLineBreak +
-        Format(Tr('obs.status.stream',
+        [oFWeb.sUrl, oFConfig.iObsWidth, oFConfig.iObsHeight, oFConfig.iObsFps, sMode]) + sLineBreak +
+        Format(sTr('obs.status.stream',
         'Fotogrammi preparati: %d (%d al secondo)  ' + #$00B7 + '  inviati a OBS: %d  ' + #$00B7 +
         '  connessioni: %d  ' + #$00B7 + '  cattura %d ms, codifica %d ms'),
-        [FObsFrames, FObsFpsValue, FWeb.FramesSent, FWeb.Clients, FObsMs, FWeb.EncodeMs]) + sLineBreak;
-    if FObsError <> '' then
-        Result := Result + Format(Tr('obs.status.error', 'ERRORE: %s'), [FObsError])
-    else if FWeb.FramesEncoded > 0 then
+        [iFObsFrames, iFObsFpsValue, oFWeb.iFramesSent, oFWeb.iClients, iFObsMs, oFWeb.iEncodeMs])
+            + sLineBreak;
+    if sFObsError <> '' then
+        Result := Result + Format(sTr('obs.status.error', 'ERRORE: %s'), [sFObsError])
+    else if oFWeb.iFramesEncoded > 0 then
     begin
-        Result := Result + Format(Tr('obs.status.visible', 'Ultimo fotogramma: %d pixel visibili'),
-            [FWeb.VisiblePixels]);
-        if FWeb.VisiblePixels > 0 then
-            Result := Result + Tr('obs.status.ok', '  ' + #$2192 + '  widget catturati con la finestra occultata.')
+        Result := Result + Format(sTr('obs.status.visible', 'Ultimo fotogramma: %d pixel visibili'),
+            [oFWeb.iVisiblePixels]);
+        if oFWeb.iVisiblePixels > 0 then
+            Result := Result + sTr('obs.status.ok', '  ' + #$2192 + '  widget catturati con la finestra occultata.')
         else
-            Result := Result + Tr('obs.status.empty',
+            Result := Result + sTr('obs.status.empty',
                 '  ' + #$2192 + '  ATTENZIONE: fotogramma vuoto, provare un altro modo di occultamento.');
     end;
-    if FWeb.Clients = 0 then
-        Result := Result + Tr('obs.status.noclient', '  ' + #$00B7 + '  OBS non collegato');
+    if oFWeb.iClients = 0 then
+        Result := Result + sTr('obs.status.noclient', '  ' + #$00B7 + '  OBS non collegato');
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.BtnSetupClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Aprire la finestra di Setup dal pulsante della barra comandi (in coda, fuori dal click).
 //** Data Ultima Modifica: 30/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.BtnSetupClick(Sender: TObject);
+procedure TfrmMain.BtnSetupClick(oSender: TObject);
 begin
     TThread.ForceQueue(nil,
         procedure
@@ -1937,7 +1947,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.BtnLockClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Bloccare/sbloccare dalla barra comandi.
 //** Data Ultima Modifica: 30/09/2026
@@ -1946,13 +1956,13 @@ end;
 //** stile della finestra avviene dopo che il click e' stato completato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.BtnLockClick(Sender: TObject);
+procedure TfrmMain.BtnLockClick(oSender: TObject);
 begin
     TThread.ForceQueue(nil,
         procedure
         begin
-            if not FSetupOpen then
-                SetLocked(not FLocked);
+            if not bFSetupOpen then
+                SetLocked(not bFLocked);
         end);
 end;
 
@@ -1960,13 +1970,13 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TfrmMain.BtnExitClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Uscire dall'applicazione.
 //** Data Ultima Modifica: 30/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TfrmMain.BtnExitClick(Sender: TObject);
+procedure TfrmMain.BtnExitClick(oSender: TObject);
 begin
     Close;
 end;

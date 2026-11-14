@@ -3,7 +3,7 @@
 //** Autore: Citizen GattoMatto
 //** Nome unit: Holo.WebOverlay
 //** Scopo: Servizio "Browser Source" per OBS (server HTTP/WebSocket locale) ed elenco dei monitor.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: un piccolo server HTTP (Indy) in ascolto solo su 127.0.0.1 (niente accessi
 //** dall'esterno, niente avvisi del firewall) espone:
@@ -15,6 +15,15 @@
 //**    /ws          connessione WebSocket: il server invia ogni nuovo fotogramma
 //**                 appena e' pronto (messaggio binario, vedi sotto);
 //**    /frame.png   l'ultimo fotogramma come PNG (per verifica nel browser).
+//** Sicurezza: ogni richiesta deve avere come Host 127.0.0.1 o localhost con
+//** la porta del servizio e, se ha un Origin, deve venire dalla pagina del
+//** servizio stesso (bRequestAllowed); le altre ricevono 403. Cosi' un sito
+//** aperto nel browser non puo' collegarsi alla WebSocket e vedere i
+//** fotogrammi (e quindi i tasti premuti). E' ammessa una sola connessione
+//** WebSocket alla volta (quella di OBS); una seconda solo se HoloInput e'
+//** avviato con l'opzione "SecondConnection" (es. per una prova nel browser
+//** mentre OBS e' collegato). Le connessioni in piu' ricevono 503 (la pagina
+//** riprova da sola ogni secondo).
 //**
 //** Fotogrammi: la finestra principale fotografa i widget, li compone nella
 //** sola area che occupano (il resto dello schermo e' trasparente e non viene
@@ -27,9 +36,9 @@
 //** altezza dell'area nella pagina) seguiti dal PNG; larghezza 0 = nessun
 //** widget visibile (la pagina si svuota).
 //**
-//** NativeScreenSize: risoluzione nativa (in pixel reali) del monitor
+//** rNativeScreenSize: risoluzione nativa (in pixel reali) del monitor
 //** principale, valore iniziale della risoluzione del servizio.
-//** ListMonitors / OtherMonitors / FindMonitor / MonitorText: monitor collegati,
+//** aListMonitors / aOtherMonitors / bFindMonitor / sMonitorText: monitor collegati,
 //** per spostare la finestra su un monitor diverso dal principale mentre il
 //** servizio e' attivo (il monitor scelto si salva con il nome del dispositivo,
 //** es. \\.\DISPLAY2, perche' l'ordine di enumerazione puo' cambiare).
@@ -51,66 +60,69 @@ type
     /// Server HTTP/WebSocket locale che pubblica l'overlay per il Browser Source di OBS.
     TWebOverlayServer = class
     private
-        FServer: TIdHTTPServer;
-        FLock: TCriticalSection;
-        FEncoder: TThread;             // thread di codifica (TObsEncoder)
-        FWake: TEvent;                 // sveglia il thread di codifica
-        FPending: TBytes;              // pixel in attesa di codifica (premoltiplicati)
-        FPendRect: TRect;              // area dei pixel in attesa, nella pagina
-        FPendBgr: Boolean;             // ordine dei canali BGRA (altrimenti RGBA)
-        FHasPending: Boolean;
-        FMessage: TIdBytes;            // ultimo fotogramma pronto, gia' come messaggio WebSocket
-        FPng: TBytes;                  // ultimo fotogramma come PNG (/frame.png)
-        FSeq: Integer;                 // numero dell'ultimo fotogramma pronto
-        FWidth, FHeight: Integer;
-        FStopping: Boolean;
-        FClients: Integer;             // connessioni WebSocket aperte
-        FSent: Integer;                // fotogrammi inviati (somma su tutte le connessioni)
-        FEncoded: Integer;             // fotogrammi codificati
-        FEncodeMs: Integer;            // tempo di codifica dell'ultimo fotogramma
-        FVisible: Integer;             // pixel visibili nell'ultimo fotogramma
-        procedure CommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
-            AResponseInfo: TIdHTTPResponseInfo);
-        procedure ServeWebSocket(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
-            AResponseInfo: TIdHTTPResponseInfo);
-        function HandleIncoming(AIO: TIdIOHandler): Boolean;
+        oFServer: TIdHTTPServer;
+        oFLock: TCriticalSection;
+        oFEncoder: TThread;             // thread di codifica (TObsEncoder)
+        oFWake: TEvent;                 // sveglia il thread di codifica
+        aFPending: TBytes;              // pixel in attesa di codifica (premoltiplicati)
+        rFPendRect: TRect;              // area dei pixel in attesa, nella pagina
+        bFPendBgr: Boolean;             // ordine dei canali BGRA (altrimenti RGBA)
+        bFHasPending: Boolean;
+        aFMessage: TIdBytes;            // ultimo fotogramma pronto, gia' come messaggio WebSocket
+        aFPng: TBytes;                  // ultimo fotogramma come PNG (/frame.png)
+        iFSeq: Integer;                 // numero dell'ultimo fotogramma pronto
+        iFWidth, iFHeight: Integer;
+        bFStopping: Boolean;
+        iFClients: Integer;             // connessioni WebSocket aperte
+        iFSent: Integer;                // fotogrammi inviati (somma su tutte le connessioni)
+        iFEncoded: Integer;             // fotogrammi codificati
+        iFEncodeMs: Integer;            // tempo di codifica dell'ultimo fotogramma
+        iFVisible: Integer;             // pixel visibili nell'ultimo fotogramma
+        iFMaxClients: Integer;          // connessioni WebSocket ammesse (1, o 2 con SecondConnection)
+        procedure CommandGet(oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo;
+            oAResponseInfo: TIdHTTPResponseInfo);
+        procedure ServeWebSocket(oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo;
+            oAResponseInfo: TIdHTTPResponseInfo);
+        function bHandleIncoming(oAIO: TIdIOHandler): Boolean;
         procedure EncodePending;
-        function PageHtml: string;
-        function GetActive: Boolean;
-        function GetPort: Integer;
+        function sPageHtml: string;
+        function bGetActive: Boolean;
+        function iGetPort: Integer;
+        function bHostAllowed(const sAValue: string; bAOrigin: Boolean): Boolean;
+        function bRequestAllowed(oARequestInfo: TIdHTTPRequestInfo): Boolean;
     public
         constructor Create;
         destructor Destroy; override;
-        procedure Start(APort, AWidth, AHeight: Integer);
+        procedure Start(iAPort, iAWidth, iAHeight: Integer);
         procedure Stop;
-        /// Nuovo fotogramma: pixel dell'area ARect (righe consecutive, 4 byte per pixel,
-        /// alfa premoltiplicato); APixels vuoto o ARect vuoto = nessun widget visibile.
-        procedure SubmitFrame(const APixels: TBytes; const ARect: TRect; ABgr: Boolean);
-        function Url: string;
-        property Active: Boolean read GetActive;
-        property Port: Integer read GetPort;
-        property Clients: Integer read FClients;
-        property FramesSent: Integer read FSent;
-        property FramesEncoded: Integer read FEncoded;
-        property EncodeMs: Integer read FEncodeMs;
-        property VisiblePixels: Integer read FVisible;
+        /// Nuovo fotogramma: pixel dell'area rARect (righe consecutive, 4 byte per pixel,
+        /// alfa premoltiplicato); aAPixels vuoto o rARect vuoto = nessun widget visibile.
+        procedure SubmitFrame(const aAPixels: TBytes; const rARect: TRect; bABgr: Boolean);
+        function sUrl: string;
+        property bActive: Boolean read bGetActive;
+        property iPort: Integer read iGetPort;
+        property iClients: Integer read iFClients;
+        property iFramesSent: Integer read iFSent;
+        property iFramesEncoded: Integer read iFEncoded;
+        property iEncodeMs: Integer read iFEncodeMs;
+        property iVisiblePixels: Integer read iFVisible;
     end;
 
 type
     /// Un monitor collegato (coordinate in pixel reali del desktop virtuale).
     TMonitorDesc = record
-        Device: string;      // nome del dispositivo (es. \\.\DISPLAY2): salvato nel .ini
-        Bounds: TRect;       // area del monitor
-        Primary: Boolean;    // monitor principale
+        sDevice: string;      // nome del dispositivo (es. \\.\DISPLAY2): salvato nel .ini
+        rBounds: TRect;       // area del monitor
+        bPrimary: Boolean;    // monitor principale
     end;
 
-function NativeScreenSize: TSize;
-function ObsUrl(APort: Integer): string;
-function ListMonitors: TArray<TMonitorDesc>;
-function OtherMonitors: TArray<TMonitorDesc>;
-function FindMonitor(const ADevice: string; out AMonitor: TMonitorDesc): Boolean;
-function PrimaryMonitorRect: TRect;
-function MonitorText(const AMonitor: TMonitorDesc): string;
+function rNativeScreenSize: TSize;
+function sObsUrl(iAPort: Integer): string;
+function aListMonitors: TArray<TMonitorDesc>;
+function aOtherMonitors: TArray<TMonitorDesc>;
+function bFindMonitor(const sADevice: string; out rAMonitor: TMonitorDesc): Boolean;
+function rPrimaryMonitorRect: TRect;
+function sMonitorText(const rAMonitor: TMonitorDesc): string;
 
 implementation
 
@@ -122,23 +134,26 @@ type
     /// Thread che comprime in PNG i fotogrammi passati a SubmitFrame.
     TObsEncoder = class(TThread)
     private
-        FOwner: TWebOverlayServer;
+        oFOwner: TWebOverlayServer;
     protected
         procedure Execute; override;
     public
-        constructor Create(AOwner: TWebOverlayServer);
+        constructor Create(oAOwner: TWebOverlayServer);
     end;
 
 const
     WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';   // costante del protocollo WebSocket (RFC 6455)
+    WS_MAX_CLIENTS = 1;           // connessioni WebSocket contemporanee: solo OBS
+    WS_MAX_CLIENTS_EXTRA = 2;     // con l'opzione OPT_SECOND_CONNECTION: OBS + una prova
+    OPT_SECOND_CONNECTION = 'SecondConnection';   // opzione da riga di comando
 
 var
-    GCrcTable: array[0..255] of Cardinal;
+    aGCrcTable: array[0..255] of Cardinal;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: NativeScreenSize
+//** Nome funzione: rNativeScreenSize
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TSize
 //** Scopo: Risoluzione nativa (pixel reali, senza ridimensionamento DPI) del monitor principale.
@@ -149,17 +164,17 @@ var
 //** GetSystemMetrics.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function NativeScreenSize: TSize;
+function rNativeScreenSize: TSize;
 const
     // ENUM_CURRENT_SETTINGS di Windows (non dichiarata in Winapi.Windows): modalita' video corrente
     CURRENT_SETTINGS = DWORD(-1);
 var
-    DM: TDeviceMode;
+    rDevMode: TDeviceMode;
 begin
-    FillChar(DM, SizeOf(DM), 0);
-    DM.dmSize := SizeOf(DM);
-    if EnumDisplaySettings(nil, CURRENT_SETTINGS, DM) and (DM.dmPelsWidth > 0) then
-        Result := TSize.Create(DM.dmPelsWidth, DM.dmPelsHeight)
+    FillChar(rDevMode, SizeOf(rDevMode), 0);
+    rDevMode.dmSize := SizeOf(rDevMode);
+    if EnumDisplaySettings(nil, CURRENT_SETTINGS, rDevMode) and (rDevMode.dmPelsWidth > 0) then
+        Result := TSize.Create(rDevMode.dmPelsWidth, rDevMode.dmPelsHeight)
     else
         Result := TSize.Create(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 end;
@@ -167,16 +182,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: ObsUrl
-//** Parametri di ingresso: APort: Integer
+//** Nome funzione: sObsUrl
+//** Parametri di ingresso: iAPort: Integer
 //** Parametri di uscita: Result: string
 //** Scopo: Indirizzo da inserire nel Browser Source di OBS per la porta indicata.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function ObsUrl(APort: Integer): string;
+function sObsUrl(iAPort: Integer): string;
 begin
-    Result := Format('http://127.0.0.1:%d/', [APort]);
+    Result := Format('http://127.0.0.1:%d/', [iAPort]);
 end;
 
 type
@@ -221,56 +236,56 @@ function HoloGetMonitorInfo(AMonitor: THandle; var AInfo: TMonInfoEx): BOOL;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MonitorEnumProc
-//** Parametri di ingresso: AMonitor: THandle; ADC: HDC; ARect: PRect; AData: LPARAM
+//** Nome funzione: bMonitorEnumProc
+//** Parametri di ingresso: hAMonitor: THandle; hADC: HDC; pARect: PRect; iAData: LPARAM
 //** Parametri di uscita: Result: BOOL
-//** Scopo: Callback di EnumDisplayMonitors: aggiungere un monitor alla lista passata in AData.
+//** Scopo: Callback di EnumDisplayMonitors: aggiungere un monitor alla lista passata in iAData.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MonitorEnumProc(AMonitor: THandle; ADC: HDC; ARect: PRect; AData: LPARAM): BOOL; stdcall;
+function bMonitorEnumProc(hAMonitor: THandle; hADC: HDC; pARect: PRect; iAData: LPARAM): BOOL; stdcall;
 var
-    Info: TMonInfoEx;
-    M: TMonitorDesc;
+    rInfo: TMonInfoEx;
+    rMonitor: TMonitorDesc;
 begin
     Result := True;
-    FillChar(Info, SizeOf(Info), 0);
-    Info.cbSize := SizeOf(Info);
-    if not HoloGetMonitorInfo(AMonitor, Info) then
+    FillChar(rInfo, SizeOf(rInfo), 0);
+    rInfo.cbSize := SizeOf(rInfo);
+    if not HoloGetMonitorInfo(hAMonitor, rInfo) then
         Exit;
-    M.Device := string(PWideChar(@Info.szDevice[0]));
-    M.Bounds := Info.rcMonitor;
-    M.Primary := (Info.dwFlags and MON_PRIMARY) <> 0;
-    TList<TMonitorDesc>(Pointer(AData)).Add(M);
+    rMonitor.sDevice := string(PWideChar(@rInfo.szDevice[0]));
+    rMonitor.rBounds := rInfo.rcMonitor;
+    rMonitor.bPrimary := (rInfo.dwFlags and MON_PRIMARY) <> 0;
+    TList<TMonitorDesc>(Pointer(iAData)).Add(rMonitor);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: ListMonitors
+//** Nome funzione: aListMonitors
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TArray<TMonitorDesc>
 //** Scopo: Elenco dei monitor collegati (nome del dispositivo, area in pixel reali, principale).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function ListMonitors: TArray<TMonitorDesc>;
+function aListMonitors: TArray<TMonitorDesc>;
 var
-    List: TList<TMonitorDesc>;
+    oList: TList<TMonitorDesc>;
 begin
-    List := TList<TMonitorDesc>.Create;
+    oList := TList<TMonitorDesc>.Create;
     try
-        HoloEnumDisplayMonitors(0, nil, MonitorEnumProc, LPARAM(Pointer(List)));
-        Result := List.ToArray;
+        HoloEnumDisplayMonitors(0, nil, bMonitorEnumProc, LPARAM(Pointer(oList)));
+        Result := oList.ToArray;
     finally
-        List.Free;
+        oList.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: OtherMonitors
+//** Nome funzione: aOtherMonitors
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TArray<TMonitorDesc>
 //** Scopo: Monitor su cui spostare la finestra durante il servizio OBS: tutti tranne il principale
@@ -278,38 +293,38 @@ end;
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function OtherMonitors: TArray<TMonitorDesc>;
+function aOtherMonitors: TArray<TMonitorDesc>;
 var
-    M: TMonitorDesc;
+    rMonitor: TMonitorDesc;
 begin
     Result := nil;
-    for M in ListMonitors do
-        if not M.Primary then
-            Result := Result + [M];
+    for rMonitor in aListMonitors do
+        if not rMonitor.bPrimary then
+            Result := Result + [rMonitor];
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: FindMonitor
-//** Parametri di ingresso: ADevice: string
-//** Parametri di uscita: AMonitor: TMonitorDesc; Result: Boolean
+//** Nome funzione: bFindMonitor
+//** Parametri di ingresso: sADevice: string
+//** Parametri di uscita: rAMonitor: TMonitorDesc; Result: Boolean
 //** Scopo: Cercare un monitor collegato dal nome del dispositivo (es. \\.\DISPLAY2).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function FindMonitor(const ADevice: string; out AMonitor: TMonitorDesc): Boolean;
+function bFindMonitor(const sADevice: string; out rAMonitor: TMonitorDesc): Boolean;
 var
-    M: TMonitorDesc;
+    rMonitor: TMonitorDesc;
 begin
     Result := False;
-    AMonitor := Default(TMonitorDesc);
-    if ADevice = '' then
+    rAMonitor := Default(TMonitorDesc);
+    if sADevice = '' then
         Exit;
-    for M in ListMonitors do
-        if SameText(M.Device, ADevice) then
+    for rMonitor in aListMonitors do
+        if SameText(rMonitor.sDevice, sADevice) then
         begin
-            AMonitor := M;
+            rAMonitor := rMonitor;
             Exit(True);
         end;
 end;
@@ -317,28 +332,28 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: PrimaryMonitorRect
+//** Nome funzione: rPrimaryMonitorRect
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TRect
 //** Scopo: Area del monitor principale in pixel reali.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function PrimaryMonitorRect: TRect;
+function rPrimaryMonitorRect: TRect;
 var
-    M: TMonitorDesc;
+    rMonitor: TMonitorDesc;
 begin
-    Result := TRect.Create(0, 0, NativeScreenSize.cx, NativeScreenSize.cy);
-    for M in ListMonitors do
-        if M.Primary then
-            Result := M.Bounds;
+    Result := TRect.Create(0, 0, rNativeScreenSize.cx, rNativeScreenSize.cy);
+    for rMonitor in aListMonitors do
+        if rMonitor.bPrimary then
+            Result := rMonitor.rBounds;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MonitorText
-//** Parametri di ingresso: AMonitor: TMonitorDesc
+//** Nome funzione: sMonitorText
+//** Parametri di ingresso: rAMonitor: TMonitorDesc
 //** Parametri di uscita: Result: string
 //** Scopo: Descrizione di un monitor per il Setup: numero, risoluzione e posizione rispetto al
 //**        monitor principale.
@@ -349,35 +364,35 @@ end;
 //** monitor sull'asse in cui sono piu' distanti.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MonitorText(const AMonitor: TMonitorDesc): string;
+function sMonitorText(const rAMonitor: TMonitorDesc): string;
 var
-    I, Num, DX, DY: Integer;
-    P: TRect;
-    Side: string;
+    iPos, iNum, iDeltaX, iDeltaY: Integer;
+    rPrimaryRect: TRect;
+    sSide: string;
 begin
-    I := Length(AMonitor.Device);
-    while (I > 0) and CharInSet(AMonitor.Device[I], ['0'..'9']) do
-        Dec(I);
-    Num := StrToIntDef(Copy(AMonitor.Device, I + 1, MaxInt), 0);
-    P := PrimaryMonitorRect;
-    DX := AMonitor.Bounds.CenterPoint.X - P.CenterPoint.X;
-    DY := AMonitor.Bounds.CenterPoint.Y - P.CenterPoint.Y;
-    if Abs(DX) >= Abs(DY) then
+    iPos := Length(rAMonitor.sDevice);
+    while (iPos > 0) and CharInSet(rAMonitor.sDevice[iPos], ['0'..'9']) do
+        Dec(iPos);
+    iNum := StrToIntDef(Copy(rAMonitor.sDevice, iPos + 1, MaxInt), 0);
+    rPrimaryRect := rPrimaryMonitorRect;
+    iDeltaX := rAMonitor.rBounds.CenterPoint.X - rPrimaryRect.CenterPoint.X;
+    iDeltaY := rAMonitor.rBounds.CenterPoint.Y - rPrimaryRect.CenterPoint.Y;
+    if Abs(iDeltaX) >= Abs(iDeltaY) then
     begin
-        if DX < 0 then
-            Side := Tr('obs.monitor.left', 'a sinistra del principale')
+        if iDeltaX < 0 then
+            sSide := sTr('obs.monitor.left', 'a sinistra del principale')
         else
-            Side := Tr('obs.monitor.right', 'a destra del principale');
+            sSide := sTr('obs.monitor.right', 'a destra del principale');
     end
     else
     begin
-        if DY < 0 then
-            Side := Tr('obs.monitor.above', 'sopra il principale')
+        if iDeltaY < 0 then
+            sSide := sTr('obs.monitor.above', 'sopra il principale')
         else
-            Side := Tr('obs.monitor.below', 'sotto il principale');
+            sSide := sTr('obs.monitor.below', 'sotto il principale');
     end;
-    Result := Format(Tr('obs.monitor.item', 'Monitor %d  ' + #$00B7 + '  %d x %d  ' + #$00B7 + '  %s'),
-        [Num, AMonitor.Bounds.Width, AMonitor.Bounds.Height, Side]);
+    Result := Format(sTr('obs.monitor.item', 'Monitor %d  ' + #$00B7 + '  %d x %d  ' + #$00B7 + '  %s'),
+        [iNum, rAMonitor.rBounds.Width, rAMonitor.rBounds.Height, sSide]);
 end;
 
 //** PNG ****************************************************************************************************
@@ -394,89 +409,89 @@ end;
 //***********************************************************************************************************
 procedure InitCrcTable;
 var
-    N, K: Integer;
-    C: Cardinal;
+    iEntry, iBit: Integer;
+    iCrc: Cardinal;
 begin
-    for N := 0 to 255 do
+    for iEntry := 0 to 255 do
     begin
-        C := Cardinal(N);
-        for K := 0 to 7 do
-            if (C and 1) <> 0 then
-                C := $EDB88320 xor (C shr 1)
+        iCrc := Cardinal(iEntry);
+        for iBit := 0 to 7 do
+            if (iCrc and 1) <> 0 then
+                iCrc := $EDB88320 xor (iCrc shr 1)
             else
-                C := C shr 1;
-        GCrcTable[N] := C;
+                iCrc := iCrc shr 1;
+        aGCrcTable[iEntry] := iCrc;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: UpdateCrc
-//** Parametri di ingresso: ACrc: Cardinal; AData: TBytes
+//** Nome funzione: iUpdateCrc
+//** Parametri di ingresso: iACrc: Cardinal; aAData: TBytes
 //** Parametri di uscita: Result: Cardinal
 //** Scopo: Aggiornare un CRC-32 con i byte indicati.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function UpdateCrc(ACrc: Cardinal; const AData: TBytes): Cardinal;
+function iUpdateCrc(iACrc: Cardinal; const aAData: TBytes): Cardinal;
 var
-    I: Integer;
+    iByteIndex: Integer;
 begin
-    Result := ACrc;
-    for I := 0 to High(AData) do
-        Result := GCrcTable[(Result xor AData[I]) and $FF] xor (Result shr 8);
+    Result := iACrc;
+    for iByteIndex := 0 to High(aAData) do
+        Result := aGCrcTable[(Result xor aAData[iByteIndex]) and $FF] xor (Result shr 8);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: WriteBE32
-//** Parametri di ingresso: AStream: TStream; AValue: Cardinal
+//** Parametri di ingresso: oAStream: TStream; iAValue: Cardinal
 //** Parametri di uscita: nessuno
 //** Scopo: Scrivere un intero a 32 bit nell'ordine big-endian richiesto dal formato PNG.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure WriteBE32(AStream: TStream; AValue: Cardinal);
+procedure WriteBE32(oAStream: TStream; iAValue: Cardinal);
 var
-    B: array[0..3] of Byte;
+    aBytes: array[0..3] of Byte;
 begin
-    B[0] := Byte(AValue shr 24);
-    B[1] := Byte(AValue shr 16);
-    B[2] := Byte(AValue shr 8);
-    B[3] := Byte(AValue);
-    AStream.WriteBuffer(B, 4);
+    aBytes[0] := Byte(iAValue shr 24);
+    aBytes[1] := Byte(iAValue shr 16);
+    aBytes[2] := Byte(iAValue shr 8);
+    aBytes[3] := Byte(iAValue);
+    oAStream.WriteBuffer(aBytes, 4);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: WritePngChunk
-//** Parametri di ingresso: AStream: TStream; AType: string; AData: TBytes
+//** Parametri di ingresso: oAStream: TStream; sAType: string; aAData: TBytes
 //** Parametri di uscita: nessuno
 //** Scopo: Scrivere un blocco PNG (lunghezza, tipo, dati, CRC).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure WritePngChunk(AStream: TStream; const AType: string; const AData: TBytes);
+procedure WritePngChunk(oAStream: TStream; const sAType: string; const aAData: TBytes);
 var
-    T: TBytes;
+    aTypeBytes: TBytes;
 begin
-    T := TEncoding.ASCII.GetBytes(AType);
-    WriteBE32(AStream, Cardinal(Length(AData)));
-    AStream.WriteBuffer(T[0], 4);
-    if Length(AData) > 0 then
-        AStream.WriteBuffer(AData[0], Length(AData));
-    WriteBE32(AStream, not UpdateCrc(UpdateCrc($FFFFFFFF, T), AData));
+    aTypeBytes := TEncoding.ASCII.GetBytes(sAType);
+    WriteBE32(oAStream, Cardinal(Length(aAData)));
+    oAStream.WriteBuffer(aTypeBytes[0], 4);
+    if Length(aAData) > 0 then
+        oAStream.WriteBuffer(aAData[0], Length(aAData));
+    WriteBE32(oAStream, not iUpdateCrc(iUpdateCrc($FFFFFFFF, aTypeBytes), aAData));
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: EncodePng
-//** Parametri di ingresso: APix: TBytes; AW, AH: Integer; ABgr: Boolean
-//** Parametri di uscita: AVisible: Integer; Result: TBytes
+//** Nome funzione: aEncodePng
+//** Parametri di ingresso: aAPix: TBytes; iAWidth, iAHeight: Integer; bABgr: Boolean
+//** Parametri di uscita: iAVisible: Integer; Result: TBytes
 //** Scopo: Comprimere in PNG (RGBA a 8 bit) i pixel di un fotogramma, contando quelli visibili.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
@@ -493,101 +508,102 @@ end;
 //** gira nel thread di codifica, fuori dal thread principale.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function EncodePng(const APix: TBytes; AW, AH: Integer; ABgr: Boolean; out AVisible: Integer): TBytes;
+function aEncodePng(const aAPix: TBytes; iAWidth, iAHeight: Integer; bABgr: Boolean;
+    out iAVisible: Integer): TBytes;
 const
     SIGNATURE: array[0..7] of Byte = ($89, $50, $4E, $47, $0D, $0A, $1A, $0A);
 var
-    Raw, Z, Hdr: TBytes;
-    X, Y, S, D, RowLen: Integer;
-    A, R, G, B: Integer;
-    MS: TBytesStream;
+    aRaw, aCompressed, aHdr: TBytes;
+    iCol, iRow, iSrc, iDst, iRowLen: Integer;
+    iAlpha, iRed, iGreen, iBlue: Integer;
+    oStream: TBytesStream;
 begin
-    AVisible := 0;
-    RowLen := AW * 4 + 1;
-    SetLength(Raw, RowLen * AH);
-    for Y := 0 to AH - 1 do
+    iAVisible := 0;
+    iRowLen := iAWidth * 4 + 1;
+    SetLength(aRaw, iRowLen * iAHeight);
+    for iRow := 0 to iAHeight - 1 do
     begin
-        D := Y * RowLen;
-        Raw[D] := 0;
-        Inc(D);
-        S := Y * AW * 4;
-        for X := 0 to AW - 1 do
+        iDst := iRow * iRowLen;
+        aRaw[iDst] := 0;
+        Inc(iDst);
+        iSrc := iRow * iAWidth * 4;
+        for iCol := 0 to iAWidth - 1 do
         begin
-            if ABgr then
+            if bABgr then
             begin
-                R := APix[S + 2];
-                B := APix[S];
+                iRed := aAPix[iSrc + 2];
+                iBlue := aAPix[iSrc];
             end
             else
             begin
-                R := APix[S];
-                B := APix[S + 2];
+                iRed := aAPix[iSrc];
+                iBlue := aAPix[iSrc + 2];
             end;
-            G := APix[S + 1];
+            iGreen := aAPix[iSrc + 1];
             // le parti traslucide sovrapposte e le luci dei comandi premuti possono
             // avere colori piu' alti dell'alfa (luce "additiva"): l'alfa sale al canale
             // piu' alto, cosi' il colore resta lo stesso invece di saturare verso il bianco
-            A := Max(Integer(APix[S + 3]), Max(R, Max(G, B)));
-            if A = 0 then
+            iAlpha := Max(Integer(aAPix[iSrc + 3]), Max(iRed, Max(iGreen, iBlue)));
+            if iAlpha = 0 then
             begin
-                Raw[D] := 0;
-                Raw[D + 1] := 0;
-                Raw[D + 2] := 0;
-                Raw[D + 3] := 0;
+                aRaw[iDst] := 0;
+                aRaw[iDst + 1] := 0;
+                aRaw[iDst + 2] := 0;
+                aRaw[iDst + 3] := 0;
             end
             else
             begin
-                if A < 255 then
+                if iAlpha < 255 then
                 begin
-                    R := Min(255, (R * 255 + A div 2) div A);
-                    G := Min(255, (G * 255 + A div 2) div A);
-                    B := Min(255, (B * 255 + A div 2) div A);
+                    iRed := Min(255, (iRed * 255 + iAlpha div 2) div iAlpha);
+                    iGreen := Min(255, (iGreen * 255 + iAlpha div 2) div iAlpha);
+                    iBlue := Min(255, (iBlue * 255 + iAlpha div 2) div iAlpha);
                 end;
-                Raw[D] := Byte(R);
-                Raw[D + 1] := Byte(G);
-                Raw[D + 2] := Byte(B);
-                Raw[D + 3] := Byte(A);
-                if A > 16 then
-                    Inc(AVisible);
+                aRaw[iDst] := Byte(iRed);
+                aRaw[iDst + 1] := Byte(iGreen);
+                aRaw[iDst + 2] := Byte(iBlue);
+                aRaw[iDst + 3] := Byte(iAlpha);
+                if iAlpha > 16 then
+                    Inc(iAVisible);
             end;
-            Inc(S, 4);
-            Inc(D, 4);
+            Inc(iSrc, 4);
+            Inc(iDst, 4);
         end;
     end;
-    ZCompress(Raw, Z, zcFastest);
+    ZCompress(aRaw, aCompressed, zcFastest);
 
-    SetLength(Hdr, 13);
-    Hdr[0] := Byte(AW shr 24);
-    Hdr[1] := Byte(AW shr 16);
-    Hdr[2] := Byte(AW shr 8);
-    Hdr[3] := Byte(AW);
-    Hdr[4] := Byte(AH shr 24);
-    Hdr[5] := Byte(AH shr 16);
-    Hdr[6] := Byte(AH shr 8);
-    Hdr[7] := Byte(AH);
-    Hdr[8] := 8;      // bit per canale
-    Hdr[9] := 6;      // RGBA
-    Hdr[10] := 0;     // compressione deflate
-    Hdr[11] := 0;     // filtro standard
-    Hdr[12] := 0;     // non interlacciato
+    SetLength(aHdr, 13);
+    aHdr[0] := Byte(iAWidth shr 24);
+    aHdr[1] := Byte(iAWidth shr 16);
+    aHdr[2] := Byte(iAWidth shr 8);
+    aHdr[3] := Byte(iAWidth);
+    aHdr[4] := Byte(iAHeight shr 24);
+    aHdr[5] := Byte(iAHeight shr 16);
+    aHdr[6] := Byte(iAHeight shr 8);
+    aHdr[7] := Byte(iAHeight);
+    aHdr[8] := 8;      // bit per canale
+    aHdr[9] := 6;      // RGBA
+    aHdr[10] := 0;     // compressione deflate
+    aHdr[11] := 0;     // filtro standard
+    aHdr[12] := 0;     // non interlacciato
 
-    MS := TBytesStream.Create;
+    oStream := TBytesStream.Create;
     try
-        MS.WriteBuffer(SIGNATURE, SizeOf(SIGNATURE));
-        WritePngChunk(MS, 'IHDR', Hdr);
-        WritePngChunk(MS, 'IDAT', Z);
-        WritePngChunk(MS, 'IEND', nil);
-        Result := Copy(MS.Bytes, 0, MS.Size);
+        oStream.WriteBuffer(SIGNATURE, SizeOf(SIGNATURE));
+        WritePngChunk(oStream, 'IHDR', aHdr);
+        WritePngChunk(oStream, 'IDAT', aCompressed);
+        WritePngChunk(oStream, 'IEND', nil);
+        Result := Copy(oStream.Bytes, 0, oStream.Size);
     finally
-        MS.Free;
+        oStream.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: BuildWsMessage
-//** Parametri di ingresso: ARect: TRect; APng: TBytes
+//** Nome funzione: aBuildWsMessage
+//** Parametri di ingresso: rARect: TRect; aAPng: TBytes
 //** Parametri di uscita: Result: TIdBytes
 //** Scopo: Preparare il messaggio WebSocket binario di un fotogramma (area + PNG).
 //** Data Ultima Modifica: 31/10/2026
@@ -597,50 +613,50 @@ end;
 //** altezza come interi a 32 bit little-endian e infine il PNG.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function BuildWsMessage(const ARect: TRect; const APng: TBytes): TIdBytes;
+function aBuildWsMessage(const rARect: TRect; const aAPng: TBytes): TIdBytes;
 var
-    PayLen: Int64;
-    HL, I, P: Integer;
-    V: array[0..3] of Integer;
+    iPayLen: Int64;
+    iHeaderLen, iByteIndex, iOffset: Integer;
+    aValues: array[0..3] of Integer;
 begin
-    PayLen := 16 + Length(APng);
-    if PayLen < 126 then
-        HL := 2
-    else if PayLen < 65536 then
-        HL := 4
+    iPayLen := 16 + Length(aAPng);
+    if iPayLen < 126 then
+        iHeaderLen := 2
+    else if iPayLen < 65536 then
+        iHeaderLen := 4
     else
-        HL := 10;
-    SetLength(Result, Integer(HL + PayLen));
+        iHeaderLen := 10;
+    SetLength(Result, Integer(iHeaderLen + iPayLen));
     Result[0] := $82;
-    case HL of
+    case iHeaderLen of
         2:
-            Result[1] := Byte(PayLen);
+            Result[1] := Byte(iPayLen);
         4:
             begin
                 Result[1] := 126;
-                Result[2] := Byte(PayLen shr 8);
-                Result[3] := Byte(PayLen);
+                Result[2] := Byte(iPayLen shr 8);
+                Result[3] := Byte(iPayLen);
             end;
     else
         Result[1] := 127;
-        for I := 0 to 7 do
-            Result[2 + I] := Byte(PayLen shr (8 * (7 - I)));
+        for iByteIndex := 0 to 7 do
+            Result[2 + iByteIndex] := Byte(iPayLen shr (8 * (7 - iByteIndex)));
     end;
-    V[0] := ARect.Left;
-    V[1] := ARect.Top;
-    V[2] := ARect.Width;
-    V[3] := ARect.Height;
-    P := HL;
-    for I := 0 to 3 do
+    aValues[0] := rARect.Left;
+    aValues[1] := rARect.Top;
+    aValues[2] := rARect.Width;
+    aValues[3] := rARect.Height;
+    iOffset := iHeaderLen;
+    for iByteIndex := 0 to 3 do
     begin
-        Result[P] := Byte(V[I]);
-        Result[P + 1] := Byte(V[I] shr 8);
-        Result[P + 2] := Byte(V[I] shr 16);
-        Result[P + 3] := Byte(V[I] shr 24);
-        Inc(P, 4);
+        Result[iOffset] := Byte(aValues[iByteIndex]);
+        Result[iOffset + 1] := Byte(aValues[iByteIndex] shr 8);
+        Result[iOffset + 2] := Byte(aValues[iByteIndex] shr 16);
+        Result[iOffset + 3] := Byte(aValues[iByteIndex] shr 24);
+        Inc(iOffset, 4);
     end;
-    if Length(APng) > 0 then
-        Move(APng[0], Result[P], Length(APng));
+    if Length(aAPng) > 0 then
+        Move(aAPng[0], Result[iOffset], Length(aAPng));
 end;
 
 //** TObsEncoder ********************************************************************************************
@@ -649,15 +665,15 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TObsEncoder.Create
-//** Parametri di ingresso: AOwner: TWebOverlayServer
+//** Parametri di ingresso: oAOwner: TWebOverlayServer
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare e avviare il thread di codifica dei fotogrammi del server indicato.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor TObsEncoder.Create(AOwner: TWebOverlayServer);
+constructor TObsEncoder.Create(oAOwner: TWebOverlayServer);
 begin
-    FOwner := AOwner;
+    oFOwner := oAOwner;
     inherited Create(False);
 end;
 
@@ -675,10 +691,41 @@ procedure TObsEncoder.Execute;
 begin
     while not Terminated do
     begin
-        FOwner.FWake.WaitFor(250);
+        oFOwner.oFWake.WaitFor(250);
         if not Terminated then
-            FOwner.EncodePending;
+            oFOwner.EncodePending;
     end;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: bCmdLineOption
+//** Parametri di ingresso: sAName: string
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Verificare se HoloInput e' stato avviato con l'opzione sAName.
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//** Funzionamento: cerca sAName tra i parametri della riga di comando, senza
+//** distinguere maiuscole e minuscole e ignorando i "-" o "/" iniziali, quindi
+//** valgono "SecondConnection", "-SecondConnection", "/SecondConnection" e
+//** "-o SecondConnection".
+//***********************************************************************************************************
+//***********************************************************************************************************
+function bCmdLineOption(const sAName: string): Boolean;
+var
+    iParam: Integer;
+    sOption: string;
+begin
+    for iParam := 1 to ParamCount do
+    begin
+        sOption := ParamStr(iParam);
+        while (sOption <> '') and CharInSet(sOption[1], ['-', '/']) do
+            Delete(sOption, 1, 1);
+        if SameText(sOption, sAName) then
+            Exit(True);
+    end;
+    Result := False;
 end;
 
 //** TWebOverlayServer **************************************************************************************
@@ -690,18 +737,23 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare il server (fermo), il lock dei fotogrammi e l'evento del thread di codifica.
-//** Data Ultima Modifica: 31/10/2026
+//**        Con l'opzione "SecondConnection" ammette due connessioni WebSocket invece di una.
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 constructor TWebOverlayServer.Create;
 begin
     inherited;
-    FLock := TCriticalSection.Create;
-    FWake := TEvent.Create(nil, False, False, '');
-    FServer := TIdHTTPServer.Create(nil);
-    FServer.OnCommandGet := CommandGet;
-    FWidth := 1920;
-    FHeight := 1080;
+    oFLock := TCriticalSection.Create;
+    oFWake := TEvent.Create(nil, False, False, '');
+    oFServer := TIdHTTPServer.Create(nil);
+    oFServer.OnCommandGet := CommandGet;
+    iFWidth := 1920;
+    iFHeight := 1080;
+    if bCmdLineOption(OPT_SECOND_CONNECTION) then
+        iFMaxClients := WS_MAX_CLIENTS_EXTRA
+    else
+        iFMaxClients := WS_MAX_CLIENTS;
 end;
 
 //***********************************************************************************************************
@@ -717,9 +769,9 @@ end;
 destructor TWebOverlayServer.Destroy;
 begin
     Stop;
-    FServer.Free;
-    FWake.Free;
-    FLock.Free;
+    oFServer.Free;
+    oFWake.Free;
+    oFLock.Free;
     inherited;
 end;
 
@@ -727,9 +779,9 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TWebOverlayServer.Start
-//** Parametri di ingresso: APort, AWidth, AHeight: Integer
+//** Parametri di ingresso: iAPort, iAWidth, iAHeight: Integer
 //** Parametri di uscita: nessuno
-//** Scopo: Avviare il server su 127.0.0.1:APort per una pagina di AWidth x AHeight pixel.
+//** Scopo: Avviare il server su 127.0.0.1:iAPort per una pagina di iAWidth x iAHeight pixel.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //** Funzionamento: se il server e' gia' attivo lo riavvia con i nuovi
@@ -738,24 +790,24 @@ end;
 //** Indy arriva al chiamante. Il thread di codifica parte solo a server avviato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TWebOverlayServer.Start(APort, AWidth, AHeight: Integer);
+procedure TWebOverlayServer.Start(iAPort, iAWidth, iAHeight: Integer);
 var
-    B: TIdSocketHandle;
+    oBinding: TIdSocketHandle;
 begin
     Stop;
-    FWidth := Max(16, AWidth);
-    FHeight := Max(16, AHeight);
-    FSent := 0;
-    FEncoded := 0;
-    FEncodeMs := 0;
-    FVisible := 0;
-    FServer.Bindings.Clear;
-    B := FServer.Bindings.Add;
-    B.IP := '127.0.0.1';
-    B.Port := APort;
-    FServer.DefaultPort := APort;
-    FServer.Active := True;
-    FEncoder := TObsEncoder.Create(Self);
+    iFWidth := Max(16, iAWidth);
+    iFHeight := Max(16, iAHeight);
+    iFSent := 0;
+    iFEncoded := 0;
+    iFEncodeMs := 0;
+    iFVisible := 0;
+    oFServer.Bindings.Clear;
+    oBinding := oFServer.Bindings.Add;
+    oBinding.IP := '127.0.0.1';
+    oBinding.Port := iAPort;
+    oFServer.DefaultPort := iAPort;
+    oFServer.Active := True;
+    oFEncoder := TObsEncoder.Create(Self);
 end;
 
 //***********************************************************************************************************
@@ -767,88 +819,88 @@ end;
 //** Scopo: Fermare il server (chiude anche le connessioni di OBS) e il thread di codifica.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
-//** Funzionamento: FStopping fa uscire i cicli delle connessioni WebSocket;
+//** Funzionamento: bFStopping fa uscire i cicli delle connessioni WebSocket;
 //** Indy chiude i socket e attende i suoi thread; poi si ferma il thread di
 //** codifica e si scartano i fotogrammi rimasti.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TWebOverlayServer.Stop;
 begin
-    FStopping := True;
+    bFStopping := True;
     try
-        if FServer.Active then
-            FServer.Active := False;
+        if oFServer.Active then
+            oFServer.Active := False;
     finally
-        if FEncoder <> nil then
+        if oFEncoder <> nil then
         begin
-            FEncoder.Terminate;
-            FWake.SetEvent;
-            FEncoder.WaitFor;
-            FreeAndNil(FEncoder);
+            oFEncoder.Terminate;
+            oFWake.SetEvent;
+            oFEncoder.WaitFor;
+            FreeAndNil(oFEncoder);
         end;
-        FStopping := False;
+        bFStopping := False;
     end;
-    FLock.Enter;
+    oFLock.Enter;
     try
-        FPending := nil;
-        FHasPending := False;
-        FMessage := nil;
-        FPng := nil;
+        aFPending := nil;
+        bFHasPending := False;
+        aFMessage := nil;
+        aFPng := nil;
     finally
-        FLock.Leave;
+        oFLock.Leave;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TWebOverlayServer.GetActive
+//** Nome funzione: TWebOverlayServer.bGetActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il server e' in ascolto.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TWebOverlayServer.GetActive: Boolean;
+function TWebOverlayServer.bGetActive: Boolean;
 begin
-    Result := FServer.Active;
+    Result := oFServer.Active;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TWebOverlayServer.GetPort
+//** Nome funzione: TWebOverlayServer.iGetPort
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Integer
 //** Scopo: Porta su cui il server e' in ascolto (o configurata).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TWebOverlayServer.GetPort: Integer;
+function TWebOverlayServer.iGetPort: Integer;
 begin
-    Result := FServer.DefaultPort;
+    Result := oFServer.DefaultPort;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TWebOverlayServer.Url
+//** Nome funzione: TWebOverlayServer.sUrl
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Indirizzo della pagina da usare in OBS.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TWebOverlayServer.Url: string;
+function TWebOverlayServer.sUrl: string;
 begin
-    Result := ObsUrl(Port);
+    Result := sObsUrl(iPort);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TWebOverlayServer.SubmitFrame
-//** Parametri di ingresso: APixels: TBytes; ARect: TRect; ABgr: Boolean
+//** Parametri di ingresso: aAPixels: TBytes; rARect: TRect; bABgr: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Consegnare al thread di codifica un nuovo fotogramma (chiamata dal thread principale).
 //** Data Ultima Modifica: 31/10/2026
@@ -858,20 +910,20 @@ end;
 //** vettore dei pixel non va piu' modificato dal chiamante.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TWebOverlayServer.SubmitFrame(const APixels: TBytes; const ARect: TRect; ABgr: Boolean);
+procedure TWebOverlayServer.SubmitFrame(const aAPixels: TBytes; const rARect: TRect; bABgr: Boolean);
 begin
-    if FEncoder = nil then
+    if oFEncoder = nil then
         Exit;
-    FLock.Enter;
+    oFLock.Enter;
     try
-        FPending := APixels;
-        FPendRect := ARect;
-        FPendBgr := ABgr;
-        FHasPending := True;
+        aFPending := aAPixels;
+        rFPendRect := rARect;
+        bFPendBgr := bABgr;
+        bFHasPending := True;
     finally
-        FLock.Leave;
+        oFLock.Leave;
     end;
-    FWake.SetEvent;
+    oFWake.SetEvent;
 end;
 
 //***********************************************************************************************************
@@ -885,56 +937,56 @@ end;
 //***********************************************************************************************************
 //** Funzionamento: prende il fotogramma in attesa sotto lock, lo comprime in
 //** PNG fuori dal lock, prepara il messaggio WebSocket e lo pubblica
-//** incrementando FSeq (le connessioni inviano ogni FSeq nuovo). Un'area vuota
+//** incrementando iFSeq (le connessioni inviano ogni iFSeq nuovo). Un'area vuota
 //** produce un messaggio senza PNG, che svuota la pagina.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TWebOverlayServer.EncodePending;
 var
-    Pix, Png: TBytes;
-    R: TRect;
-    Bgr: Boolean;
-    Vis: Integer;
-    Msg: TIdBytes;
-    Watch: TStopwatch;
+    aPix, aPng: TBytes;
+    rRect: TRect;
+    bBgr: Boolean;
+    iVis: Integer;
+    aMsg: TIdBytes;
+    rWatch: TStopwatch;
 begin
-    FLock.Enter;
+    oFLock.Enter;
     try
-        if not FHasPending then
+        if not bFHasPending then
             Exit;
-        Pix := FPending;
-        FPending := nil;
-        R := FPendRect;
-        Bgr := FPendBgr;
-        FHasPending := False;
+        aPix := aFPending;
+        aFPending := nil;
+        rRect := rFPendRect;
+        bBgr := bFPendBgr;
+        bFHasPending := False;
     finally
-        FLock.Leave;
+        oFLock.Leave;
     end;
-    Watch := TStopwatch.StartNew;
-    Vis := 0;
-    Png := nil;
-    if (R.Width > 0) and (R.Height > 0) and (Length(Pix) >= R.Width * R.Height * 4) then
-        Png := EncodePng(Pix, R.Width, R.Height, Bgr, Vis)
+    rWatch := TStopwatch.StartNew;
+    iVis := 0;
+    aPng := nil;
+    if (rRect.Width > 0) and (rRect.Height > 0) and (Length(aPix) >= rRect.Width * rRect.Height * 4) then
+        aPng := aEncodePng(aPix, rRect.Width, rRect.Height, bBgr, iVis)
     else
-        R := Rect(0, 0, 0, 0);
-    Msg := BuildWsMessage(R, Png);
-    FLock.Enter;
+        rRect := Rect(0, 0, 0, 0);
+    aMsg := aBuildWsMessage(rRect, aPng);
+    oFLock.Enter;
     try
-        FMessage := Msg;
-        FPng := Png;
-        Inc(FSeq);
-        Inc(FEncoded);
-        FVisible := Vis;
-        FEncodeMs := Watch.ElapsedMilliseconds;
+        aFMessage := aMsg;
+        aFPng := aPng;
+        Inc(iFSeq);
+        Inc(iFEncoded);
+        iFVisible := iVis;
+        iFEncodeMs := rWatch.ElapsedMilliseconds;
     finally
-        FLock.Leave;
+        oFLock.Leave;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TWebOverlayServer.PageHtml
+//** Nome funzione: TWebOverlayServer.sPageHtml
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Pagina per il Browser Source: canvas trasparente aggiornato via WebSocket.
@@ -948,13 +1000,13 @@ end;
 //** e la pagina riprova a collegarsi ogni secondo.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TWebOverlayServer.PageHtml: string;
+function TWebOverlayServer.sPageHtml: string;
 begin
     Result :=
         '<!DOCTYPE html><html><head><meta charset="utf-8"><title>HoloInput Overlay</title>' +
         '<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;}' +
         'canvas{position:absolute;left:0;top:0;}</style></head><body>' +
-        Format('<canvas id="c" width="%d" height="%d"></canvas>', [FWidth, FHeight]) +
+        Format('<canvas id="c" width="%d" height="%d"></canvas>', [iFWidth, iFHeight]) +
         '<script>' +
         'var c=document.getElementById("c"),g=c.getContext("2d"),busy=false,next=null;' +
         'function done(){busy=false;if(next){var d=next;next=null;show(d);}}' +
@@ -973,71 +1025,76 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TWebOverlayServer.HandleIncoming
-//** Parametri di ingresso: AIO: TIdIOHandler
+//** Nome funzione: TWebOverlayServer.bHandleIncoming
+//** Parametri di ingresso: oAIO: TIdIOHandler
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Leggere un messaggio WebSocket arrivato dal browser; False se la connessione va chiusa.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: la pagina non invia dati, quindi interessano solo i
 //** messaggi di controllo: "close" (si risponde e si chiude) e "ping" (si
-//** risponde con "pong"); gli altri vengono letti e ignorati. I messaggi del
-//** browser sono sempre mascherati (RFC 6455). Un messaggio troppo grande e'
-//** considerato anomalo e chiude la connessione.
+//** risponde con "pong"); gli altri vengono letti e ignorati. Chiudono la
+//** connessione, come richiede RFC 6455: un messaggio non mascherato (il
+//** browser maschera sempre i suoi), una lunghezza negativa o oltre 64 KB, un
+//** messaggio di controllo (close, ping, pong) oltre 125 byte.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TWebOverlayServer.HandleIncoming(AIO: TIdIOHandler): Boolean;
+function TWebOverlayServer.bHandleIncoming(oAIO: TIdIOHandler): Boolean;
 var
-    B0, B1, Op: Byte;
-    Len: Int64;
-    I: Integer;
-    Ext, Mask, Data, Reply: TIdBytes;
+    iFirstByte, iSecondByte, iOpcode: Byte;
+    iLen: Int64;
+    iByteIndex: Integer;
+    aExt, aMask, aData, aReply: TIdBytes;
 begin
     Result := True;
-    B0 := AIO.ReadByte;
-    B1 := AIO.ReadByte;
-    Op := B0 and $0F;
-    Len := B1 and $7F;
-    if Len = 126 then
+    iFirstByte := oAIO.ReadByte;
+    iSecondByte := oAIO.ReadByte;
+    iOpcode := iFirstByte and $0F;
+    iLen := iSecondByte and $7F;
+    if iLen = 126 then
     begin
-        AIO.ReadBytes(Ext, 2, False);
-        Len := (Int64(Ext[0]) shl 8) or Ext[1];
+        oAIO.ReadBytes(aExt, 2, False);
+        iLen := (Int64(aExt[0]) shl 8) or aExt[1];
     end
-    else if Len = 127 then
+    else if iLen = 127 then
     begin
-        AIO.ReadBytes(Ext, 8, False);
-        Len := 0;
-        for I := 0 to 7 do
-            Len := (Len shl 8) or Ext[I];
+        oAIO.ReadBytes(aExt, 8, False);
+        iLen := 0;
+        for iByteIndex := 0 to 7 do
+            iLen := (iLen shl 8) or aExt[iByteIndex];
     end;
-    if Len > 65536 then
+    // lunghezza a 64 bit "negativa" (bit alto acceso) o eccessiva
+    if (iLen < 0) or (iLen > 65536) then
         Exit(False);
-    SetLength(Mask, 0);
-    if (B1 and $80) <> 0 then
-        AIO.ReadBytes(Mask, 4, False);
-    SetLength(Data, 0);
-    if Len > 0 then
-        AIO.ReadBytes(Data, Integer(Len), False);
-    if Length(Mask) = 4 then
-        for I := 0 to High(Data) do
-            Data[I] := Data[I] xor Mask[I and 3];
-    case Op of
+    // i messaggi di controllo non superano 125 byte (il pong li rimanda uguali)
+    if (iOpcode >= 8) and (iLen > 125) then
+        Exit(False);
+    // i messaggi del browser devono essere mascherati
+    if (iSecondByte and $80) = 0 then
+        Exit(False);
+    oAIO.ReadBytes(aMask, 4, False);
+    SetLength(aData, 0);
+    if iLen > 0 then
+        oAIO.ReadBytes(aData, Integer(iLen), False);
+    for iByteIndex := 0 to High(aData) do
+        aData[iByteIndex] := aData[iByteIndex] xor aMask[iByteIndex and 3];
+    case iOpcode of
         8:  // close
             begin
-                SetLength(Reply, 2);
-                Reply[0] := $88;
-                Reply[1] := 0;
-                AIO.Write(Reply);
+                SetLength(aReply, 2);
+                aReply[0] := $88;
+                aReply[1] := 0;
+                oAIO.Write(aReply);
                 Result := False;
             end;
         9:  // ping -> pong con gli stessi dati
             begin
-                SetLength(Reply, 2 + Length(Data));
-                Reply[0] := $8A;
-                Reply[1] := Byte(Length(Data));
-                if Length(Data) > 0 then
-                    Move(Data[0], Reply[2], Length(Data));
-                AIO.Write(Reply);
+                SetLength(aReply, 2 + Length(aData));
+                aReply[0] := $8A;
+                aReply[1] := Byte(Length(aData));
+                if Length(aData) > 0 then
+                    Move(aData[0], aReply[2], Length(aData));
+                oAIO.Write(aReply);
             end;
     end;
 end;
@@ -1046,72 +1103,156 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TWebOverlayServer.ServeWebSocket
-//** Parametri di ingresso: AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo:
+//** Parametri di ingresso: oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo; oAResponseInfo:
 //**                        TIdHTTPResponseInfo
 //** Parametri di uscita: nessuno
 //** Scopo: Gestire una connessione WebSocket di OBS (eseguita nel thread di Indy della
 //**        connessione).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
-//** Funzionamento: verifica la richiesta di upgrade, risponde con
+//** Funzionamento: verifica la richiesta di upgrade; se ci sono gia'
+//** iFMaxClients connessioni aperte (1, oppure 2 con l'opzione SecondConnection)
+//** risponde 503 e chiude. Altrimenti risponde con
 //** "101 Switching Protocols" e la chiave Sec-WebSocket-Accept (SHA-1 della
 //** chiave del browser + WS_GUID, in Base64) scritti direttamente sul socket,
 //** poi resta in ciclo finche' la connessione e' aperta: gestisce i messaggi
-//** del browser e invia ogni fotogramma nuovo (FSeq cambiato); tra un
+//** del browser e invia ogni fotogramma nuovo (iFSeq cambiato); tra un
 //** controllo e l'altro attende 2 ms. A fine connessione Indy chiude il
 //** socket (CloseConnection).
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TWebOverlayServer.ServeWebSocket(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
-    AResponseInfo: TIdHTTPResponseInfo);
+procedure TWebOverlayServer.ServeWebSocket(oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo;
+    oAResponseInfo: TIdHTTPResponseInfo);
 var
-    IO: TIdIOHandler;
-    Key, Accept: string;
-    Last, Seq: Integer;
-    Msg: TIdBytes;
+    oHandler: TIdIOHandler;
+    sKey, sAccept: string;
+    iLast, iSeq: Integer;
+    aMsg: TIdBytes;
 begin
-    Key := Trim(ARequestInfo.RawHeaders.Values['Sec-WebSocket-Key']);
-    if (Key = '') or not SameText(Trim(ARequestInfo.RawHeaders.Values['Upgrade']), 'websocket') then
+    sKey := Trim(oARequestInfo.RawHeaders.Values['Sec-WebSocket-Key']);
+    if (sKey = '') or not SameText(Trim(oARequestInfo.RawHeaders.Values['Upgrade']), 'websocket') then
     begin
-        AResponseInfo.ResponseNo := 400;
+        oAResponseInfo.ResponseNo := 400;
         Exit;
     end;
-    Accept := TNetEncoding.Base64.EncodeBytesToString(THashSHA1.GetHashBytes(Key + WS_GUID));
-    IO := AContext.Connection.IOHandler;
-    IO.Write('HTTP/1.1 101 Switching Protocols'#13#10 +
-        'Upgrade: websocket'#13#10 +
-        'Connection: Upgrade'#13#10 +
-        'Sec-WebSocket-Accept: ' + Accept + #13#10#13#10);
-    AResponseInfo.HeaderHasBeenWritten := True;
-    AResponseInfo.CloseConnection := True;
-    TInterlocked.Increment(FClients);
+    // posto prenotato prima della risposta: due richieste insieme non superano il limite
+    if TInterlocked.Increment(iFClients) > iFMaxClients then
+    begin
+        TInterlocked.Decrement(iFClients);
+        oAResponseInfo.ResponseNo := 503;
+        oAResponseInfo.CloseConnection := True;
+        Exit;
+    end;
     try
-        Last := -1;
-        while not FStopping and AContext.Connection.Connected do
+        sAccept := TNetEncoding.Base64.EncodeBytesToString(THashSHA1.GetHashBytes(sKey + WS_GUID));
+        oHandler := oAContext.Connection.IOHandler;
+        oHandler.Write('HTTP/1.1 101 Switching Protocols'#13#10 +
+            'Upgrade: websocket'#13#10 +
+            'Connection: Upgrade'#13#10 +
+            'Sec-WebSocket-Accept: ' + sAccept + #13#10#13#10);
+        oAResponseInfo.HeaderHasBeenWritten := True;
+        oAResponseInfo.CloseConnection := True;
+        iLast := -1;
+        while not bFStopping and oAContext.Connection.Connected do
         begin
-            if IO.InputBufferIsEmpty then
-                IO.CheckForDataOnSource(0);
-            if not IO.InputBufferIsEmpty then
-                if not HandleIncoming(IO) then
+            if oHandler.InputBufferIsEmpty then
+                oHandler.CheckForDataOnSource(0);
+            if not oHandler.InputBufferIsEmpty then
+                if not bHandleIncoming(oHandler) then
                     Break;
-            FLock.Enter;
+            oFLock.Enter;
             try
-                Seq := FSeq;
-                Msg := FMessage;
+                iSeq := iFSeq;
+                aMsg := aFMessage;
             finally
-                FLock.Leave;
+                oFLock.Leave;
             end;
-            if (Seq <> Last) and (Length(Msg) > 0) then
+            if (iSeq <> iLast) and (Length(aMsg) > 0) then
             begin
-                IO.Write(Msg);
-                Last := Seq;
-                TInterlocked.Increment(FSent);
+                oHandler.Write(aMsg);
+                iLast := iSeq;
+                TInterlocked.Increment(iFSent);
             end
             else
                 Sleep(2);
         end;
     finally
-        TInterlocked.Decrement(FClients);
+        TInterlocked.Decrement(iFClients);
+    end;
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TWebOverlayServer.bHostAllowed
+//** Parametri di ingresso: sAValue: string; bAOrigin: Boolean
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Verificare che un'intestazione Host (o Origin, se bAOrigin) indichi questo server locale.
+//** Data Ultima Modifica: 10/11/2026
+//***********************************************************************************************************
+//** Funzionamento: sono accettati solo 127.0.0.1 e localhost con la porta del
+//** servizio (senza porta solo se la porta e' 80, come fanno i browser); per
+//** Origin e' richiesto anche il prefisso "http://" (una "/" finale e'
+//** ignorata). Il confronto non distingue maiuscole e minuscole.
+//***********************************************************************************************************
+//***********************************************************************************************************
+function TWebOverlayServer.bHostAllowed(const sAValue: string; bAOrigin: Boolean): Boolean;
+var
+    sHost, sName, sPortText: string;
+    iColonPos: Integer;
+begin
+    sHost := LowerCase(Trim(sAValue));
+    if bAOrigin then
+    begin
+        if not sHost.StartsWith('http://') then
+            Exit(False);
+        Delete(sHost, 1, Length('http://'));
+        if sHost.EndsWith('/') then
+            SetLength(sHost, Length(sHost) - 1);
+    end;
+    iColonPos := LastDelimiter(':', sHost);
+    if iColonPos > 0 then
+    begin
+        sName := Copy(sHost, 1, iColonPos - 1);
+        sPortText := Copy(sHost, iColonPos + 1, MaxInt);
+    end
+    else
+    begin
+        sName := sHost;
+        sPortText := '80';
+    end;
+    Result := ((sName = '127.0.0.1') or (sName = 'localhost')) and
+        (sPortText = IntToStr(oFServer.DefaultPort));
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TWebOverlayServer.bRequestAllowed
+//** Parametri di ingresso: oARequestInfo: TIdHTTPRequestInfo
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Verificare che una richiesta arrivi da OBS (o dal browser) sulla pagina del servizio.
+//** Data Ultima Modifica: 10/11/2026
+//***********************************************************************************************************
+//** Funzionamento: protezione dalle pagine web estranee aperte nel browser:
+//** - Host deve indicare 127.0.0.1 o localhost con la porta del servizio:
+//**   blocca il "DNS rebinding" (un sito che fa puntare il proprio nome a
+//**   127.0.0.1 manda comunque il proprio nome come Host);
+//** - Origin, se presente, deve essere la pagina del servizio: il browser non
+//**   applica alle WebSocket le regole tra siti diversi, quindi senza questo
+//**   controllo qualsiasi sito potrebbe ricevere i fotogrammi. Le richieste
+//**   senza Origin (non partite da una pagina web) sono accettate.
+//***********************************************************************************************************
+//***********************************************************************************************************
+function TWebOverlayServer.bRequestAllowed(oARequestInfo: TIdHTTPRequestInfo): Boolean;
+var
+    sOrigin: string;
+begin
+    Result := bHostAllowed(oARequestInfo.RawHeaders.Values['Host'], False);
+    if Result then
+    begin
+        sOrigin := Trim(oARequestInfo.RawHeaders.Values['Origin']);
+        Result := (sOrigin = '') or bHostAllowed(sOrigin, True);
     end;
 end;
 
@@ -1119,56 +1260,63 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TWebOverlayServer.CommandGet
-//** Parametri di ingresso: AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo:
+//** Parametri di ingresso: oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo; oAResponseInfo:
 //**                        TIdHTTPResponseInfo
 //** Parametri di uscita: nessuno
 //** Scopo: Rispondere alle richieste del browser (eseguita nei thread di Indy).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 10/11/2026
 //***********************************************************************************************************
-//** Funzionamento: "/" e "/index.html" -> pagina HTML; "/ws" -> connessione
+//** Funzionamento: una richiesta non ammessa da bRequestAllowed riceve 403 e
+//** la connessione viene chiusa. "/" e "/index.html" -> pagina HTML; "/ws" -> connessione
 //** WebSocket (ServeWebSocket); "/frame.png" -> ultimo fotogramma (204 se non
 //** ce n'e' ancora uno); tutto il resto -> 404. Nessuna risposta viene
 //** memorizzata nella cache del browser.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TWebOverlayServer.CommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
-    AResponseInfo: TIdHTTPResponseInfo);
+procedure TWebOverlayServer.CommandGet(oAContext: TIdContext; oARequestInfo: TIdHTTPRequestInfo;
+    oAResponseInfo: TIdHTTPResponseInfo);
 var
-    Doc: string;
-    Data: TBytes;
+    sDoc: string;
+    aData: TBytes;
 begin
-    Doc := LowerCase(ARequestInfo.Document);
-    if Doc = '/ws' then
+    if not bRequestAllowed(oARequestInfo) then
     begin
-        ServeWebSocket(AContext, ARequestInfo, AResponseInfo);
+        oAResponseInfo.ResponseNo := 403;
+        oAResponseInfo.CloseConnection := True;
         Exit;
     end;
-    AResponseInfo.CustomHeaders.Values['Cache-Control'] := 'no-store';
-    if (Doc = '/') or (Doc = '/index.html') then
+    sDoc := LowerCase(oARequestInfo.Document);
+    if sDoc = '/ws' then
     begin
-        AResponseInfo.ContentType := 'text/html';
-        AResponseInfo.CharSet := 'utf-8';
-        AResponseInfo.ContentText := PageHtml;
+        ServeWebSocket(oAContext, oARequestInfo, oAResponseInfo);
+        Exit;
+    end;
+    oAResponseInfo.CustomHeaders.Values['Cache-Control'] := 'no-store';
+    if (sDoc = '/') or (sDoc = '/index.html') then
+    begin
+        oAResponseInfo.ContentType := 'text/html';
+        oAResponseInfo.CharSet := 'utf-8';
+        oAResponseInfo.ContentText := sPageHtml;
     end
-    else if Doc = '/frame.png' then
+    else if sDoc = '/frame.png' then
     begin
-        FLock.Enter;
+        oFLock.Enter;
         try
-            Data := FPng;
+            aData := aFPng;
         finally
-            FLock.Leave;
+            oFLock.Leave;
         end;
-        if Length(Data) = 0 then
-            AResponseInfo.ResponseNo := 204
+        if Length(aData) = 0 then
+            oAResponseInfo.ResponseNo := 204
         else
         begin
-            AResponseInfo.ContentType := 'image/png';
-            AResponseInfo.ContentStream := TBytesStream.Create(Data);
-            AResponseInfo.FreeContentStream := True;
+            oAResponseInfo.ContentType := 'image/png';
+            oAResponseInfo.ContentStream := TBytesStream.Create(aData);
+            oAResponseInfo.FreeContentStream := True;
         end;
     end
     else
-        AResponseInfo.ResponseNo := 404;
+        oAResponseInfo.ResponseNo := 404;
 end;
 
 initialization

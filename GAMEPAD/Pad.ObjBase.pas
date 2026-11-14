@@ -72,10 +72,10 @@ type
     public
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
         procedure BindDevices(AInput: TInputManager; const B: TWidgetConfig); override;
-        function IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
-        function DeviceLabel(const B: TWidgetConfig): string; override;
-        class function Kind: TDeviceKind; override;
-        class function DefaultView: TModelView; override;
+        function bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
+        function sDeviceLabel(const B: TWidgetConfig): string; override;
+        class function eKind: TDeviceKind; override;
+        class function rDefaultView: TModelView; override;
     end;
 
 implementation
@@ -100,7 +100,7 @@ const
 //** Data Ultima Modifica: 19/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TObjPadModel.Kind: TDeviceKind;
+class function TObjPadModel.eKind: TDeviceKind;
 begin
     Result := dkGamepad;
 end;
@@ -108,16 +108,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjPadModel.DefaultView
+//** Nome funzione: TObjPadModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista di default, controller leggermente inclinato verso l'alto.
 //** Data Ultima Modifica: 19/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TObjPadModel.DefaultView: TModelView;
+class function TObjPadModel.rDefaultView: TModelView;
 begin
-    Result := MakeView(-28, 0);
+    Result := rMakeView(-28, 0);
 end;
 
 //***********************************************************************************************************
@@ -132,37 +132,37 @@ end;
 //***********************************************************************************************************
 procedure TObjPadModel.BindDevices(AInput: TInputManager; const B: TWidgetConfig);
 begin
-    AInput.UsePad(EnsureRange(B.DeviceIndex, 0, MAX_PADS - 1));
+    AInput.UsePad(EnsureRange(B.iDeviceIndex, 0, MAX_PADS - 1));
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjPadModel.IsConnected
+//** Nome funzione: TObjPadModel.bIsConnected
 //** Parametri di ingresso: S: TInputSnapshot; B: TWidgetConfig
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il controller XInput risulta collegato.
 //** Data Ultima Modifica: 19/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TObjPadModel.IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
+function TObjPadModel.bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
 begin
-    Result := S.Pads[EnsureRange(B.DeviceIndex, 0, MAX_PADS - 1)].Connected;
+    Result := S.aPads[EnsureRange(B.iDeviceIndex, 0, MAX_PADS - 1)].bConnected;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjPadModel.DeviceLabel
+//** Nome funzione: TObjPadModel.sDeviceLabel
 //** Parametri di ingresso: B: TWidgetConfig
 //** Parametri di uscita: Result: string
 //** Scopo: Etichetta del dispositivo mostrata nel widget (numero del controller XInput).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TObjPadModel.DeviceLabel(const B: TWidgetConfig): string;
+function TObjPadModel.sDeviceLabel(const B: TWidgetConfig): string;
 begin
-    Result := Format(Tr('widget.label.gamepad', 'XINPUT %d'), [EnsureRange(B.DeviceIndex, 0, MAX_PADS - 1) + 1]);
+    Result := Format(sTr('widget.label.gamepad', 'XINPUT %d'), [EnsureRange(B.iDeviceIndex, 0, MAX_PADS - 1) + 1]);
 end;
 
 //***********************************************************************************************************
@@ -229,8 +229,8 @@ procedure TObjPadModel.AddLight(const P: TPoint3D; D: Single; AMask: Word; AAxis
 var
     L: TPadLight;
 begin
-    L.Shape := Kit.Cyl(FAll, P.X, P.Y, P.Z, D, LIGHT_THICK, AAxis, hsSolid);
-    L.Shape.Active := True;
+    L.Shape := oKit.oCyl(FAll, P.X, P.Y, P.Z, D, LIGHT_THICK, AAxis, hsSolid);
+    L.Shape.bActive := True;
     L.Shape.Visible := False;
     L.Mask := AMask;
     FLights := FLights + [L];
@@ -258,7 +258,7 @@ var
     D, O: Single;
     I: Integer;
 begin
-    Ini := LoadHoloObjIni(FSpec.ObjName);
+    Ini := oLoadHoloObjIni(FSpec.ObjName);
     if Ini = nil then
         Exit;
     try
@@ -268,7 +268,7 @@ begin
             begin
                 FSticks[I].Base := P;
                 FSticks[I].Range := D * 0.35;
-                FSticks[I].Cap := Kit.Cyl(FAll, P.X, P.Y, P.Z, D * 0.8, LIGHT_THICK, axZ, hsNormal);
+                FSticks[I].Cap := oKit.oCyl(FAll, P.X, P.Y, P.Z, D * 0.8, LIGHT_THICK, axZ, hsNormal);
             end;
 
         // croce direzionale: su, giu', sinistra, destra
@@ -290,15 +290,15 @@ begin
                 else
                     AddLight(P, D, BtnMasks[I], axZ);
                 if I <= 3 then
-                    Kit.Text(FAll, P.X, P.Y, P.Z - LIGHT_THICK * 1.5, D * 0.6, FSpec.FaceLabels[I]);
+                    oKit.oText(FAll, P.X, P.Y, P.Z - LIGHT_THICK * 1.5, D * 0.6, FSpec.FaceLabels[I]);
             end;
 
         // grilletti: luce proporzionale alla pressione
         for I := 0 to 1 do
             if ReadSpot(Ini, 'Grilletti', TrigKeys[I], P, D) then
             begin
-                FTrig[I] := Kit.Cyl(FAll, P.X, P.Y, P.Z, D, LIGHT_THICK, axY, hsSolid);
-                FTrig[I].Active := True;
+                FTrig[I] := oKit.oCyl(FAll, P.X, P.Y, P.Z, D, LIGHT_THICK, axY, hsSolid);
+                FTrig[I].bActive := True;
                 FTrig[I].Visible := False;
             end;
     finally
@@ -326,23 +326,23 @@ var
 begin
     FSpec := Spec;
     FScale := 1;
-    if not LoadHoloObj(FSpec.ObjName, Data) then
+    if not bLoadHoloObj(FSpec.ObjName, Data) then
     begin
-        Kit.Text(Root, 0, 0, 0, 0.45, Tr('model.err.objmissing1', 'FILE OBJ NON TROVATO'), True);
-        Kit.Text(Root, 0, 0.6, 0, 0.3, FSpec.ObjName, True);
+        oKit.oText(oRoot, 0, 0, 0, 0.45, sTr('model.err.objmissing1', 'FILE OBJ NON TROVATO'), True);
+        oKit.oText(oRoot, 0, 0.6, 0, 0.3, FSpec.ObjName, True);
         SetExtent(7, 3, 1);
         Exit;
     end;
 
     Data.Reorient(AXIS_X, AXIS_Y, AXIS_Z);
-    Data.GetBounds(Lo, Hi);
+    Data.bGetBounds(Lo, Hi);
     FScale := FSpec.Width / Max(1E-6, Hi.X - Lo.X);
     Data.Transform(Point3D(FScale, FScale, FScale), Point3D(0, 0, 0));
     Lo := Point3D(Lo.X * FScale, Lo.Y * FScale, Lo.Z * FScale);
     Hi := Point3D(Hi.X * FScale, Hi.Y * FScale, Hi.Z * FScale);
 
-    FAll := Kit.Pivot(Root, -(Lo.X + Hi.X) / 2, -(Lo.Y + Hi.Y) / 2, -(Lo.Z + Hi.Z) / 2);
-    FBody := THoloObjMesh.CreateMesh(Kit, FAll, Data, hsSolid);
+    FAll := oKit.oPivot(oRoot, -(Lo.X + Hi.X) / 2, -(Lo.Y + Hi.Y) / 2, -(Lo.Z + Hi.Z) / 2);
+    FBody := THoloObjMesh.CreateMesh(oKit, FAll, Data, hsSolid);
     LoadControls;
     SetExtent(Hi.X - Lo.X, Hi.Y - Lo.Y, Hi.Z - Lo.Z);
 end;
@@ -385,20 +385,20 @@ var
         if ASt.Cap = nil then
             Exit;
         ASt.Cap.Position.Point := ASt.Base + Point3D(AX * ASt.Range, -AY * ASt.Range, 0);
-        ASt.Cap.Active := P.Pressed(AThumb) or (Abs(AX) + Abs(AY) > 0.2);
+        ASt.Cap.bActive := P.bPressed(AThumb) or (Abs(AX) + Abs(AY) > 0.2);
     end;
 
 begin
     if FAll = nil then
         Exit;
-    P := S.Pads[EnsureRange(B.DeviceIndex, 0, MAX_PADS - 1)];
+    P := S.aPads[EnsureRange(B.iDeviceIndex, 0, MAX_PADS - 1)];
 
-    MoveStick(FSticks[0], P.LX, P.LY, XI_LTHUMB);
-    MoveStick(FSticks[1], P.RX, P.RY, XI_RTHUMB);
+    MoveStick(FSticks[0], P.dLX, P.dLY, XI_LTHUMB);
+    MoveStick(FSticks[1], P.dRX, P.dRY, XI_RTHUMB);
 
     for I := 0 to High(FLights) do
     begin
-        IsOn := P.Pressed(FLights[I].Mask);
+        IsOn := P.bPressed(FLights[I].Mask);
         if FLights[I].Shape.Visible <> IsOn then
             FLights[I].Shape.Visible := IsOn;
     end;
@@ -407,9 +407,9 @@ begin
         if FTrig[I] <> nil then
         begin
             if I = 0 then
-                V := P.LT
+                V := P.dLT
             else
-                V := P.RT;
+                V := P.dRT;
             IsOn := V > 0.05;
             if FTrig[I].Visible <> IsOn then
                 FTrig[I].Visible := IsOn;

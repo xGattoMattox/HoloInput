@@ -7,7 +7,7 @@
 //***********************************************************************************************************
 //** Funzionamento: il file si chiama come l'eseguibile (HoloInput.ini) e si trova nella stessa
 //** cartella; viene letto all'avvio se esiste e scritto dal Setup.
-//** Contiene anche i nomi tradotti di tipologie e layout (KindText, LayoutText): i vettori
+//** Contiene anche i nomi tradotti di tipologie e layout (sKindText, sLayoutText): i vettori
 //** KindCaption e LayoutCaption sono i testi predefiniti (italiano).
 //** La sezione [OBS] contiene i parametri del servizio Browser Source per OBS
 //** (porta, risoluzione della pagina, fotogrammi al secondo, avvio automatico, modo di
@@ -68,7 +68,7 @@ const
     DEF_RANGE_X = 36;    // inclinazione sinistra/destra (rollio): +/-18
     DEF_RANGE_Y = 36;    // inclinazione avanti/indietro (beccheggio): +/-18
     DEF_RANGE_Z = 50;    // rotazione dell'impugnatura (twist): +/-25
-    /// manette (throttle): RangeX = leva, RangeY / RangeZ = mini-stick (gradi totali)
+    /// manette (throttle): iRangeX = leva, iRangeY / iRangeZ = mini-stick (gradi totali)
     DEF_THR_LEVER = 60;  // leva avanti / indietro: +/-30
     DEF_THR_MINI = 40;   // mini-stick: +/-20 per asse
 
@@ -86,61 +86,61 @@ const
     OBS_HIDE_OFFSCREEN = 1;  // occultamento: finestra spostata fuori dallo schermo
     OBS_FPS_MIN = 5;
     OBS_FPS_MAX = 60;
-    OBS_HIDE_MONITOR = 2;    // occultamento: finestra spostata su un altro monitor (ObsMonitor)
+    OBS_HIDE_MONITOR = 2;    // occultamento: finestra spostata su un altro monitor (sObsMonitor)
 
 type
     /// Impostazioni di un singolo widget/dispositivo.
     TWidgetConfig = record
-        Visible: Boolean;
-        ModelId: string;          // id del modello 3D (vedi Holo.Models)
-        Absolute: Boolean;        // True = usa X/Y (layout Personalizzato), False = calcolata
-        X, Y, W, H: Integer;      // posizione sullo schermo (anche quella calcolata) e dimensioni
-        DeviceIndex: Integer;     // id joystick WinMM (0..15) o slot XInput (0..3)
-        AxisX, AxisY, AxisZ: Integer;        // indici assi joystick (0=X 1=Y 2=Z 3=R 4=U 5=V)
-        InvertX, InvertY, InvertZ: Boolean;  // inversione assi
-        RangeX, RangeY, RangeZ: Integer;     // joystick: ampiezza totale del movimento (gradi)
-        ButtonOffset: Integer;    // pulsantiere: indice del primo pulsante usato
-        Tilt, Yaw: Single;        // correzione della vista (gradi aggiunti al default del modello)
-        Zoom: Single;             // moltiplicatore di zoom (1 = auto-fit)
-        PanY: Single;             // spostamento verticale della vista (frazione dell'altezza visibile)
+        bVisible: Boolean;
+        sModelId: string;          // id del modello 3D (vedi Holo.Models)
+        bAbsolute: Boolean;        // True = usa X/Y (layout Personalizzato), False = calcolata
+        iX, iY, iW, iH: Integer;      // posizione sullo schermo (anche quella calcolata) e dimensioni
+        iDeviceIndex: Integer;     // id joystick WinMM (0..15) o slot XInput (0..3)
+        iAxisX, iAxisY, iAxisZ: Integer;        // indici assi joystick (0=X 1=Y 2=Z 3=R 4=U 5=V)
+        bInvertX, bInvertY, bInvertZ: Boolean;  // inversione assi
+        iRangeX, iRangeY, iRangeZ: Integer;     // joystick: ampiezza totale del movimento (gradi)
+        iButtonOffset: Integer;    // pulsantiere: indice del primo pulsante usato
+        dTilt, dYaw: Single;        // correzione della vista (gradi aggiunti al default del modello)
+        dZoom: Single;             // moltiplicatore di zoom (1 = auto-fit)
+        dPanY: Single;             // spostamento verticale della vista (frazione dell'altezza visibile)
     end;
 
     TAppConfig = class
     public
-        Layout: TLayoutMode;
-        SkinId: string;
-        Margin: Integer;            // distanza dei widget dal bordo dello schermo
-        Spacing: Integer;           // spazio tra i widget
-        Opacity: Single;            // opacita' globale dell'overlay (0.2..1)
-        Animations: Boolean;        // anelli rotanti, scanline, sfarfallio olografico
-        WidgetStyle: TWidgetStyle;  // pannello completo / solo dispositivo (sfondo trasparente)
-        BaseEffects: Boolean;       // effetti di base dei widget: anelli del proiettore e scanline
-        AutoHide: Boolean;          // nasconde i widget dei dispositivi inattivi (da bloccato)
-        AutoHideSecs: Integer;      // secondi senza input prima di nascondere un widget
-        CheckUpdates: Boolean;      // all'avvio controlla su GitHub se c'e' una nuova versione
-        ShowLegends: Boolean;       // scritte 3D sui tasti
-        StayOnTop: Boolean;
-        StartLocked: Boolean;       // avvio in modalita' "bloccata" (click-through)
-        StreamerMode: Boolean;      // nasconde i pulsanti della barra (resta l'etichetta)
-        PrivacyMode: Boolean;       // nasconde sempre il widget della tastiera
-        DisclaimerAccepted: Boolean; // avviso del primo avvio gia' accettato
-        MouseRange: Integer;        // count del mouse per percorrere tutto il tappetino
-        Language: string;           // lingua dell'interfaccia: file LANG\<Language>.ini (vedi Holo.Lang)
-        ObsPort: Integer;           // OBS: porta del servizio Browser Source (http://127.0.0.1:porta/)
-        ObsWidth, ObsHeight: Integer; // OBS: risoluzione della pagina (default: nativa del monitor)
-        ObsHideMode: Integer;       // OBS: OBS_HIDE_WINDOW / OBS_HIDE_OFFSCREEN / OBS_HIDE_MONITOR
-        ObsFps: Integer;            // OBS: fotogrammi al secondo inviati (15 / 30 / 60)
-        ObsAutoStart: Boolean;      // OBS: avvia il servizio all'avvio di HoloInput
-        ObsMonitor: string;         // OBS: monitor di destinazione (es. \\.\DISPLAY2) per OBS_HIDE_MONITOR
-        Widgets: array[TDeviceKind] of TWidgetConfig;
+        eLayout: TLayoutMode;
+        sSkinId: string;
+        iMargin: Integer;            // distanza dei widget dal bordo dello schermo
+        iSpacing: Integer;           // spazio tra i widget
+        dOpacity: Single;            // opacita' globale dell'overlay (0.2..1)
+        bAnimations: Boolean;        // anelli rotanti, scanline, sfarfallio olografico
+        eWidgetStyle: TWidgetStyle;  // pannello completo / solo dispositivo (sfondo trasparente)
+        bBaseEffects: Boolean;       // effetti di base dei widget: anelli del proiettore e scanline
+        bAutoHide: Boolean;          // nasconde i widget dei dispositivi inattivi (da bloccato)
+        iAutoHideSecs: Integer;      // secondi senza input prima di nascondere un widget
+        bCheckUpdates: Boolean;      // all'avvio controlla su GitHub se c'e' una nuova versione
+        bShowLegends: Boolean;       // scritte 3D sui tasti
+        bStayOnTop: Boolean;
+        bStartLocked: Boolean;       // avvio in modalita' "bloccata" (click-through)
+        bStreamerMode: Boolean;      // nasconde i pulsanti della barra (resta l'etichetta)
+        bPrivacyMode: Boolean;       // nasconde sempre il widget della tastiera
+        bDisclaimerAccepted: Boolean; // avviso del primo avvio gia' accettato
+        iMouseRange: Integer;        // count del mouse per percorrere tutto il tappetino
+        sLanguage: string;           // lingua dell'interfaccia: file LANG\<Language>.ini (vedi Holo.Lang)
+        iObsPort: Integer;           // OBS: porta del servizio Browser Source (http://127.0.0.1:porta/)
+        iObsWidth, iObsHeight: Integer; // OBS: risoluzione della pagina (default: nativa del monitor)
+        iObsHideMode: Integer;       // OBS: OBS_HIDE_WINDOW / OBS_HIDE_OFFSCREEN / OBS_HIDE_MONITOR
+        iObsFps: Integer;            // OBS: fotogrammi al secondo inviati (15 / 30 / 60)
+        bObsAutoStart: Boolean;      // OBS: avvia il servizio all'avvio di HoloInput
+        sObsMonitor: string;         // OBS: monitor di destinazione (es. \\.\DISPLAY2) per OBS_HIDE_MONITOR
+        aWidgets: array[TDeviceKind] of TWidgetConfig;
         constructor Create;
         procedure SetDefaults;
-        procedure Assign(ASource: TAppConfig);
-        procedure LoadFromFile(const AFileName: string);
-        procedure SaveToFile(const AFileName: string);
-        class function DefaultFileName: string;
+        procedure Assign(oASource: TAppConfig);
+        procedure LoadFromFile(const sAFileName: string);
+        procedure SaveToFile(const sAFileName: string);
+        class function sDefaultFileName: string;
         /// Imposta il layout; con lmCustom tutti i widget usano le loro X/Y.
-        procedure SetLayout(AMode: TLayoutMode);
+        procedure SetLayout(eAMode: TLayoutMode);
         /// Ripristina skin (RSI), stile dei widget (pannello con effetti di base),
         /// disposizione e misure: layout Orizzontale (Basso),
         /// margine, spaziatura e dimensioni predefinite di tutti i widget, e
@@ -153,10 +153,10 @@ const
     /// in frazioni dell'altezza visibile.
     VIEW_PAN_LIMIT = 0.45;
 
-function FloatToIni(AValue: Single): string;
-function IniToFloat(const AText: string; ADefault: Single): Single;
-function KindText(AKind: TDeviceKind): string;
-function LayoutText(AMode: TLayoutMode): string;
+function sFloatToIni(dAValue: Single): string;
+function dIniToFloat(const sAText: string; dADefault: Single): Single;
+function sKindText(eAKind: TDeviceKind): string;
+function sLayoutText(eAMode: TLayoutMode): string;
 
 implementation
 
@@ -174,67 +174,67 @@ const
     DefSpacing = 10;
 
 var
-    GIniFormat: TFormatSettings;
+    rGIniFormat: TFormatSettings;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: FloatToIni
-//** Parametri di ingresso: AValue: Single
+//** Nome funzione: sFloatToIni
+//** Parametri di ingresso: dAValue: Single
 //** Parametri di uscita: Result: string
 //** Scopo: Scrivere un numero nel .ini indipendentemente dalle impostazioni internazionali (sempre
 //**        con il punto decimale).
 //** Data Ultima Modifica: 16/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function FloatToIni(AValue: Single): string;
+function sFloatToIni(dAValue: Single): string;
 begin
-    Result := FormatFloat('0.###', AValue, GIniFormat);
+    Result := FormatFloat('0.###', dAValue, rGIniFormat);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: IniToFloat
-//** Parametri di ingresso: AText: string; ADefault: Single
+//** Nome funzione: dIniToFloat
+//** Parametri di ingresso: sAText: string; dADefault: Single
 //** Parametri di uscita: Result: Single
-//** Scopo: Leggere un numero scritto con FloatToIni; se non valido usa il default.
+//** Scopo: Leggere un numero scritto con sFloatToIni; se non valido usa il default.
 //** Data Ultima Modifica: 16/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function IniToFloat(const AText: string; ADefault: Single): Single;
+function dIniToFloat(const sAText: string; dADefault: Single): Single;
 begin
-    Result := StrToFloatDef(Trim(AText), ADefault, GIniFormat);
+    Result := StrToFloatDef(Trim(sAText), dADefault, rGIniFormat);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: KindText
-//** Parametri di ingresso: AKind: TDeviceKind
+//** Nome funzione: sKindText
+//** Parametri di ingresso: eAKind: TDeviceKind
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della tipologia di widget nella lingua corrente (chiave kind.<chiave .ini>).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function KindText(AKind: TDeviceKind): string;
+function sKindText(eAKind: TDeviceKind): string;
 begin
-    Result := Tr('kind.' + LowerCase(KindIniKey[AKind]), KindCaption[AKind]);
+    Result := sTr('kind.' + LowerCase(KindIniKey[eAKind]), KindCaption[eAKind]);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: LayoutText
-//** Parametri di ingresso: AMode: TLayoutMode
+//** Nome funzione: sLayoutText
+//** Parametri di ingresso: eAMode: TLayoutMode
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del layout nella lingua corrente (chiave layout.<valore .ini>).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function LayoutText(AMode: TLayoutMode): string;
+function sLayoutText(eAMode: TLayoutMode): string;
 begin
-    Result := Tr('layout.' + LowerCase(LayoutIniText[AMode]), LayoutCaption[AMode]);
+    Result := sTr('layout.' + LowerCase(LayoutIniText[eAMode]), LayoutCaption[eAMode]);
 end;
 
 //** TAppConfig *********************************************************************************************
@@ -258,14 +258,14 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TAppConfig.DefaultFileName
+//** Nome funzione: TAppConfig.sDefaultFileName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Percorso del file .ini (stessa cartella e nome dell'eseguibile).
 //** Data Ultima Modifica: 16/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TAppConfig.DefaultFileName: string;
+class function TAppConfig.sDefaultFileName: string;
 begin
     Result := ChangeFileExt(ParamStr(0), '.ini');
 end;
@@ -295,66 +295,66 @@ const
     DefVisible: array[TDeviceKind] of Boolean = (False, False, True, True, True, False, True, False, False);
     DefDevice: array[TDeviceKind] of Integer = (3, 4, 1, 0, 0, 0, 0, 5, 2);
 var
-    K: TDeviceKind;
+    eDevice: TDeviceKind;
 begin
-    Layout := DefLayout;
-    SkinId := DefSkin;
-    Margin := DefMargin;
-    Spacing := DefSpacing;
-    Opacity := 0.95;
-    Animations := True;
-    WidgetStyle := DefWidgetStyle;
-    BaseEffects := True;
-    AutoHide := False;
-    AutoHideSecs := DEF_AUTOHIDE_SECS;
-    CheckUpdates := True;
-    ShowLegends := True;
-    StayOnTop := True;
-    StartLocked := True;
-    StreamerMode := False;
-    PrivacyMode := False;
-    DisclaimerAccepted := False;
-    MouseRange := 3000;
-    Language := DEF_LANGUAGE;
-    ObsPort := OBS_DEF_PORT;
-    ObsWidth := NativeScreenSize.cx;
-    ObsHeight := NativeScreenSize.cy;
-    ObsHideMode := OBS_HIDE_WINDOW;
-    ObsMonitor := '';
-    ObsFps := OBS_DEF_FPS;
-    ObsAutoStart := False;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    eLayout := DefLayout;
+    sSkinId := DefSkin;
+    iMargin := DefMargin;
+    iSpacing := DefSpacing;
+    dOpacity := 0.95;
+    bAnimations := True;
+    eWidgetStyle := DefWidgetStyle;
+    bBaseEffects := True;
+    bAutoHide := False;
+    iAutoHideSecs := DEF_AUTOHIDE_SECS;
+    bCheckUpdates := True;
+    bShowLegends := True;
+    bStayOnTop := True;
+    bStartLocked := True;
+    bStreamerMode := False;
+    bPrivacyMode := False;
+    bDisclaimerAccepted := False;
+    iMouseRange := 3000;
+    sLanguage := DEF_LANGUAGE;
+    iObsPort := OBS_DEF_PORT;
+    iObsWidth := rNativeScreenSize.cx;
+    iObsHeight := rNativeScreenSize.cy;
+    iObsHideMode := OBS_HIDE_WINDOW;
+    sObsMonitor := '';
+    iObsFps := OBS_DEF_FPS;
+    bObsAutoStart := False;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        Widgets[K] := Default(TWidgetConfig);
-        Widgets[K].Visible := DefVisible[K];
-        Widgets[K].ModelId := DefModel[K];
-        Widgets[K].Absolute := False;
-        Widgets[K].X := 0;
-        Widgets[K].Y := 0;
-        Widgets[K].W := DefWidgetW[K];
-        Widgets[K].H := DefWidgetH[K];
-        Widgets[K].DeviceIndex := DefDevice[K];
-        Widgets[K].AxisX := 0;
-        Widgets[K].AxisY := 1;
-        Widgets[K].AxisZ := 3;   // R = twist su quasi tutti gli stick
-        // i modelli predefiniti dei joystick sono Virpil: twist sull'asse Z (vedi DefaultAxes)
-        if K in [dkJoyLeft, dkJoyRight] then
-            Widgets[K].AxisZ := 2;
-        Widgets[K].RangeX := DEF_RANGE_X;
-        Widgets[K].RangeY := DEF_RANGE_Y;
-        Widgets[K].RangeZ := DEF_RANGE_Z;
-        Widgets[K].ButtonOffset := 0;
-        Widgets[K].Zoom := 1;
-        Widgets[K].PanY := 0;
+        aWidgets[eDevice] := Default(TWidgetConfig);
+        aWidgets[eDevice].bVisible := DefVisible[eDevice];
+        aWidgets[eDevice].sModelId := DefModel[eDevice];
+        aWidgets[eDevice].bAbsolute := False;
+        aWidgets[eDevice].iX := 0;
+        aWidgets[eDevice].iY := 0;
+        aWidgets[eDevice].iW := DefWidgetW[eDevice];
+        aWidgets[eDevice].iH := DefWidgetH[eDevice];
+        aWidgets[eDevice].iDeviceIndex := DefDevice[eDevice];
+        aWidgets[eDevice].iAxisX := 0;
+        aWidgets[eDevice].iAxisY := 1;
+        aWidgets[eDevice].iAxisZ := 3;   // R = twist su quasi tutti gli stick
+        // i modelli predefiniti dei joystick sono Virpil: twist sull'asse Z (vedi sDefaultAxes)
+        if eDevice in [dkJoyLeft, dkJoyRight] then
+            aWidgets[eDevice].iAxisZ := 2;
+        aWidgets[eDevice].iRangeX := DEF_RANGE_X;
+        aWidgets[eDevice].iRangeY := DEF_RANGE_Y;
+        aWidgets[eDevice].iRangeZ := DEF_RANGE_Z;
+        aWidgets[eDevice].iButtonOffset := 0;
+        aWidgets[eDevice].dZoom := 1;
+        aWidgets[eDevice].dPanY := 0;
         // manette: leva sull'asse Z, mini-stick su X e Y (vedi Thr.Base)
-        if K in [dkThrLeft, dkThrRight] then
+        if eDevice in [dkThrLeft, dkThrRight] then
         begin
-            Widgets[K].AxisX := 2;
-            Widgets[K].AxisY := 0;
-            Widgets[K].AxisZ := 1;
-            Widgets[K].RangeX := DEF_THR_LEVER;
-            Widgets[K].RangeY := DEF_THR_MINI;
-            Widgets[K].RangeZ := DEF_THR_MINI;
+            aWidgets[eDevice].iAxisX := 2;
+            aWidgets[eDevice].iAxisY := 0;
+            aWidgets[eDevice].iAxisZ := 1;
+            aWidgets[eDevice].iRangeX := DEF_THR_LEVER;
+            aWidgets[eDevice].iRangeY := DEF_THR_MINI;
+            aWidgets[eDevice].iRangeZ := DEF_THR_MINI;
         end;
     end;
 end;
@@ -363,64 +363,64 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TAppConfig.Assign
-//** Parametri di ingresso: ASource: TAppConfig
+//** Parametri di ingresso: oASource: TAppConfig
 //** Parametri di uscita: nessuno
 //** Scopo: Copiare tutte le impostazioni da un'altra istanza (usato dal Setup per lavorare su una
 //**        copia annullabile).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TAppConfig.Assign(ASource: TAppConfig);
+procedure TAppConfig.Assign(oASource: TAppConfig);
 var
-    K: TDeviceKind;
+    eDevice: TDeviceKind;
 begin
-    Layout := ASource.Layout;
-    SkinId := ASource.SkinId;
-    Margin := ASource.Margin;
-    Spacing := ASource.Spacing;
-    Opacity := ASource.Opacity;
-    Animations := ASource.Animations;
-    WidgetStyle := ASource.WidgetStyle;
-    BaseEffects := ASource.BaseEffects;
-    AutoHide := ASource.AutoHide;
-    AutoHideSecs := ASource.AutoHideSecs;
-    CheckUpdates := ASource.CheckUpdates;
-    ShowLegends := ASource.ShowLegends;
-    StayOnTop := ASource.StayOnTop;
-    StartLocked := ASource.StartLocked;
-    StreamerMode := ASource.StreamerMode;
-    PrivacyMode := ASource.PrivacyMode;
-    DisclaimerAccepted := ASource.DisclaimerAccepted;
-    MouseRange := ASource.MouseRange;
-    Language := ASource.Language;
-    ObsPort := ASource.ObsPort;
-    ObsWidth := ASource.ObsWidth;
-    ObsHeight := ASource.ObsHeight;
-    ObsHideMode := ASource.ObsHideMode;
-    ObsMonitor := ASource.ObsMonitor;
-    ObsFps := ASource.ObsFps;
-    ObsAutoStart := ASource.ObsAutoStart;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
-        Widgets[K] := ASource.Widgets[K];
+    eLayout := oASource.eLayout;
+    sSkinId := oASource.sSkinId;
+    iMargin := oASource.iMargin;
+    iSpacing := oASource.iSpacing;
+    dOpacity := oASource.dOpacity;
+    bAnimations := oASource.bAnimations;
+    eWidgetStyle := oASource.eWidgetStyle;
+    bBaseEffects := oASource.bBaseEffects;
+    bAutoHide := oASource.bAutoHide;
+    iAutoHideSecs := oASource.iAutoHideSecs;
+    bCheckUpdates := oASource.bCheckUpdates;
+    bShowLegends := oASource.bShowLegends;
+    bStayOnTop := oASource.bStayOnTop;
+    bStartLocked := oASource.bStartLocked;
+    bStreamerMode := oASource.bStreamerMode;
+    bPrivacyMode := oASource.bPrivacyMode;
+    bDisclaimerAccepted := oASource.bDisclaimerAccepted;
+    iMouseRange := oASource.iMouseRange;
+    sLanguage := oASource.sLanguage;
+    iObsPort := oASource.iObsPort;
+    iObsWidth := oASource.iObsWidth;
+    iObsHeight := oASource.iObsHeight;
+    iObsHideMode := oASource.iObsHideMode;
+    sObsMonitor := oASource.sObsMonitor;
+    iObsFps := oASource.iObsFps;
+    bObsAutoStart := oASource.bObsAutoStart;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+        aWidgets[eDevice] := oASource.aWidgets[eDevice];
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TAppConfig.SetLayout
-//** Parametri di ingresso: AMode: TLayoutMode
+//** Parametri di ingresso: eAMode: TLayoutMode
 //** Parametri di uscita: nessuno
 //** Scopo: Cambiare layout mantenendo coerente il flag Absolute dei widget.
 //** Data Ultima Modifica: 21/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TAppConfig.SetLayout(AMode: TLayoutMode);
+procedure TAppConfig.SetLayout(eAMode: TLayoutMode);
 var
-    K: TDeviceKind;
+    eDevice: TDeviceKind;
 begin
-    Layout := AMode;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
-        Widgets[K].Absolute := AMode = lmCustom;
+    eLayout := eAMode;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+        aWidgets[eDevice].bAbsolute := eAMode = lmCustom;
 end;
 
 //***********************************************************************************************************
@@ -437,23 +437,23 @@ end;
 //***********************************************************************************************************
 procedure TAppConfig.ResetLayoutDefaults;
 var
-    K: TDeviceKind;
+    eDevice: TDeviceKind;
 begin
-    SkinId := DefSkin;
-    WidgetStyle := DefWidgetStyle;
-    BaseEffects := True;
-    Margin := DefMargin;
-    Spacing := DefSpacing;
-    for K := Low(TDeviceKind) to High(TDeviceKind) do
+    sSkinId := DefSkin;
+    eWidgetStyle := DefWidgetStyle;
+    bBaseEffects := True;
+    iMargin := DefMargin;
+    iSpacing := DefSpacing;
+    for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
     begin
-        Widgets[K].W := DefWidgetW[K];
-        Widgets[K].H := DefWidgetH[K];
-        Widgets[K].X := 0;
-        Widgets[K].Y := 0;
-        Widgets[K].Tilt := 0;
-        Widgets[K].Yaw := 0;
-        Widgets[K].Zoom := 1;
-        Widgets[K].PanY := 0;
+        aWidgets[eDevice].iW := DefWidgetW[eDevice];
+        aWidgets[eDevice].iH := DefWidgetH[eDevice];
+        aWidgets[eDevice].iX := 0;
+        aWidgets[eDevice].iY := 0;
+        aWidgets[eDevice].dTilt := 0;
+        aWidgets[eDevice].dYaw := 0;
+        aWidgets[eDevice].dZoom := 1;
+        aWidgets[eDevice].dPanY := 0;
     end;
     SetLayout(DefLayout);
 end;
@@ -462,7 +462,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TAppConfig.LoadFromFile
-//** Parametri di ingresso: AFileName: string
+//** Parametri di ingresso: sAFileName: string
 //** Parametri di uscita: nessuno
 //** Scopo: Leggere la configurazione dal file .ini.
 //** Data Ultima Modifica: 06/11/2026
@@ -474,126 +474,136 @@ end;
 //** l'overlay resta dov'era; altrimenti Orizzontale (Basso) / Verticale (Sinistra).
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TAppConfig.LoadFromFile(const AFileName: string);
+procedure TAppConfig.LoadFromFile(const sAFileName: string);
 var
-    Ini: TMemIniFile;
-    K: TDeviceKind;
-    S, LayoutText: string;
-    W: TWidgetConfig;
-    M: TLayoutMode;
-    WS: TWidgetStyle;
-    Found, Legacy, AnyAbsolute: Boolean;
+    oIni: TMemIniFile;
+    eDevice: TDeviceKind;
+    sSection, sLayoutText: string;
+    rWidget: TWidgetConfig;
+    eMode: TLayoutMode;
+    eStyle: TWidgetStyle;
+    bFound, bLegacy, bAnyAbsolute: Boolean;
 begin
-    if not FileExists(AFileName) then
+    if not FileExists(sAFileName) then
         Exit;
-    Ini := TMemIniFile.Create(AFileName, TEncoding.UTF8);
+    oIni := TMemIniFile.Create(sAFileName, TEncoding.UTF8);
     try
-        S := 'Generale';
-        LayoutText := Ini.ReadString(S, 'Layout', '');
-        Found := False;
-        Legacy := False;
-        for M := Low(TLayoutMode) to High(TLayoutMode) do
-            if SameText(LayoutText, LayoutIniText[M]) then
+        sSection := 'Generale';
+        sLayoutText := oIni.ReadString(sSection, 'Layout', '');
+        bFound := False;
+        bLegacy := False;
+        for eMode := Low(TLayoutMode) to High(TLayoutMode) do
+            if SameText(sLayoutText, LayoutIniText[eMode]) then
             begin
-                Layout := M;
-                Found := True;
+                eLayout := eMode;
+                bFound := True;
             end;
-        if not Found then
-            if SameText(LayoutText, 'Verticale') then
+        if not bFound then
+            if SameText(sLayoutText, 'Verticale') then
             begin
-                Layout := lmLeft;
-                Legacy := True;
+                eLayout := lmLeft;
+                bLegacy := True;
             end
-            else if SameText(LayoutText, 'Orizzontale') then
+            else if SameText(sLayoutText, 'Orizzontale') then
             begin
-                Layout := lmBottom;
-                Legacy := True;
+                eLayout := lmBottom;
+                bLegacy := True;
             end;
-        SkinId := Ini.ReadString(S, 'Skin', SkinId);
-        Margin := EnsureRange(Ini.ReadInteger(S, 'Margine', Margin), 0, 500);
-        Spacing := EnsureRange(Ini.ReadInteger(S, 'Spaziatura', Spacing), 0, 200);
-        Opacity := EnsureRange(IniToFloat(Ini.ReadString(S, 'Opacita', ''), Opacity), 0.2, 1);
-        Animations := Ini.ReadBool(S, 'Animazioni', Animations);
-        LayoutText := Ini.ReadString(S, 'StileWidget', WidgetStyleIniText[WidgetStyle]);
-        for WS := Low(TWidgetStyle) to High(TWidgetStyle) do
-            if SameText(LayoutText, WidgetStyleIniText[WS]) then
-                WidgetStyle := WS;
-        BaseEffects := Ini.ReadBool(S, 'EffettiBase', BaseEffects);
-        AutoHide := Ini.ReadBool(S, 'NascondiInattivi', AutoHide);
-        AutoHideSecs := EnsureRange(Ini.ReadInteger(S, 'NascondiDopoSecondi', AutoHideSecs),
+        sSkinId := oIni.ReadString(sSection, 'Skin', sSkinId);
+        iMargin := EnsureRange(oIni.ReadInteger(sSection, 'Margine', iMargin), 0, 500);
+        iSpacing := EnsureRange(oIni.ReadInteger(sSection, 'Spaziatura', iSpacing), 0, 200);
+        dOpacity := EnsureRange(dIniToFloat(oIni.ReadString(sSection, 'Opacita', ''), dOpacity), 0.2, 1);
+        bAnimations := oIni.ReadBool(sSection, 'Animazioni', bAnimations);
+        sLayoutText := oIni.ReadString(sSection, 'StileWidget', WidgetStyleIniText[eWidgetStyle]);
+        for eStyle := Low(TWidgetStyle) to High(TWidgetStyle) do
+            if SameText(sLayoutText, WidgetStyleIniText[eStyle]) then
+                eWidgetStyle := eStyle;
+        bBaseEffects := oIni.ReadBool(sSection, 'EffettiBase', bBaseEffects);
+        bAutoHide := oIni.ReadBool(sSection, 'NascondiInattivi', bAutoHide);
+        iAutoHideSecs := EnsureRange(oIni.ReadInteger(sSection, 'NascondiDopoSecondi', iAutoHideSecs),
             AUTOHIDE_MIN, AUTOHIDE_MAX);
-        CheckUpdates := Ini.ReadBool(S, 'ControllaAggiornamenti', CheckUpdates);
-        ShowLegends := Ini.ReadBool(S, 'LegendeTasti', ShowLegends);
-        StayOnTop := Ini.ReadBool(S, 'SempreInPrimoPiano', StayOnTop);
-        StartLocked := Ini.ReadBool(S, 'AvvioBloccato', StartLocked);
-        StreamerMode := Ini.ReadBool(S, 'ModalitaStreamer', StreamerMode);
-        PrivacyMode := Ini.ReadBool(S, 'ModalitaPrivacy', PrivacyMode);
-        DisclaimerAccepted := Ini.ReadBool(S, 'AvvisoAccettato', DisclaimerAccepted);
-        MouseRange := EnsureRange(Ini.ReadInteger(S, 'MouseCorsa', MouseRange), 200, 50000);
-        Language := LowerCase(Trim(Ini.ReadString(S, 'Lingua', Language)));
-        if Language = '' then
-            Language := DEF_LANGUAGE;
+        bCheckUpdates := oIni.ReadBool(sSection, 'ControllaAggiornamenti', bCheckUpdates);
+        bShowLegends := oIni.ReadBool(sSection, 'LegendeTasti', bShowLegends);
+        bStayOnTop := oIni.ReadBool(sSection, 'SempreInPrimoPiano', bStayOnTop);
+        bStartLocked := oIni.ReadBool(sSection, 'AvvioBloccato', bStartLocked);
+        bStreamerMode := oIni.ReadBool(sSection, 'ModalitaStreamer', bStreamerMode);
+        bPrivacyMode := oIni.ReadBool(sSection, 'ModalitaPrivacy', bPrivacyMode);
+        bDisclaimerAccepted := oIni.ReadBool(sSection, 'AvvisoAccettato', bDisclaimerAccepted);
+        iMouseRange := EnsureRange(oIni.ReadInteger(sSection, 'MouseCorsa', iMouseRange), 200, 50000);
+        sLanguage := LowerCase(Trim(oIni.ReadString(sSection, 'Lingua', sLanguage)));
+        if not bIsSafeFileId(sLanguage) then
+            sLanguage := DEF_LANGUAGE;
 
-        S := 'OBS';
-        ObsPort := EnsureRange(Ini.ReadInteger(S, 'Porta', ObsPort), OBS_PORT_MIN, OBS_PORT_MAX);
-        ObsWidth := EnsureRange(Ini.ReadInteger(S, 'Larghezza', ObsWidth), OBS_SIZE_MIN, OBS_SIZE_MAX);
-        ObsHeight := EnsureRange(Ini.ReadInteger(S, 'Altezza', ObsHeight), OBS_SIZE_MIN, OBS_SIZE_MAX);
-        ObsHideMode := EnsureRange(Ini.ReadInteger(S, 'Occultamento', ObsHideMode), OBS_HIDE_WINDOW,
+        sSection := 'OBS';
+        iObsPort := EnsureRange(oIni.ReadInteger(sSection, 'Porta', iObsPort), OBS_PORT_MIN, OBS_PORT_MAX);
+        iObsWidth := EnsureRange(oIni.ReadInteger(sSection, 'Larghezza', iObsWidth), OBS_SIZE_MIN,
+            OBS_SIZE_MAX);
+        iObsHeight := EnsureRange(oIni.ReadInteger(sSection, 'Altezza', iObsHeight), OBS_SIZE_MIN,
+            OBS_SIZE_MAX);
+        iObsHideMode := EnsureRange(oIni.ReadInteger(sSection, 'Occultamento', iObsHideMode),
+            OBS_HIDE_WINDOW,
             OBS_HIDE_MONITOR);
-        ObsMonitor := Trim(Ini.ReadString(S, 'Monitor', ObsMonitor));
-        ObsFps := EnsureRange(Ini.ReadInteger(S, 'FPS', ObsFps), OBS_FPS_MIN, OBS_FPS_MAX);
-        ObsAutoStart := Ini.ReadBool(S, 'AvvioAutomatico', ObsAutoStart);
+        sObsMonitor := Trim(oIni.ReadString(sSection, 'Monitor', sObsMonitor));
+        iObsFps := EnsureRange(oIni.ReadInteger(sSection, 'FPS', iObsFps), OBS_FPS_MIN, OBS_FPS_MAX);
+        bObsAutoStart := oIni.ReadBool(sSection, 'AvvioAutomatico', bObsAutoStart);
 
-        for K := Low(TDeviceKind) to High(TDeviceKind) do
+        for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
         begin
-            S := 'Widget.' + KindIniKey[K];
-            W := Widgets[K];
-            W.Visible := Ini.ReadBool(S, 'Visibile', W.Visible);
-            W.ModelId := Ini.ReadString(S, 'Modello', W.ModelId);
-            W.Absolute := Ini.ReadBool(S, 'PosizioneAssoluta', W.Absolute);
-            W.X := Ini.ReadInteger(S, 'X', W.X);
-            W.Y := Ini.ReadInteger(S, 'Y', W.Y);
-            W.W := EnsureRange(Ini.ReadInteger(S, 'Larghezza', W.W), 80, 4000);
-            W.H := EnsureRange(Ini.ReadInteger(S, 'Altezza', W.H), 80, 4000);
-            W.DeviceIndex := EnsureRange(Ini.ReadInteger(S, 'Dispositivo', W.DeviceIndex), 0, 15);
-            W.AxisX := EnsureRange(Ini.ReadInteger(S, 'AsseX', W.AxisX), 0, 5);
-            W.AxisY := EnsureRange(Ini.ReadInteger(S, 'AsseY', W.AxisY), 0, 5);
-            W.AxisZ := EnsureRange(Ini.ReadInteger(S, 'AsseZ', W.AxisZ), 0, 5);
-            W.InvertX := Ini.ReadBool(S, 'InvertiX', W.InvertX);
-            W.InvertY := Ini.ReadBool(S, 'InvertiY', W.InvertY);
-            W.InvertZ := Ini.ReadBool(S, 'InvertiZ', W.InvertZ);
-            W.RangeX := EnsureRange(Ini.ReadInteger(S, 'AmpiezzaX', W.RangeX), JOY_RANGE_MIN, JOY_RANGE_MAX);
-            W.RangeY := EnsureRange(Ini.ReadInteger(S, 'AmpiezzaY', W.RangeY), JOY_RANGE_MIN, JOY_RANGE_MAX);
-            W.RangeZ := EnsureRange(Ini.ReadInteger(S, 'AmpiezzaZ', W.RangeZ), JOY_RANGE_MIN, JOY_RANGE_MAX);
-            W.ButtonOffset := EnsureRange(Ini.ReadInteger(S, 'PrimoPulsante', W.ButtonOffset), 0, 31);
-            W.Tilt := IniToFloat(Ini.ReadString(S, 'VistaInclinazione', ''), W.Tilt);
-            W.Yaw := IniToFloat(Ini.ReadString(S, 'VistaRotazione', ''), W.Yaw);
-            W.Zoom := EnsureRange(IniToFloat(Ini.ReadString(S, 'VistaZoom', ''), W.Zoom), 0.3, 3);
-            W.PanY := EnsureRange(IniToFloat(Ini.ReadString(S, 'VistaSpostamento', ''), W.PanY),
+            sSection := 'Widget.' + KindIniKey[eDevice];
+            rWidget := aWidgets[eDevice];
+            rWidget.bVisible := oIni.ReadBool(sSection, 'Visibile', rWidget.bVisible);
+            rWidget.sModelId := oIni.ReadString(sSection, 'Modello', rWidget.sModelId);
+            rWidget.bAbsolute := oIni.ReadBool(sSection, 'PosizioneAssoluta', rWidget.bAbsolute);
+            rWidget.iX := oIni.ReadInteger(sSection, 'X', rWidget.iX);
+            rWidget.iY := oIni.ReadInteger(sSection, 'Y', rWidget.iY);
+            rWidget.iW := EnsureRange(oIni.ReadInteger(sSection, 'Larghezza', rWidget.iW), 80, 4000);
+            rWidget.iH := EnsureRange(oIni.ReadInteger(sSection, 'Altezza', rWidget.iH), 80, 4000);
+            rWidget.iDeviceIndex := EnsureRange(oIni.ReadInteger(sSection, 'Dispositivo',
+                rWidget.iDeviceIndex), 0, 15);
+            rWidget.iAxisX := EnsureRange(oIni.ReadInteger(sSection, 'AsseX', rWidget.iAxisX), 0, 5);
+            rWidget.iAxisY := EnsureRange(oIni.ReadInteger(sSection, 'AsseY', rWidget.iAxisY), 0, 5);
+            rWidget.iAxisZ := EnsureRange(oIni.ReadInteger(sSection, 'AsseZ', rWidget.iAxisZ), 0, 5);
+            rWidget.bInvertX := oIni.ReadBool(sSection, 'InvertiX', rWidget.bInvertX);
+            rWidget.bInvertY := oIni.ReadBool(sSection, 'InvertiY', rWidget.bInvertY);
+            rWidget.bInvertZ := oIni.ReadBool(sSection, 'InvertiZ', rWidget.bInvertZ);
+            rWidget.iRangeX := EnsureRange(oIni.ReadInteger(sSection, 'AmpiezzaX', rWidget.iRangeX),
+                JOY_RANGE_MIN, JOY_RANGE_MAX);
+            rWidget.iRangeY := EnsureRange(oIni.ReadInteger(sSection, 'AmpiezzaY', rWidget.iRangeY),
+                JOY_RANGE_MIN, JOY_RANGE_MAX);
+            rWidget.iRangeZ := EnsureRange(oIni.ReadInteger(sSection, 'AmpiezzaZ', rWidget.iRangeZ),
+                JOY_RANGE_MIN, JOY_RANGE_MAX);
+            rWidget.iButtonOffset := EnsureRange(oIni.ReadInteger(sSection, 'PrimoPulsante',
+                rWidget.iButtonOffset), 0, 31);
+            rWidget.dTilt := dIniToFloat(oIni.ReadString(sSection, 'VistaInclinazione', ''), rWidget.dTilt);
+            rWidget.dYaw := dIniToFloat(oIni.ReadString(sSection, 'VistaRotazione', ''), rWidget.dYaw);
+            rWidget.dZoom := EnsureRange(dIniToFloat(oIni.ReadString(sSection, 'VistaZoom', ''),
+                rWidget.dZoom), 0.3, 3);
+            rWidget.dPanY := EnsureRange(dIniToFloat(oIni.ReadString(sSection, 'VistaSpostamento', ''),
+                rWidget.dPanY),
                 -VIEW_PAN_LIMIT, VIEW_PAN_LIMIT);
-            Widgets[K] := W;
+            aWidgets[eDevice] := rWidget;
         end;
     finally
-        Ini.Free;
+        oIni.Free;
     end;
 
-    if Legacy then
+    if bLegacy then
     begin
-        AnyAbsolute := False;
-        for K := Low(TDeviceKind) to High(TDeviceKind) do
-            if Widgets[K].Visible and Widgets[K].Absolute then
-                AnyAbsolute := True;
-        if AnyAbsolute then
-            Layout := lmCustom;
+        bAnyAbsolute := False;
+        for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
+            if aWidgets[eDevice].bVisible and aWidgets[eDevice].bAbsolute then
+                bAnyAbsolute := True;
+        if bAnyAbsolute then
+            eLayout := lmCustom;
     end;
-    SetLayout(Layout);
+    SetLayout(eLayout);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TAppConfig.SaveToFile
-//** Parametri di ingresso: AFileName: string
+//** Parametri di ingresso: sAFileName: string
 //** Parametri di uscita: nessuno
 //** Scopo: Salvare la configurazione nel file .ini (UTF-8).
 //** Data Ultima Modifica: 06/11/2026
@@ -601,83 +611,83 @@ end;
 //** Funzionamento: scrive tutte le chiavi in memoria e poi su disco con UpdateFile.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TAppConfig.SaveToFile(const AFileName: string);
+procedure TAppConfig.SaveToFile(const sAFileName: string);
 var
-    Ini: TMemIniFile;
-    K: TDeviceKind;
-    S: string;
-    W: TWidgetConfig;
+    oIni: TMemIniFile;
+    eDevice: TDeviceKind;
+    sSection: string;
+    rWidget: TWidgetConfig;
 begin
-    Ini := TMemIniFile.Create(AFileName, TEncoding.UTF8);
+    oIni := TMemIniFile.Create(sAFileName, TEncoding.UTF8);
     try
-        S := 'Generale';
-        Ini.WriteString(S, 'Layout', LayoutIniText[Layout]);
-        Ini.WriteString(S, 'Skin', SkinId);
-        Ini.WriteInteger(S, 'Margine', Margin);
-        Ini.DeleteKey(S, 'OrigineX');
-        Ini.DeleteKey(S, 'OrigineY');
-        Ini.WriteInteger(S, 'Spaziatura', Spacing);
-        Ini.WriteString(S, 'Opacita', FloatToIni(Opacity));
-        Ini.WriteBool(S, 'Animazioni', Animations);
-        Ini.WriteString(S, 'StileWidget', WidgetStyleIniText[WidgetStyle]);
-        Ini.WriteBool(S, 'EffettiBase', BaseEffects);
-        Ini.WriteBool(S, 'NascondiInattivi', AutoHide);
-        Ini.WriteInteger(S, 'NascondiDopoSecondi', AutoHideSecs);
-        Ini.WriteBool(S, 'ControllaAggiornamenti', CheckUpdates);
-        Ini.WriteBool(S, 'LegendeTasti', ShowLegends);
-        Ini.WriteBool(S, 'SempreInPrimoPiano', StayOnTop);
-        Ini.WriteBool(S, 'AvvioBloccato', StartLocked);
-        Ini.WriteBool(S, 'ModalitaStreamer', StreamerMode);
-        Ini.WriteBool(S, 'ModalitaPrivacy', PrivacyMode);
-        Ini.WriteBool(S, 'AvvisoAccettato', DisclaimerAccepted);
-        Ini.WriteInteger(S, 'MouseCorsa', MouseRange);
-        Ini.WriteString(S, 'Lingua', Language);
+        sSection := 'Generale';
+        oIni.WriteString(sSection, 'Layout', LayoutIniText[eLayout]);
+        oIni.WriteString(sSection, 'Skin', sSkinId);
+        oIni.WriteInteger(sSection, 'Margine', iMargin);
+        oIni.DeleteKey(sSection, 'OrigineX');
+        oIni.DeleteKey(sSection, 'OrigineY');
+        oIni.WriteInteger(sSection, 'Spaziatura', iSpacing);
+        oIni.WriteString(sSection, 'Opacita', sFloatToIni(dOpacity));
+        oIni.WriteBool(sSection, 'Animazioni', bAnimations);
+        oIni.WriteString(sSection, 'StileWidget', WidgetStyleIniText[eWidgetStyle]);
+        oIni.WriteBool(sSection, 'EffettiBase', bBaseEffects);
+        oIni.WriteBool(sSection, 'NascondiInattivi', bAutoHide);
+        oIni.WriteInteger(sSection, 'NascondiDopoSecondi', iAutoHideSecs);
+        oIni.WriteBool(sSection, 'ControllaAggiornamenti', bCheckUpdates);
+        oIni.WriteBool(sSection, 'LegendeTasti', bShowLegends);
+        oIni.WriteBool(sSection, 'SempreInPrimoPiano', bStayOnTop);
+        oIni.WriteBool(sSection, 'AvvioBloccato', bStartLocked);
+        oIni.WriteBool(sSection, 'ModalitaStreamer', bStreamerMode);
+        oIni.WriteBool(sSection, 'ModalitaPrivacy', bPrivacyMode);
+        oIni.WriteBool(sSection, 'AvvisoAccettato', bDisclaimerAccepted);
+        oIni.WriteInteger(sSection, 'MouseCorsa', iMouseRange);
+        oIni.WriteString(sSection, 'Lingua', sLanguage);
 
-        S := 'OBS';
-        Ini.WriteInteger(S, 'Porta', ObsPort);
-        Ini.WriteInteger(S, 'Larghezza', ObsWidth);
-        Ini.WriteInteger(S, 'Altezza', ObsHeight);
-        Ini.WriteInteger(S, 'Occultamento', ObsHideMode);
-        Ini.WriteString(S, 'Monitor', ObsMonitor);
-        Ini.WriteInteger(S, 'FPS', ObsFps);
-        Ini.WriteBool(S, 'AvvioAutomatico', ObsAutoStart);
+        sSection := 'OBS';
+        oIni.WriteInteger(sSection, 'Porta', iObsPort);
+        oIni.WriteInteger(sSection, 'Larghezza', iObsWidth);
+        oIni.WriteInteger(sSection, 'Altezza', iObsHeight);
+        oIni.WriteInteger(sSection, 'Occultamento', iObsHideMode);
+        oIni.WriteString(sSection, 'Monitor', sObsMonitor);
+        oIni.WriteInteger(sSection, 'FPS', iObsFps);
+        oIni.WriteBool(sSection, 'AvvioAutomatico', bObsAutoStart);
 
-        for K := Low(TDeviceKind) to High(TDeviceKind) do
+        for eDevice := Low(TDeviceKind) to High(TDeviceKind) do
         begin
-            S := 'Widget.' + KindIniKey[K];
-            W := Widgets[K];
-            Ini.WriteBool(S, 'Visibile', W.Visible);
-            Ini.WriteString(S, 'Modello', W.ModelId);
-            Ini.WriteBool(S, 'PosizioneAssoluta', W.Absolute);
-            Ini.WriteInteger(S, 'X', W.X);
-            Ini.WriteInteger(S, 'Y', W.Y);
-            Ini.WriteInteger(S, 'Larghezza', W.W);
-            Ini.WriteInteger(S, 'Altezza', W.H);
-            Ini.WriteInteger(S, 'Dispositivo', W.DeviceIndex);
-            Ini.WriteInteger(S, 'AsseX', W.AxisX);
-            Ini.WriteInteger(S, 'AsseY', W.AxisY);
-            Ini.WriteInteger(S, 'AsseZ', W.AxisZ);
-            Ini.WriteBool(S, 'InvertiX', W.InvertX);
-            Ini.WriteBool(S, 'InvertiY', W.InvertY);
-            Ini.WriteBool(S, 'InvertiZ', W.InvertZ);
-            Ini.WriteInteger(S, 'AmpiezzaX', W.RangeX);
-            Ini.WriteInteger(S, 'AmpiezzaY', W.RangeY);
-            Ini.WriteInteger(S, 'AmpiezzaZ', W.RangeZ);
-            Ini.WriteInteger(S, 'PrimoPulsante', W.ButtonOffset);
-            Ini.WriteString(S, 'VistaInclinazione', FloatToIni(W.Tilt));
-            Ini.WriteString(S, 'VistaRotazione', FloatToIni(W.Yaw));
-            Ini.WriteString(S, 'VistaZoom', FloatToIni(W.Zoom));
-            Ini.WriteString(S, 'VistaSpostamento', FloatToIni(W.PanY));
+            sSection := 'Widget.' + KindIniKey[eDevice];
+            rWidget := aWidgets[eDevice];
+            oIni.WriteBool(sSection, 'Visibile', rWidget.bVisible);
+            oIni.WriteString(sSection, 'Modello', rWidget.sModelId);
+            oIni.WriteBool(sSection, 'PosizioneAssoluta', rWidget.bAbsolute);
+            oIni.WriteInteger(sSection, 'X', rWidget.iX);
+            oIni.WriteInteger(sSection, 'Y', rWidget.iY);
+            oIni.WriteInteger(sSection, 'Larghezza', rWidget.iW);
+            oIni.WriteInteger(sSection, 'Altezza', rWidget.iH);
+            oIni.WriteInteger(sSection, 'Dispositivo', rWidget.iDeviceIndex);
+            oIni.WriteInteger(sSection, 'AsseX', rWidget.iAxisX);
+            oIni.WriteInteger(sSection, 'AsseY', rWidget.iAxisY);
+            oIni.WriteInteger(sSection, 'AsseZ', rWidget.iAxisZ);
+            oIni.WriteBool(sSection, 'InvertiX', rWidget.bInvertX);
+            oIni.WriteBool(sSection, 'InvertiY', rWidget.bInvertY);
+            oIni.WriteBool(sSection, 'InvertiZ', rWidget.bInvertZ);
+            oIni.WriteInteger(sSection, 'AmpiezzaX', rWidget.iRangeX);
+            oIni.WriteInteger(sSection, 'AmpiezzaY', rWidget.iRangeY);
+            oIni.WriteInteger(sSection, 'AmpiezzaZ', rWidget.iRangeZ);
+            oIni.WriteInteger(sSection, 'PrimoPulsante', rWidget.iButtonOffset);
+            oIni.WriteString(sSection, 'VistaInclinazione', sFloatToIni(rWidget.dTilt));
+            oIni.WriteString(sSection, 'VistaRotazione', sFloatToIni(rWidget.dYaw));
+            oIni.WriteString(sSection, 'VistaZoom', sFloatToIni(rWidget.dZoom));
+            oIni.WriteString(sSection, 'VistaSpostamento', sFloatToIni(rWidget.dPanY));
         end;
-        Ini.UpdateFile;
+        oIni.UpdateFile;
     finally
-        Ini.Free;
+        oIni.Free;
     end;
 end;
 
 initialization
-    GIniFormat := TFormatSettings.Create;
-    GIniFormat.DecimalSeparator := '.';
-    GIniFormat.ThousandSeparator := #0;
+    rGIniFormat := TFormatSettings.Create;
+    rGIniFormat.DecimalSeparator := '.';
+    rGIniFormat.ThousandSeparator := #0;
 
 end.

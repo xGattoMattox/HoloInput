@@ -23,11 +23,11 @@ uses
     Holo.Skins, Holo.UI;
 
 /// Mostra un avviso modale con i colori della skin; True se l'utente sceglie Ok.
-/// ACancelText = '-' nasconde il pulsante Annulla (messaggio con il solo Ok).
-function HoloConfirm(const ATitle, AMessage: string; const AColors: TSkinColors;
-    const AOkText: string = ''; const ACancelText: string = ''): Boolean;
+/// sACancelText = '-' nasconde il pulsante Annulla (messaggio con il solo Ok).
+function bHoloConfirm(const sATitle, sAMessage: string; const rAColors: TSkinColors;
+    const sAOkText: string = ''; const sACancelText: string = ''): Boolean;
 /// Mostra un messaggio modale con il solo pulsante Ok.
-procedure HoloMessage(const ATitle, AMessage: string; const AColors: TSkinColors);
+procedure HoloMessage(const sATitle, sAMessage: string; const rAColors: TSkinColors);
 
 implementation
 
@@ -46,7 +46,7 @@ type
     /// Sfondo del messaggio: pannello smussato con bordo accento e riga sotto il titolo.
     THoloDialogPanel = class(TControl)
     private
-        FColors: TSkinColors;
+        rFColors: TSkinColors;
     protected
         procedure Paint; override;
     end;
@@ -54,8 +54,8 @@ type
     /// Form del messaggio (creata da codice, senza .fmx).
     THoloConfirmForm = class(TForm)
     private
-        procedure OkClick(Sender: TObject);
-        procedure CancelClick(Sender: TObject);
+        procedure OkClick(oSender: TObject);
+        procedure CancelClick(oSender: TObject);
     protected
         procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
     end;
@@ -71,33 +71,33 @@ type
 //** Scopo: Disegnare il pannello del messaggio.
 //** Data Ultima Modifica: 22/10/2026
 //***********************************************************************************************************
-//** Funzionamento: stesso contorno smussato dei pulsanti (ChamferPath), sfondo
+//** Funzionamento: stesso contorno smussato dei pulsanti (oChamferPath), sfondo
 //** scuro quasi opaco tinto con la skin, bordo nel colore accento (avviso) e
 //** una riga sottile che separa il titolo dal testo.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure THoloDialogPanel.Paint;
 var
-    R: TRectF;
-    P: TPathData;
+    rRect: TRectF;
+    oPath: TPathData;
 begin
-    R := LocalRect;
-    R.Inflate(-1.5, -1.5);
-    P := ChamferPath(R, 18);
+    rRect := LocalRect;
+    rRect.Inflate(-1.5, -1.5);
+    oPath := oChamferPath(rRect, 18);
     try
         Canvas.Fill.Kind := TBrushKind.Solid;
-        Canvas.Fill.Color := WithAlpha(MixColors(FColors.PanelBack, TAlphaColors.Black, 0.35), $F4);
-        Canvas.FillPath(P, AbsoluteOpacity);
+        Canvas.Fill.Color := iWithAlpha(iMixColors(rFColors.iPanelBack, TAlphaColors.Black, 0.35), $F4);
+        Canvas.FillPath(oPath, AbsoluteOpacity);
         Canvas.Stroke.Kind := TBrushKind.Solid;
         Canvas.Stroke.Dash := TStrokeDash.Solid;
         Canvas.Stroke.Thickness := 2;
-        Canvas.Stroke.Color := FColors.Accent;
-        Canvas.DrawPath(P, AbsoluteOpacity);
+        Canvas.Stroke.Color := rFColors.iAccent;
+        Canvas.DrawPath(oPath, AbsoluteOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
     Canvas.Stroke.Thickness := 1;
-    Canvas.Stroke.Color := FColors.PanelBorder;
+    Canvas.Stroke.Color := rFColors.iPanelBorder;
     Canvas.DrawLine(PointF(DLG_PAD, TITLE_LINE_Y), PointF(Width - DLG_PAD, TITLE_LINE_Y), AbsoluteOpacity);
 end;
 
@@ -107,13 +107,13 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloConfirmForm.OkClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Chiudere l'avviso confermando la scelta (pulsante Ok).
 //** Data Ultima Modifica: 22/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloConfirmForm.OkClick(Sender: TObject);
+procedure THoloConfirmForm.OkClick(oSender: TObject);
 begin
     ModalResult := mrOk;
 end;
@@ -122,13 +122,13 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloConfirmForm.CancelClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Chiudere l'avviso annullando la scelta (pulsante Annulla).
 //** Data Ultima Modifica: 22/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloConfirmForm.CancelClick(Sender: TObject);
+procedure THoloConfirmForm.CancelClick(oSender: TObject);
 begin
     ModalResult := mrCancel;
 end;
@@ -159,42 +159,44 @@ begin
         inherited;
 end;
 
-//** HoloConfirm ********************************************************************************************
+//** bHoloConfirm
+//** ********************************************************************************************
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MakeLabel
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, W, H, ASize: Single; ABold: Boolean; AColor:
-//**                        TAlphaColor; AText: string
+//** Nome funzione: oMakeLabel
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAWidth, dAHeight, dASize: Single; bABold:
+//**                        Boolean; iAColor:
+//**                        TAlphaColor; sAText: string
 //** Parametri di uscita: Result: TLabel
 //** Scopo: Creare un'etichetta con il font dell'app (non quello dello stile FMX).
 //** Data Ultima Modifica: 22/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MakeLabel(AParent: TFmxObject; X, Y, W, H, ASize: Single; ABold: Boolean;
-    AColor: TAlphaColor; const AText: string): TLabel;
+function oMakeLabel(oAParent: TFmxObject; dAPosX, dAPosY, dAWidth, dAHeight, dASize: Single; bABold: Boolean;
+    iAColor: TAlphaColor; const sAText: string): TLabel;
 begin
-    Result := TLabel.Create(AParent);
-    Result.Parent := AParent;
-    Result.SetBounds(X, Y, W, H);
+    Result := TLabel.Create(oAParent);
+    Result.Parent := oAParent;
+    Result.SetBounds(dAPosX, dAPosY, dAWidth, dAHeight);
     Result.StyledSettings := Result.StyledSettings - [TStyledSetting.Family,
         TStyledSetting.Size, TStyledSetting.Style, TStyledSetting.FontColor];
     Result.TextSettings.Font.Family := HOLO_FONT;
-    Result.TextSettings.Font.Size := ASize;
-    if ABold then
+    Result.TextSettings.Font.Size := dASize;
+    if bABold then
         Result.TextSettings.Font.Style := [TFontStyle.fsBold];
-    Result.TextSettings.FontColor := AColor;
+    Result.TextSettings.FontColor := iAColor;
     Result.TextSettings.VertAlign := TTextAlign.Leading;
     Result.WordWrap := True;
-    Result.Text := AText;
+    Result.Text := sAText;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: HoloConfirm
-//** Parametri di ingresso: ATitle, AMessage: string; AColors: TSkinColors; AOkText, ACancelText:
+//** Nome funzione: bHoloConfirm
+//** Parametri di ingresso: sATitle, sAMessage: string; rAColors: TSkinColors; sAOkText, sACancelText:
 //**                        string
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Mostrare l'avviso e restituire la scelta dell'utente.
@@ -203,75 +205,75 @@ end;
 //** Funzionamento: form senza bordi e con sfondo trasparente (si vede solo il
 //** pannello smussato), sempre in primo piano e centrata sulla finestra attiva
 //** (o sullo schermo); titolo nel colore accento, testo nel colore testi della
-//** skin, pulsanti "Ok" e "Annulla" in basso a destra. Con ACancelText = '-'
+//** skin, pulsanti "Ok" e "Annulla" in basso a destra. Con sACancelText = '-'
 //** il pulsante Annulla non c'e' e Ok prende il suo posto.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function HoloConfirm(const ATitle, AMessage: string; const AColors: TSkinColors;
-    const AOkText, ACancelText: string): Boolean;
+function bHoloConfirm(const sATitle, sAMessage: string; const rAColors: TSkinColors;
+    const sAOkText, sACancelText: string): Boolean;
 var
-    F: THoloConfirmForm;
-    Panel: THoloDialogPanel;
-    BOk, BCancel: THoloButton;
-    Owner: TCommonCustomForm;
+    oForm: THoloConfirmForm;
+    oPanel: THoloDialogPanel;
+    oBOk, oBCancel: THoloButton;
+    oOwner: TCommonCustomForm;
 begin
-    F := THoloConfirmForm.CreateNew(nil);
+    oForm := THoloConfirmForm.CreateNew(nil);
     try
-        F.BorderStyle := TFmxFormBorderStyle.None;
-        F.Transparency := True;
-        F.FormStyle := TFormStyle.StayOnTop;
-        F.Caption := ATitle;
-        F.Width := DLG_W;
-        F.Height := DLG_H;
-        Owner := Screen.ActiveForm;
-        if Owner <> nil then
+        oForm.BorderStyle := TFmxFormBorderStyle.None;
+        oForm.Transparency := True;
+        oForm.FormStyle := TFormStyle.StayOnTop;
+        oForm.Caption := sATitle;
+        oForm.Width := DLG_W;
+        oForm.Height := DLG_H;
+        oOwner := Screen.ActiveForm;
+        if oOwner <> nil then
         begin
-            F.Position := TFormPosition.Designed;
-            F.Left := Owner.Left + (Owner.Width - DLG_W) div 2;
-            F.Top := Owner.Top + (Owner.Height - DLG_H) div 2;
+            oForm.Position := TFormPosition.Designed;
+            oForm.Left := oOwner.Left + (oOwner.Width - DLG_W) div 2;
+            oForm.Top := oOwner.Top + (oOwner.Height - DLG_H) div 2;
         end
         else
-            F.Position := TFormPosition.ScreenCenter;
+            oForm.Position := TFormPosition.ScreenCenter;
 
-        Panel := THoloDialogPanel.Create(F);
-        Panel.FColors := AColors;
-        Panel.Parent := F;
-        Panel.Align := TAlignLayout.Client;
-        Panel.HitTest := False;
+        oPanel := THoloDialogPanel.Create(oForm);
+        oPanel.rFColors := rAColors;
+        oPanel.Parent := oForm;
+        oPanel.Align := TAlignLayout.Client;
+        oPanel.HitTest := False;
 
-        MakeLabel(Panel, DLG_PAD, 16, DLG_W - 2 * DLG_PAD, 32, 16, True, AColors.Accent,
-            #$26A0 + '  ' + UpperCase(ATitle));
-        MakeLabel(Panel, DLG_PAD, TITLE_LINE_Y + 14, DLG_W - 2 * DLG_PAD,
-            DLG_H - TITLE_LINE_Y - 14 - BTN_H - 30, 12, False, AColors.Text, AMessage);
+        oMakeLabel(oPanel, DLG_PAD, 16, DLG_W - 2 * DLG_PAD, 32, 16, True, rAColors.iAccent,
+            #$26A0 + '  ' + UpperCase(sATitle));
+        oMakeLabel(oPanel, DLG_PAD, TITLE_LINE_Y + 14, DLG_W - 2 * DLG_PAD,
+            DLG_H - TITLE_LINE_Y - 14 - BTN_H - 30, 12, False, rAColors.iText, sAMessage);
 
-        BCancel := THoloButton.Create(F);
-        BCancel.Parent := Panel;
-        BCancel.SetBounds(DLG_W - DLG_PAD - BTN_W, DLG_H - DLG_PAD - BTN_H, BTN_W, BTN_H);
-        if ACancelText <> '' then
-            BCancel.Text := ACancelText
+        oBCancel := THoloButton.Create(oForm);
+        oBCancel.Parent := oPanel;
+        oBCancel.SetBounds(DLG_W - DLG_PAD - BTN_W, DLG_H - DLG_PAD - BTN_H, BTN_W, BTN_H);
+        if sACancelText <> '' then
+            oBCancel.sText := sACancelText
         else
-            BCancel.Text := Tr('dialog.cancel', 'Annulla');
-        BCancel.SetColors(AColors);
-        BCancel.OnClick := F.CancelClick;
+            oBCancel.sText := sTr('dialog.cancel', 'Annulla');
+        oBCancel.SetColors(rAColors);
+        oBCancel.OnClick := oForm.CancelClick;
 
-        BOk := THoloButton.Create(F);
-        BOk.Parent := Panel;
-        BOk.SetBounds(DLG_W - DLG_PAD - 2 * BTN_W - 12, DLG_H - DLG_PAD - BTN_H, BTN_W, BTN_H);
-        if AOkText <> '' then
-            BOk.Text := AOkText
+        oBOk := THoloButton.Create(oForm);
+        oBOk.Parent := oPanel;
+        oBOk.SetBounds(DLG_W - DLG_PAD - 2 * BTN_W - 12, DLG_H - DLG_PAD - BTN_H, BTN_W, BTN_H);
+        if sAOkText <> '' then
+            oBOk.sText := sAOkText
         else
-            BOk.Text := Tr('dialog.ok', 'Ok');
-        BOk.SetColors(AColors);
-        BOk.OnClick := F.OkClick;
-        if ACancelText = '-' then
+            oBOk.sText := sTr('dialog.ok', 'Ok');
+        oBOk.SetColors(rAColors);
+        oBOk.OnClick := oForm.OkClick;
+        if sACancelText = '-' then
         begin
-            BCancel.Visible := False;
-            BOk.Position.X := BCancel.Position.X;
+            oBCancel.Visible := False;
+            oBOk.Position.X := oBCancel.Position.X;
         end;
 
-        Result := F.ShowModal = mrOk;
+        Result := oForm.ShowModal = mrOk;
     finally
-        F.Free;
+        oForm.Free;
     end;
 end;
 
@@ -279,15 +281,15 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: HoloMessage
-//** Parametri di ingresso: ATitle, AMessage: string; AColors: TSkinColors
+//** Parametri di ingresso: sATitle, sAMessage: string; rAColors: TSkinColors
 //** Parametri di uscita: nessuno
-//** Scopo: Mostrare un messaggio con il solo pulsante Ok (stesso aspetto di HoloConfirm).
+//** Scopo: Mostrare un messaggio con il solo pulsante Ok (stesso aspetto di bHoloConfirm).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure HoloMessage(const ATitle, AMessage: string; const AColors: TSkinColors);
+procedure HoloMessage(const sATitle, sAMessage: string; const rAColors: TSkinColors);
 begin
-    HoloConfirm(ATitle, AMessage, AColors, '', '-');
+    bHoloConfirm(sATitle, sAMessage, rAColors, '', '-');
 end;
 
 end.

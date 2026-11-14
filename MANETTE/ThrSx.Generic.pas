@@ -19,9 +19,9 @@ uses
 type
     TThrSxGeneric = class(TThrDxGeneric)
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
-        class function Mirrored: Boolean; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
+        class function bMirrored: Boolean; override;
     end;
 
 implementation
@@ -32,14 +32,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrSxGeneric.ModelId
+//** Nome funzione: TThrSxGeneric.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Manetta generica" sinistra (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrSxGeneric.ModelId: string;
+class function TThrSxGeneric.sModelId: string;
 begin
     Result := 'thrsx.generic';
 end;
@@ -47,16 +47,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrSxGeneric.DisplayName
+//** Nome funzione: TThrSxGeneric.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello mostrato nel Setup.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrSxGeneric.DisplayName: string;
+class function TThrSxGeneric.sDisplayName: string;
 begin
-    Result := Tr('model.thrsx.generic', 'Manetta generica (leva, mini-stick, hat, 6 pulsanti) (SX)');
+    Result := sTr('model.thrsx.generic', 'Manetta generica (leva, mini-stick, hat, 6 pulsanti) (SX)');
 end;
 
 //***********************************************************************************************************
@@ -69,7 +69,7 @@ end;
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrSxGeneric.Mirrored: Boolean;
+class function TThrSxGeneric.bMirrored: Boolean;
 begin
     Result := True;
 end;

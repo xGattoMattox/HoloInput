@@ -46,70 +46,70 @@ type
     /// centrata in (CX, Y, CZ) con semiassi A (X) e B (Z) ed esponente N
     /// (2 = ellisse, 4..6 = quadrato arrotondato).
     TLoftSection = record
-        Y, CX, CZ, A, B, N: Single;
+        dY, dCX, dCZ, dA, dB, dN: Single;
     end;
 
     /// Base: oggetto 3D che disegna una lista di segmenti in cache.
     THoloLines = class(TDummy)
     private
-        FKit: THoloKit;
-        FVB: TVertexBuffer;
-        FIB: TIndexBuffer;
+        oFKit: THoloKit;
+        oFVB: TVertexBuffer;
+        oFIB: TIndexBuffer;
     protected
         procedure Render; override;
-        function LineColor: TAlphaColor; virtual; abstract;
-        procedure SetLines(const APoints: TArray<TPoint3D>);
+        function iLineColor: TAlphaColor; virtual; abstract;
+        procedure SetLines(const aAPoints: TArray<TPoint3D>);
         /// Collega il kit (serve alle classi derivate dichiarate in altre unit,
-        /// es. Holo.Obj, che non vedono il campo privato FKit).
-        procedure AttachKit(AKit: THoloKit);
+        /// es. Holo.Obj, che non vedono il campo privato oFKit).
+        procedure AttachKit(oAKit: THoloKit);
         /// Stato "acceso" (input premuto). Le classi derivate lo ridefiniscono.
-        function GetActive: Boolean; virtual;
-        procedure SetActive(const Value: Boolean); virtual;
+        function bGetActive: Boolean; virtual;
+        procedure SetActive(const bValue: Boolean); virtual;
     public
         destructor Destroy; override;
-        property Kit: THoloKit read FKit;
-        property Active: Boolean read GetActive write SetActive;
+        property oKit: THoloKit read oFKit;
+        property bActive: Boolean read bGetActive write SetActive;
     end;
 
     /// Forma olografica (riempimento + spigoli).
     THoloShape = class(THoloLines)
     private
-        FKind: TShapeKind;
-        FStyle: THoloStyle;
-        FFill: TControl3D;
-        FActive: Boolean;
-        FSize: TPoint3D;
+        eFKind: TShapeKind;
+        eFStyle: THoloStyle;
+        oFFill: TControl3D;
+        bFActive: Boolean;
+        rFSize: TPoint3D;
         procedure RebuildEdges;
         procedure UpdateFill;
-        procedure SetStyle(const Value: THoloStyle);
+        procedure SetStyle(const eValue: THoloStyle);
     protected
-        function LineColor: TAlphaColor; override;
-        function GetActive: Boolean; override;
-        procedure SetActive(const Value: Boolean); override;
+        function iLineColor: TAlphaColor; override;
+        function bGetActive: Boolean; override;
+        procedure SetActive(const bValue: Boolean); override;
     public
-        constructor CreateShape(AKit: THoloKit; AParent: TFmxObject; AKind: TShapeKind;
-            const ASize: TPoint3D; AStyle: THoloStyle);
+        constructor CreateShape(oAKit: THoloKit; oAParent: TFmxObject; eAKind: TShapeKind;
+            const rASize: TPoint3D; eAStyle: THoloStyle);
         /// (non "Resize3D": nasconderebbe il metodo virtuale omonimo di TControl3D, warning W1010)
-        procedure SetShapeSize(const ASize: TPoint3D);
+        procedure SetShapeSize(const rASize: TPoint3D);
         procedure RefreshLook;
-        property Style: THoloStyle read FStyle write SetStyle;
-        property Fill: TControl3D read FFill;
-        property Size: TPoint3D read FSize;
+        property eStyle: THoloStyle read eFStyle write SetStyle;
+        property oFill: TControl3D read oFFill;
+        property rSize: TPoint3D read rFSize;
     end;
 
     /// Anello (eventualmente tratteggiato) nel piano XZ: base del "proiettore".
     THoloRing = class(THoloLines)
     private
-        FRadius: Single;
-        FDashed: Boolean;
-        FStyle: THoloStyle;
+        dFRadius: Single;
+        bFDashed: Boolean;
+        eFStyle: THoloStyle;
         procedure Rebuild;
     protected
-        function LineColor: TAlphaColor; override;
+        function iLineColor: TAlphaColor; override;
     public
-        constructor CreateRing(AKit: THoloKit; AParent: TFmxObject; ARadius: Single;
-            ADashed: Boolean; AStyle: THoloStyle);
-        procedure SetRadius(ARadius: Single);
+        constructor CreateRing(oAKit: THoloKit; oAParent: TFmxObject; dARadius: Single;
+            bADashed: Boolean; eAStyle: THoloStyle);
+        procedure SetRadius(dARadius: Single);
     end;
 
     /// Superficie curva ad alta densita' di poligoni ottenuta "estrudendo" una
@@ -122,64 +122,65 @@ type
     /// (anelli + meridiani) come un ologramma wireframe.
     THoloLoft = class(THoloLines)
     private
-        FStyle: THoloStyle;
-        FActive: Boolean;
-        FTriVB: TVertexBuffer;
-        FTriIB: TIndexBuffer;
+        eFStyle: THoloStyle;
+        bFActive: Boolean;
+        oFTriVB: TVertexBuffer;
+        oFTriIB: TIndexBuffer;
     protected
         procedure Render; override;
-        function LineColor: TAlphaColor; override;
-        function GetActive: Boolean; override;
-        procedure SetActive(const Value: Boolean); override;
+        function iLineColor: TAlphaColor; override;
+        function bGetActive: Boolean; override;
+        procedure SetActive(const bValue: Boolean); override;
     public
-        constructor CreateLoft(AKit: THoloKit; AParent: TFmxObject;
-            const ASections: array of TLoftSection; ASegments, ALineEvery: Integer;
-            AStyle: THoloStyle; AAxis: TAxis3 = axY);
+        constructor CreateLoft(oAKit: THoloKit; oAParent: TFmxObject;
+            const aASections: array of TLoftSection; iASegments, iALineEvery: Integer;
+            eAStyle: THoloStyle; eAAxis: TAxis3 = axY);
         destructor Destroy; override;
     end;
 
     /// Fabbrica di forme + materiali condivisi della skin corrente.
     THoloKit = class
     private
-        FColors: TSkinColors;
-        FMatNormal, FMatDim, FMatActive, FMatText: TColorMaterialSource;
-        FLineMat: TColorMaterial;
-        FShowLegends: Boolean;
+        rFColors: TSkinColors;
+        oFMatNormal, oFMatDim, oFMatActive, oFMatText: TColorMaterialSource;
+        oFLineMat: TColorMaterial;
+        bFShowLegends: Boolean;
     public
-        constructor Create(const AColors: TSkinColors);
+        constructor Create(const rAColors: TSkinColors);
         destructor Destroy; override;
-        procedure ApplyColors(const AColors: TSkinColors);
-        function FillMaterial(AStyle: THoloStyle; AActive: Boolean): TMaterialSource;
-        function FillOpacity(AStyle: THoloStyle; AActive: Boolean): Single;
-        function EdgeColor(AStyle: THoloStyle; AActive: Boolean): TAlphaColor;
+        procedure ApplyColors(const rAColors: TSkinColors);
+        function oFillMaterial(eAStyle: THoloStyle; bAActive: Boolean): TMaterialSource;
+        function dFillOpacity(eAStyle: THoloStyle; bAActive: Boolean): Single;
+        function iEdgeColor(eAStyle: THoloStyle; bAActive: Boolean): TAlphaColor;
 
-        function Pivot(AParent: TFmxObject; X, Y, Z: Single): TDummy;
-        function Box(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-            AStyle: THoloStyle = hsNormal): THoloShape;
-        function Cyl(AParent: TFmxObject; X, Y, Z, ADiam, ALen: Single;
-            AAxis: TAxis3 = axY; AStyle: THoloStyle = hsNormal): THoloShape;
-        function Ball(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-            AStyle: THoloStyle = hsNormal): THoloShape;
-        function Loft(AParent: TFmxObject; X, Y, Z: Single; const ASections: array of TLoftSection;
-            AStyle: THoloStyle = hsSolid; ASegments: Integer = 32; ALineEvery: Integer = 2;
-            AAxis: TAxis3 = axY): THoloLoft;
-        function RBox(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-            AStyle: THoloStyle = hsNormal; AAxis: TAxis3 = axZ; ATaper: Single = 0;
-            ASegments: Integer = 24; ARound: Single = 5): THoloLoft;
-        function Ring(AParent: TFmxObject; X, Y, Z, ARadius: Single; ADashed: Boolean;
-            AStyle: THoloStyle = hsDim): THoloRing;
-        function Text(AParent: TFmxObject; X, Y, Z, ASize: Single; const S: string;
-            AForce: Boolean = False; const AFamily: string = ''): TText3D;
+        function oPivot(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single): TDummy;
+        function oBox(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+            eAStyle: THoloStyle = hsNormal): THoloShape;
+        function oCyl(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dADiam, dALen: Single;
+            eAAxis: TAxis3 = axY; eAStyle: THoloStyle = hsNormal): THoloShape;
+        function oBall(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+            eAStyle: THoloStyle = hsNormal): THoloShape;
+        function oLoft(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single;
+            const aASections: array of TLoftSection;
+            eAStyle: THoloStyle = hsSolid; iASegments: Integer = 32; iALineEvery: Integer = 2;
+            eAAxis: TAxis3 = axY): THoloLoft;
+        function oRBox(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+            eAStyle: THoloStyle = hsNormal; eAAxis: TAxis3 = axZ; dATaper: Single = 0;
+            iASegments: Integer = 24; dARound: Single = 5): THoloLoft;
+        function oRing(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dARadius: Single; bADashed: Boolean;
+            eAStyle: THoloStyle = hsDim): THoloRing;
+        function oText(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dASize: Single; const sAText: string;
+            bAForce: Boolean = False; const sAFamily: string = ''): TText3D;
 
-        property Colors: TSkinColors read FColors;
-        property LineMaterial: TColorMaterial read FLineMat;
-        property ShowLegends: Boolean read FShowLegends write FShowLegends;
+        property rColors: TSkinColors read rFColors;
+        property oLineMaterial: TColorMaterial read oFLineMat;
+        property bShowLegends: Boolean read bFShowLegends write bFShowLegends;
     end;
 
 /// Imposta l'opacita' di un oggetto 3D (anche dove la proprieta' e' protected).
-procedure SetObjOpacity(AObj: TControl3D; AValue: Single);
+procedure SetObjOpacity(oAObj: TControl3D; dAValue: Single);
 /// Costruisce una sezione per THoloKit.Loft.
-function Sec(Y, CX, CZ, A, B: Single; N: Single = 2): TLoftSection;
+function rSec(dAPosY, dACenterX, dACenterZ, dAHalfX, dAHalfZ: Single; dAExponent: Single = 2): TLoftSection;
 
 implementation
 
@@ -196,51 +197,51 @@ type
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: SetMeshMaterial
-//** Parametri di ingresso: AObj: TControl3D; AMat: TMaterialSource
+//** Parametri di ingresso: oAObj: TControl3D; oAMat: TMaterialSource
 //** Parametri di uscita: nessuno
 //** Scopo: Assegnare un materiale a un mesh primitivo indipendentemente dalla classe.
 //** Data Ultima Modifica: 19/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure SetMeshMaterial(AObj: TControl3D; AMat: TMaterialSource);
+procedure SetMeshMaterial(oAObj: TControl3D; oAMat: TMaterialSource);
 begin
-    if AObj is TCube then
-        TCube(AObj).MaterialSource := AMat
-    else if AObj is TCylinder then
-        TCylinder(AObj).MaterialSource := AMat
-    else if AObj is TSphere then
-        TSphere(AObj).MaterialSource := AMat;
+    if oAObj is TCube then
+        TCube(oAObj).MaterialSource := oAMat
+    else if oAObj is TCylinder then
+        TCylinder(oAObj).MaterialSource := oAMat
+    else if oAObj is TSphere then
+        TSphere(oAObj).MaterialSource := oAMat;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: SetObjOpacity
-//** Parametri di ingresso: AObj: TControl3D; AValue: Single
+//** Parametri di ingresso: oAObj: TControl3D; dAValue: Single
 //** Parametri di uscita: nessuno
 //** Scopo: Impostare l'opacita' di un oggetto 3D tramite il cracker.
 //** Data Ultima Modifica: 20/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure SetObjOpacity(AObj: TControl3D; AValue: Single);
+procedure SetObjOpacity(oAObj: TControl3D; dAValue: Single);
 begin
-    if AObj <> nil then
-        TControl3DAccess(AObj).Opacity := EnsureRange(AValue, 0, 1);
+    if oAObj <> nil then
+        TControl3DAccess(oAObj).Opacity := EnsureRange(dAValue, 0, 1);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: NoHit
-//** Parametri di ingresso: AObj: TControl3D
+//** Parametri di ingresso: oAObj: TControl3D
 //** Parametri di uscita: nessuno
 //** Scopo: Rendere un oggetto 3D "trasparente" al mouse.
 //** Data Ultima Modifica: 20/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure NoHit(AObj: TControl3D);
+procedure NoHit(oAObj: TControl3D);
 begin
-    TControl3DAccess(AObj).HitTest := False;
+    TControl3DAccess(oAObj).HitTest := False;
 end;
 
 //** THoloLines *********************************************************************************************
@@ -257,8 +258,8 @@ end;
 //***********************************************************************************************************
 destructor THoloLines.Destroy;
 begin
-    FreeAndNil(FVB);
-    FreeAndNil(FIB);
+    FreeAndNil(oFVB);
+    FreeAndNil(oFIB);
     inherited;
 end;
 
@@ -266,31 +267,31 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloLines.SetLines
-//** Parametri di ingresso: APoints: TArray<TPoint3D>
+//** Parametri di ingresso: aAPoints: TArray<TPoint3D>
 //** Parametri di uscita: nessuno
 //** Scopo: (ri)costruire i buffer delle linee.
 //** Data Ultima Modifica: 20/09/2026
 //***********************************************************************************************************
-//** Funzionamento: APoints contiene coppie di punti (inizio, fine) di ogni
+//** Funzionamento: aAPoints contiene coppie di punti (inizio, fine) di ogni
 //** segmento; vertici e indici sono generati una volta sola e riutilizzati
 //** ad ogni frame.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloLines.SetLines(const APoints: TArray<TPoint3D>);
+procedure THoloLines.SetLines(const aAPoints: TArray<TPoint3D>);
 var
-    I, N: Integer;
+    iPoint, iCount: Integer;
 begin
-    FreeAndNil(FVB);
-    FreeAndNil(FIB);
-    N := Length(APoints) and not 1;
-    if N = 0 then
+    FreeAndNil(oFVB);
+    FreeAndNil(oFIB);
+    iCount := Length(aAPoints) and not 1;
+    if iCount = 0 then
         Exit;
-    FVB := TVertexBuffer.Create([TVertexFormat.Vertex], N);
-    FIB := TIndexBuffer.Create(N);
-    for I := 0 to N - 1 do
+    oFVB := TVertexBuffer.Create([TVertexFormat.Vertex], iCount);
+    oFIB := TIndexBuffer.Create(iCount);
+    for iPoint := 0 to iCount - 1 do
     begin
-        FVB.Vertices[I] := APoints[I];
-        FIB.Indices[I] := I;
+        oFVB.Vertices[iPoint] := aAPoints[iPoint];
+        oFIB.Indices[iPoint] := iPoint;
     end;
     Repaint;
 end;
@@ -299,28 +300,28 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloLines.AttachKit
-//** Parametri di ingresso: AKit: THoloKit
+//** Parametri di ingresso: oAKit: THoloKit
 //** Parametri di uscita: nessuno
 //** Scopo: Collegare il kit della skin (materiali e colori condivisi).
 //** Data Ultima Modifica: 16/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloLines.AttachKit(AKit: THoloKit);
+procedure THoloLines.AttachKit(oAKit: THoloKit);
 begin
-    FKit := AKit;
+    oFKit := oAKit;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloLines.GetActive
+//** Nome funzione: THoloLines.bGetActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Default per oggetti senza stato acceso (es. anelli).
 //** Data Ultima Modifica: 20/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloLines.GetActive: Boolean;
+function THoloLines.bGetActive: Boolean;
 begin
     Result := False;
 end;
@@ -329,13 +330,13 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloLines.SetActive
-//** Parametri di ingresso: Value: Boolean
+//** Parametri di ingresso: bValue: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Ignorare l'accensione: gli oggetti di sole linee non hanno stato acceso.
 //** Data Ultima Modifica: 20/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloLines.SetActive(const Value: Boolean);
+procedure THoloLines.SetActive(const bValue: Boolean);
 begin
 end;
 
@@ -354,10 +355,10 @@ end;
 //***********************************************************************************************************
 procedure THoloLines.Render;
 begin
-    if (FVB = nil) or (FIB = nil) or (FKit = nil) then
+    if (oFVB = nil) or (oFIB = nil) or (oFKit = nil) then
         Exit;
-    FKit.LineMaterial.Color := LineColor;
-    Context.DrawLines(FVB, FIB, FKit.LineMaterial, AbsoluteOpacity);
+    oFKit.oLineMaterial.Color := iLineColor;
+    Context.DrawLines(oFVB, oFIB, oFKit.oLineMaterial, AbsoluteOpacity);
 end;
 
 //** THoloShape *********************************************************************************************
@@ -366,8 +367,8 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloShape.CreateShape
-//** Parametri di ingresso: AKit: THoloKit; AParent: TFmxObject; AKind: TShapeKind; ASize: TPoint3D;
-//**                        AStyle: THoloStyle
+//** Parametri di ingresso: oAKit: THoloKit; oAParent: TFmxObject; eAKind: TShapeKind; rASize: TPoint3D;
+//**                        eAStyle: THoloStyle
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare una forma olografica e agganciarla al genitore.
 //** Data Ultima Modifica: 20/09/2026
@@ -376,36 +377,36 @@ end;
 //** forma), lo rende non scrivente nello Z-buffer e genera gli spigoli.
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor THoloShape.CreateShape(AKit: THoloKit; AParent: TFmxObject;
-    AKind: TShapeKind; const ASize: TPoint3D; AStyle: THoloStyle);
+constructor THoloShape.CreateShape(oAKit: THoloKit; oAParent: TFmxObject;
+    eAKind: TShapeKind; const rASize: TPoint3D; eAStyle: THoloStyle);
 begin
     inherited Create(nil);
-    FKit := AKit;
-    FKind := AKind;
-    FStyle := AStyle;
-    FSize := ASize;
+    oFKit := oAKit;
+    eFKind := eAKind;
+    eFStyle := eAStyle;
+    rFSize := rASize;
     NoHit(Self);
-    Parent := AParent;
+    Parent := oAParent;
 
-    case AKind of
-        skBox:      FFill := TCube.Create(nil);
-        skCylinder: FFill := TCylinder.Create(nil);
+    case eAKind of
+        skBox:      oFFill := TCube.Create(nil);
+        skCylinder: oFFill := TCylinder.Create(nil);
     else
-        FFill := TSphere.Create(nil);
+        oFFill := TSphere.Create(nil);
     end;
-    FFill.Parent := Self;
-    if FFill is TCylinder then
-        TCylinder(FFill).SubdivisionsAxes := 32
-    else if FFill is TSphere then
+    oFFill.Parent := Self;
+    if oFFill is TCylinder then
+        TCylinder(oFFill).SubdivisionsAxes := 32
+    else if oFFill is TSphere then
     begin
-        TSphere(FFill).SubdivisionsAxes := 32;
-        TSphere(FFill).SubdivisionsHeight := 16;
+        TSphere(oFFill).SubdivisionsAxes := 32;
+        TSphere(oFFill).SubdivisionsHeight := 16;
     end;
-    NoHit(FFill);
-    TControl3DAccess(FFill).ZWrite := False;
-    TControl3DAccess(FFill).Width := ASize.X;
-    TControl3DAccess(FFill).Height := ASize.Y;
-    TControl3DAccess(FFill).Depth := ASize.Z;
+    NoHit(oFFill);
+    TControl3DAccess(oFFill).ZWrite := False;
+    TControl3DAccess(oFFill).Width := rASize.X;
+    TControl3DAccess(oFFill).Height := rASize.Y;
+    TControl3DAccess(oFFill).Depth := rASize.Z;
     UpdateFill;
     RebuildEdges;
 end;
@@ -414,18 +415,18 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloShape.SetShapeSize
-//** Parametri di ingresso: ASize: TPoint3D
+//** Parametri di ingresso: rASize: TPoint3D
 //** Parametri di uscita: nessuno
 //** Scopo: Cambiare le dimensioni della forma (riempimento + spigoli).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloShape.SetShapeSize(const ASize: TPoint3D);
+procedure THoloShape.SetShapeSize(const rASize: TPoint3D);
 begin
-    FSize := ASize;
-    TControl3DAccess(FFill).Width := ASize.X;
-    TControl3DAccess(FFill).Height := ASize.Y;
-    TControl3DAccess(FFill).Depth := ASize.Z;
+    rFSize := rASize;
+    TControl3DAccess(oFFill).Width := rASize.X;
+    TControl3DAccess(oFFill).Height := rASize.Y;
+    TControl3DAccess(oFFill).Depth := rASize.Z;
     RebuildEdges;
 end;
 
@@ -449,75 +450,78 @@ const
     SEG_CYL = 32;
     SEG_SPH = 32;
 var
-    P: TArray<TPoint3D>;
-    HX, HY, HZ, A0, A1: Single;
-    I: Integer;
+    aPoints: TArray<TPoint3D>;
+    dHalfX, dHalfY, dHalfZ, dAngle0, dAngle1: Single;
+    iSegment: Integer;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Add
-    //** Parametri di ingresso: A, B: TPoint3D
+    //** Parametri di ingresso: rAPointA, rAPointB: TPoint3D
     //** Parametri di uscita: nessuno
     //** Scopo: Aggiungere un segmento (coppia di punti) all'elenco degli spigoli.
     //** Data Ultima Modifica: 20/09/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Add(const A, B: TPoint3D);
+    procedure Add(const rAPointA, rAPointB: TPoint3D);
     begin
-        P := P + [A, B];
+        aPoints := aPoints + [rAPointA, rAPointB];
     end;
 
 begin
-    P := nil;
-    HX := FSize.X / 2;
-    HY := FSize.Y / 2;
-    HZ := FSize.Z / 2;
-    if FStyle <> hsScan then
-        case FKind of
+    aPoints := nil;
+    dHalfX := rFSize.X / 2;
+    dHalfY := rFSize.Y / 2;
+    dHalfZ := rFSize.Z / 2;
+    if eFStyle <> hsScan then
+        case eFKind of
             skBox:
                 begin
                     // faccia anteriore (z = -HZ) e posteriore (z = +HZ)
-                    Add(Point3D(-HX, -HY, -HZ), Point3D(HX, -HY, -HZ));
-                    Add(Point3D(HX, -HY, -HZ), Point3D(HX, HY, -HZ));
-                    Add(Point3D(HX, HY, -HZ), Point3D(-HX, HY, -HZ));
-                    Add(Point3D(-HX, HY, -HZ), Point3D(-HX, -HY, -HZ));
-                    Add(Point3D(-HX, -HY, HZ), Point3D(HX, -HY, HZ));
-                    Add(Point3D(HX, -HY, HZ), Point3D(HX, HY, HZ));
-                    Add(Point3D(HX, HY, HZ), Point3D(-HX, HY, HZ));
-                    Add(Point3D(-HX, HY, HZ), Point3D(-HX, -HY, HZ));
+                    Add(Point3D(-dHalfX, -dHalfY, -dHalfZ), Point3D(dHalfX, -dHalfY, -dHalfZ));
+                    Add(Point3D(dHalfX, -dHalfY, -dHalfZ), Point3D(dHalfX, dHalfY, -dHalfZ));
+                    Add(Point3D(dHalfX, dHalfY, -dHalfZ), Point3D(-dHalfX, dHalfY, -dHalfZ));
+                    Add(Point3D(-dHalfX, dHalfY, -dHalfZ), Point3D(-dHalfX, -dHalfY, -dHalfZ));
+                    Add(Point3D(-dHalfX, -dHalfY, dHalfZ), Point3D(dHalfX, -dHalfY, dHalfZ));
+                    Add(Point3D(dHalfX, -dHalfY, dHalfZ), Point3D(dHalfX, dHalfY, dHalfZ));
+                    Add(Point3D(dHalfX, dHalfY, dHalfZ), Point3D(-dHalfX, dHalfY, dHalfZ));
+                    Add(Point3D(-dHalfX, dHalfY, dHalfZ), Point3D(-dHalfX, -dHalfY, dHalfZ));
                     // spigoli di profondita'
-                    Add(Point3D(-HX, -HY, -HZ), Point3D(-HX, -HY, HZ));
-                    Add(Point3D(HX, -HY, -HZ), Point3D(HX, -HY, HZ));
-                    Add(Point3D(HX, HY, -HZ), Point3D(HX, HY, HZ));
-                    Add(Point3D(-HX, HY, -HZ), Point3D(-HX, HY, HZ));
+                    Add(Point3D(-dHalfX, -dHalfY, -dHalfZ), Point3D(-dHalfX, -dHalfY, dHalfZ));
+                    Add(Point3D(dHalfX, -dHalfY, -dHalfZ), Point3D(dHalfX, -dHalfY, dHalfZ));
+                    Add(Point3D(dHalfX, dHalfY, -dHalfZ), Point3D(dHalfX, dHalfY, dHalfZ));
+                    Add(Point3D(-dHalfX, dHalfY, -dHalfZ), Point3D(-dHalfX, dHalfY, dHalfZ));
                 end;
             skCylinder:
                 begin
-                    for I := 0 to SEG_CYL - 1 do
+                    for iSegment := 0 to SEG_CYL - 1 do
                     begin
-                        A0 := 2 * Pi * I / SEG_CYL;
-                        A1 := 2 * Pi * (I + 1) / SEG_CYL;
-                        Add(Point3D(HX * Cos(A0), -HY, HZ * Sin(A0)), Point3D(HX * Cos(A1), -HY, HZ * Sin(A1)));
-                        Add(Point3D(HX * Cos(A0), HY, HZ * Sin(A0)), Point3D(HX * Cos(A1), HY, HZ * Sin(A1)));
+                        dAngle0 := 2 * Pi * iSegment / SEG_CYL;
+                        dAngle1 := 2 * Pi * (iSegment + 1) / SEG_CYL;
+                        Add(Point3D(dHalfX * Cos(dAngle0), -dHalfY, dHalfZ * Sin(dAngle0)), Point3D(dHalfX * Cos(dAngle1), -dHalfY, dHalfZ * Sin(dAngle1)));
+                        Add(Point3D(dHalfX * Cos(dAngle0), dHalfY, dHalfZ * Sin(dAngle0)), Point3D(dHalfX * Cos(dAngle1), dHalfY, dHalfZ * Sin(dAngle1)));
                     end;
-                    for I := 0 to 3 do
+                    for iSegment := 0 to 3 do
                     begin
-                        A0 := Pi / 2 * I + Pi / 4;
-                        Add(Point3D(HX * Cos(A0), -HY, HZ * Sin(A0)), Point3D(HX * Cos(A0), HY, HZ * Sin(A0)));
+                        dAngle0 := Pi / 2 * iSegment + Pi / 4;
+                        Add(Point3D(dHalfX * Cos(dAngle0), -dHalfY, dHalfZ * Sin(dAngle0)), Point3D(dHalfX * Cos(dAngle0), dHalfY, dHalfZ * Sin(dAngle0)));
                     end;
                 end;
             skSphere:
-                for I := 0 to SEG_SPH - 1 do
+                for iSegment := 0 to SEG_SPH - 1 do
                 begin
-                    A0 := 2 * Pi * I / SEG_SPH;
-                    A1 := 2 * Pi * (I + 1) / SEG_SPH;
-                    Add(Point3D(HX * Cos(A0), HY * Sin(A0), 0), Point3D(HX * Cos(A1), HY * Sin(A1), 0));
-                    Add(Point3D(HX * Cos(A0), 0, HZ * Sin(A0)), Point3D(HX * Cos(A1), 0, HZ * Sin(A1)));
-                    Add(Point3D(0, HY * Cos(A0), HZ * Sin(A0)), Point3D(0, HY * Cos(A1), HZ * Sin(A1)));
+                    dAngle0 := 2 * Pi * iSegment / SEG_SPH;
+                    dAngle1 := 2 * Pi * (iSegment + 1) / SEG_SPH;
+                    Add(Point3D(dHalfX * Cos(dAngle0), dHalfY * Sin(dAngle0), 0),
+                        Point3D(dHalfX * Cos(dAngle1), dHalfY * Sin(dAngle1), 0));
+                    Add(Point3D(dHalfX * Cos(dAngle0), 0, dHalfZ * Sin(dAngle0)),
+                        Point3D(dHalfX * Cos(dAngle1), 0, dHalfZ * Sin(dAngle1)));
+                    Add(Point3D(0, dHalfY * Cos(dAngle0), dHalfZ * Sin(dAngle0)), Point3D(0,
+                        dHalfY * Cos(dAngle1), dHalfZ * Sin(dAngle1)));
                 end;
         end;
-    SetLines(P);
+    SetLines(aPoints);
 end;
 
 //***********************************************************************************************************
@@ -532,12 +536,12 @@ end;
 //***********************************************************************************************************
 procedure THoloShape.UpdateFill;
 var
-    Op: Single;
+    dOpacity: Single;
 begin
-    Op := FKit.FillOpacity(FStyle, FActive);
-    SetMeshMaterial(FFill, FKit.FillMaterial(FStyle, FActive));
-    TControl3DAccess(FFill).Opacity := Op;
-    FFill.Visible := Op > 0;
+    dOpacity := oFKit.dFillOpacity(eFStyle, bFActive);
+    SetMeshMaterial(oFFill, oFKit.oFillMaterial(eFStyle, bFActive));
+    TControl3DAccess(oFFill).Opacity := dOpacity;
+    oFFill.Visible := dOpacity > 0;
 end;
 
 //***********************************************************************************************************
@@ -560,7 +564,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloShape.SetActive
-//** Parametri di ingresso: Value: Boolean
+//** Parametri di ingresso: bValue: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Accendere/spegnere l'evidenziazione (input premuto).
 //** Data Ultima Modifica: 21/09/2026
@@ -569,11 +573,11 @@ end;
 //** la scena viene ridisegnata solo quando serve.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloShape.SetActive(const Value: Boolean);
+procedure THoloShape.SetActive(const bValue: Boolean);
 begin
-    if FActive = Value then
+    if bFActive = bValue then
         Exit;
-    FActive := Value;
+    bFActive := bValue;
     UpdateFill;
     Repaint;
 end;
@@ -582,17 +586,17 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloShape.SetStyle
-//** Parametri di ingresso: Value: THoloStyle
+//** Parametri di ingresso: eValue: THoloStyle
 //** Parametri di uscita: nessuno
 //** Scopo: Cambiare lo stile della forma.
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloShape.SetStyle(const Value: THoloStyle);
+procedure THoloShape.SetStyle(const eValue: THoloStyle);
 begin
-    if FStyle = Value then
+    if eFStyle = eValue then
         Exit;
-    FStyle := Value;
+    eFStyle := eValue;
     UpdateFill;
     RebuildEdges;
 end;
@@ -600,31 +604,31 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloShape.GetActive
+//** Nome funzione: THoloShape.bGetActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Restituire lo stato acceso (evidenziato) della forma.
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloShape.GetActive: Boolean;
+function THoloShape.bGetActive: Boolean;
 begin
-    Result := FActive;
+    Result := bFActive;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloShape.LineColor
+//** Nome funzione: THoloShape.iLineColor
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Colore degli spigoli in base a stile e stato.
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloShape.LineColor: TAlphaColor;
+function THoloShape.iLineColor: TAlphaColor;
 begin
-    Result := FKit.EdgeColor(FStyle, FActive);
+    Result := oFKit.iEdgeColor(eFStyle, bFActive);
 end;
 
 //** THoloRing **********************************************************************************************
@@ -633,23 +637,23 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloRing.CreateRing
-//** Parametri di ingresso: AKit: THoloKit; AParent: TFmxObject; ARadius: Single; ADashed: Boolean;
-//**                        AStyle: THoloStyle
+//** Parametri di ingresso: oAKit: THoloKit; oAParent: TFmxObject; dARadius: Single; bADashed: Boolean;
+//**                        eAStyle: THoloStyle
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare un anello nel piano XZ (orizzontale).
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor THoloRing.CreateRing(AKit: THoloKit; AParent: TFmxObject;
-    ARadius: Single; ADashed: Boolean; AStyle: THoloStyle);
+constructor THoloRing.CreateRing(oAKit: THoloKit; oAParent: TFmxObject;
+    dARadius: Single; bADashed: Boolean; eAStyle: THoloStyle);
 begin
     inherited Create(nil);
-    FKit := AKit;
-    FRadius := ARadius;
-    FDashed := ADashed;
-    FStyle := AStyle;
+    oFKit := oAKit;
+    dFRadius := dARadius;
+    bFDashed := bADashed;
+    eFStyle := eAStyle;
     NoHit(Self);
-    Parent := AParent;
+    Parent := oAParent;
     Rebuild;
 end;
 
@@ -657,17 +661,17 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloRing.SetRadius
-//** Parametri di ingresso: ARadius: Single
+//** Parametri di ingresso: dARadius: Single
 //** Parametri di uscita: nessuno
 //** Scopo: Cambiare il raggio dell'anello.
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloRing.SetRadius(ARadius: Single);
+procedure THoloRing.SetRadius(dARadius: Single);
 begin
-    if SameValue(FRadius, ARadius, 0.0001) then
+    if SameValue(dFRadius, dARadius, 0.0001) then
         Exit;
-    FRadius := ARadius;
+    dFRadius := dARadius;
     Rebuild;
 end;
 
@@ -685,36 +689,36 @@ procedure THoloRing.Rebuild;
 const
     SEG = 48;
 var
-    P: TArray<TPoint3D>;
-    I: Integer;
-    A0, A1: Single;
+    aPoints: TArray<TPoint3D>;
+    iSegment: Integer;
+    dAngle0, dAngle1: Single;
 begin
-    P := nil;
-    for I := 0 to SEG - 1 do
+    aPoints := nil;
+    for iSegment := 0 to SEG - 1 do
     begin
-        if FDashed and Odd(I) then
+        if bFDashed and Odd(iSegment) then
             Continue;
-        A0 := 2 * Pi * I / SEG;
-        A1 := 2 * Pi * (I + 1) / SEG;
-        P := P + [Point3D(FRadius * Cos(A0), 0, FRadius * Sin(A0)),
-                  Point3D(FRadius * Cos(A1), 0, FRadius * Sin(A1))];
+        dAngle0 := 2 * Pi * iSegment / SEG;
+        dAngle1 := 2 * Pi * (iSegment + 1) / SEG;
+        aPoints := aPoints + [Point3D(dFRadius * Cos(dAngle0), 0, dFRadius * Sin(dAngle0)),
+                  Point3D(dFRadius * Cos(dAngle1), 0, dFRadius * Sin(dAngle1))];
     end;
-    SetLines(P);
+    SetLines(aPoints);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloRing.LineColor
+//** Nome funzione: THoloRing.iLineColor
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Colore dell'anello in base allo stile.
 //** Data Ultima Modifica: 21/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloRing.LineColor: TAlphaColor;
+function THoloRing.iLineColor: TAlphaColor;
 begin
-    Result := FKit.EdgeColor(FStyle, False);
+    Result := oFKit.iEdgeColor(eFStyle, False);
 end;
 
 //** THoloLoft **********************************************************************************************
@@ -722,28 +726,28 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: Sec
-//** Parametri di ingresso: Y, CX, CZ, A, B: Single; N: Single
+//** Nome funzione: rSec
+//** Parametri di ingresso: dAPosY, dACenterX, dACenterZ, dAHalfX, dAHalfZ: Single; dAExponent: Single
 //** Parametri di uscita: Result: TLoftSection
 //** Scopo: Costruire una sezione di loft.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function Sec(Y, CX, CZ, A, B: Single; N: Single): TLoftSection;
+function rSec(dAPosY, dACenterX, dACenterZ, dAHalfX, dAHalfZ: Single; dAExponent: Single): TLoftSection;
 begin
-    Result.Y := Y;
-    Result.CX := CX;
-    Result.CZ := CZ;
-    Result.A := A;
-    Result.B := B;
-    Result.N := N;
+    Result.dY := dAPosY;
+    Result.dCX := dACenterX;
+    Result.dCZ := dACenterZ;
+    Result.dA := dAHalfX;
+    Result.dB := dAHalfZ;
+    Result.dN := dAExponent;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: SuperPoint
-//** Parametri di ingresso: S: TLoftSection; T: Single; AAxis: TAxis3
+//** Nome funzione: rSuperPoint
+//** Parametri di ingresso: rASection: TLoftSection; dAAngle: Single; eAAxis: TAxis3
 //** Parametri di uscita: Result: TPoint3D
 //** Scopo: Punto di una superellisse (|u/a|^n + |v/b|^n = 1) all'angolo T, orientata secondo l'asse
 //**        del loft.
@@ -753,40 +757,40 @@ end;
 //** la quota s lungo l'asse, poi le colloca negli assi del mondo.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function SuperPoint(const S: TLoftSection; T: Single; AAxis: TAxis3): TPoint3D;
+function rSuperPoint(const rASection: TLoftSection; dAAngle: Single; eAAxis: TAxis3): TPoint3D;
 var
-    C, Sn, E, U, V: Single;
+    dCosine, dSine, dExponent, dCoordU, dCoordV: Single;
 begin
-    C := Cos(T);
-    Sn := Sin(T);
-    E := 2 / Max(0.5, S.N);
-    U := S.CX + S.A * Sign(C) * Power(Abs(C), E);
-    V := S.CZ + S.B * Sign(Sn) * Power(Abs(Sn), E);
-    case AAxis of
-        axZ: Result := Point3D(U, V, S.Y);
-        axX: Result := Point3D(S.Y, U, V);
+    dCosine := Cos(dAAngle);
+    dSine := Sin(dAAngle);
+    dExponent := 2 / Max(0.5, rASection.dN);
+    dCoordU := rASection.dCX + rASection.dA * Sign(dCosine) * Power(Abs(dCosine), dExponent);
+    dCoordV := rASection.dCZ + rASection.dB * Sign(dSine) * Power(Abs(dSine), dExponent);
+    case eAAxis of
+        axZ: Result := Point3D(dCoordU, dCoordV, rASection.dY);
+        axX: Result := Point3D(rASection.dY, dCoordU, dCoordV);
     else
-        Result := Point3D(U, S.Y, V);
+        Result := Point3D(dCoordU, rASection.dY, dCoordV);
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: SectionCenter
-//** Parametri di ingresso: S: TLoftSection; AAxis: TAxis3
+//** Nome funzione: rSectionCenter
+//** Parametri di ingresso: rASection: TLoftSection; eAAxis: TAxis3
 //** Parametri di uscita: Result: TPoint3D
 //** Scopo: Centro di una sezione nelle coordinate del mondo.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function SectionCenter(const S: TLoftSection; AAxis: TAxis3): TPoint3D;
+function rSectionCenter(const rASection: TLoftSection; eAAxis: TAxis3): TPoint3D;
 begin
-    case AAxis of
-        axZ: Result := Point3D(S.CX, S.CZ, S.Y);
-        axX: Result := Point3D(S.Y, S.CX, S.CZ);
+    case eAAxis of
+        axZ: Result := Point3D(rASection.dCX, rASection.dCZ, rASection.dY);
+        axX: Result := Point3D(rASection.dY, rASection.dCX, rASection.dCZ);
     else
-        Result := Point3D(S.CX, S.Y, S.CZ);
+        Result := Point3D(rASection.dCX, rASection.dY, rASection.dCZ);
     end;
 end;
 
@@ -794,133 +798,137 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloLoft.CreateLoft
-//** Parametri di ingresso: AKit: THoloKit; AParent: TFmxObject; ASections: array of TLoftSection;
-//**                        ASegments, ALineEvery: Integer; AStyle: THoloStyle; AAxis: TAxis3
+//** Parametri di ingresso: oAKit: THoloKit; oAParent: TFmxObject; aASections: array of TLoftSection;
+//**                        iASegments, iALineEvery: Integer; eAStyle: THoloStyle; eAAxis: TAxis3
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare la superficie a partire dalle sezioni.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //** Funzionamento:
-//**  - ogni sezione diventa un anello di ASegments vertici;
+//**  - ogni sezione diventa un anello di iASegments vertici;
 //**  - anelli consecutivi sono uniti da coppie di triangoli; le due estremita'
 //**    sono chiuse da un "ventaglio" attorno al centro della sezione;
 //**  - ogni triangolo e' inserito con entrambi gli ordini dei vertici, cosi'
 //**    la superficie e' visibile da qualunque lato senza cambiare lo stato
 //**    di culling del contesto;
-//**  - linee: tutti gli anelli + un meridiano ogni ALineEvery vertici;
+//**  - linee: tutti gli anelli + un meridiano ogni iALineEvery vertici;
 //**  - tutti gli array sono pre-dimensionati (nessuna riallocazione), cosi'
 //**    anche centinaia di loft (es. i copritasti) si creano rapidamente.
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor THoloLoft.CreateLoft(AKit: THoloKit; AParent: TFmxObject;
-    const ASections: array of TLoftSection; ASegments, ALineEvery: Integer;
-    AStyle: THoloStyle; AAxis: TAxis3);
+constructor THoloLoft.CreateLoft(oAKit: THoloKit; oAParent: TFmxObject;
+    const aASections: array of TLoftSection; iASegments, iALineEvery: Integer;
+    eAStyle: THoloStyle; eAAxis: TAxis3);
 var
-    R, S, I, J, V, Base, C0, C1, NI, NL, NMer: Integer;
-    Pts: TArray<TPoint3D>;
-    Lines: TArray<TPoint3D>;
-    Idx: TArray<Integer>;
+    iRingCount, iSegCount, iRing, iSegment, iVert, iBase, iStartCap, iEndCap, iIndexCount, iLineCount,
+        iNMer: Integer;
+    aPts: TArray<TPoint3D>;
+    aLines: TArray<TPoint3D>;
+    aIdx: TArray<Integer>;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Tri
-    //** Parametri di ingresso: A, B, C: Integer
+    //** Parametri di ingresso: iAVertA, iAVertB, iAVertC: Integer
     //** Parametri di uscita: nessuno
     //** Scopo: Aggiungere un triangolo a due facce (entrambi i versi) agli indici del loft.
     //** Data Ultima Modifica: 22/09/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Tri(A, B, C: Integer);
+    procedure Tri(iAVertA, iAVertB, iAVertC: Integer);
     begin
-        Idx[NI] := A;     Idx[NI + 1] := B; Idx[NI + 2] := C;
-        Idx[NI + 3] := A; Idx[NI + 4] := C; Idx[NI + 5] := B;
-        Inc(NI, 6);
+        aIdx[iIndexCount] := iAVertA;     aIdx[iIndexCount + 1] := iAVertB; aIdx[iIndexCount + 2] := iAVertC;
+        aIdx[iIndexCount + 3] := iAVertA; aIdx[iIndexCount + 4] := iAVertC; aIdx[iIndexCount + 5] := iAVertB;
+        Inc(iIndexCount, 6);
     end;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Seg
-    //** Parametri di ingresso: A, B: TPoint3D
+    //** Parametri di ingresso: rAPointA, rAPointB: TPoint3D
     //** Parametri di uscita: nessuno
     //** Scopo: Aggiungere un segmento all'elenco delle linee del loft.
     //** Data Ultima Modifica: 22/09/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Seg(const A, B: TPoint3D);
+    procedure Seg(const rAPointA, rAPointB: TPoint3D);
     begin
-        Lines[NL] := A;
-        Lines[NL + 1] := B;
-        Inc(NL, 2);
+        aLines[iLineCount] := rAPointA;
+        aLines[iLineCount + 1] := rAPointB;
+        Inc(iLineCount, 2);
     end;
 
 begin
     inherited Create(nil);
-    FKit := AKit;
-    FStyle := AStyle;
+    oFKit := oAKit;
+    eFStyle := eAStyle;
     NoHit(Self);
     ZWrite := False;
-    Parent := AParent;
+    Parent := oAParent;
 
-    R := Length(ASections);
-    S := Max(6, ASegments);
-    if ALineEvery < 1 then
-        ALineEvery := 1;
-    if R < 2 then
+    iRingCount := Length(aASections);
+    iSegCount := Max(6, iASegments);
+    if iALineEvery < 1 then
+        iALineEvery := 1;
+    if iRingCount < 2 then
         Exit;
 
     // vertici degli anelli + 2 centri per i tappi
-    SetLength(Pts, R * S + 2);
-    for I := 0 to R - 1 do
-        for J := 0 to S - 1 do
-            Pts[I * S + J] := SuperPoint(ASections[I], 2 * Pi * J / S, AAxis);
-    C0 := R * S;
-    C1 := R * S + 1;
-    Pts[C0] := SectionCenter(ASections[0], AAxis);
-    Pts[C1] := SectionCenter(ASections[R - 1], AAxis);
+    SetLength(aPts, iRingCount * iSegCount + 2);
+    for iRing := 0 to iRingCount - 1 do
+        for iSegment := 0 to iSegCount - 1 do
+            aPts[iRing * iSegCount + iSegment] := rSuperPoint(aASections[iRing],
+                2 * Pi * iSegment / iSegCount, eAAxis);
+    iStartCap := iRingCount * iSegCount;
+    iEndCap := iRingCount * iSegCount + 1;
+    aPts[iStartCap] := rSectionCenter(aASections[0], eAAxis);
+    aPts[iEndCap] := rSectionCenter(aASections[iRingCount - 1], eAAxis);
 
     // triangoli: (R-1)*S*2 tra gli anelli + 2*S per i tappi, 6 indici ciascuno
-    SetLength(Idx, ((R - 1) * S * 2 + 2 * S) * 6);
-    NI := 0;
-    for I := 0 to R - 2 do
-        for J := 0 to S - 1 do
+    SetLength(aIdx, ((iRingCount - 1) * iSegCount * 2 + 2 * iSegCount) * 6);
+    iIndexCount := 0;
+    for iRing := 0 to iRingCount - 2 do
+        for iSegment := 0 to iSegCount - 1 do
         begin
-            Base := I * S;
-            Tri(Base + J, Base + S + J, Base + (J + 1) mod S);
-            Tri(Base + (J + 1) mod S, Base + S + J, Base + S + (J + 1) mod S);
+            iBase := iRing * iSegCount;
+            Tri(iBase + iSegment, iBase + iSegCount + iSegment, iBase + (iSegment + 1) mod iSegCount);
+            Tri(iBase + (iSegment + 1) mod iSegCount, iBase + iSegCount + iSegment, iBase + iSegCount
+                + (iSegment + 1) mod iSegCount);
         end;
-    for J := 0 to S - 1 do
+    for iSegment := 0 to iSegCount - 1 do
     begin
-        Tri(C0, J, (J + 1) mod S);
-        Tri(C1, (R - 1) * S + (J + 1) mod S, (R - 1) * S + J);
+        Tri(iStartCap, iSegment, (iSegment + 1) mod iSegCount);
+        Tri(iEndCap, (iRingCount - 1) * iSegCount + (iSegment + 1) mod iSegCount, (iRingCount
+            - 1) * iSegCount + iSegment);
     end;
 
-    FTriVB := TVertexBuffer.Create([TVertexFormat.Vertex], Length(Pts));
-    for V := 0 to High(Pts) do
-        FTriVB.Vertices[V] := Pts[V];
-    FTriIB := TIndexBuffer.Create(NI);
-    for V := 0 to NI - 1 do
-        FTriIB.Indices[V] := Idx[V];
+    oFTriVB := TVertexBuffer.Create([TVertexFormat.Vertex], Length(aPts));
+    for iVert := 0 to High(aPts) do
+        oFTriVB.Vertices[iVert] := aPts[iVert];
+    oFTriIB := TIndexBuffer.Create(iIndexCount);
+    for iVert := 0 to iIndexCount - 1 do
+        oFTriIB.Indices[iVert] := aIdx[iVert];
 
     // rete di linee: anelli + meridiani
-    NMer := (S + ALineEvery - 1) div ALineEvery;
-    SetLength(Lines, (R * S + (R - 1) * NMer) * 2);
-    NL := 0;
-    for I := 0 to R - 1 do
-        for J := 0 to S - 1 do
-            Seg(Pts[I * S + J], Pts[I * S + (J + 1) mod S]);
-    for I := 0 to R - 2 do
+    iNMer := (iSegCount + iALineEvery - 1) div iALineEvery;
+    SetLength(aLines, (iRingCount * iSegCount + (iRingCount - 1) * iNMer) * 2);
+    iLineCount := 0;
+    for iRing := 0 to iRingCount - 1 do
+        for iSegment := 0 to iSegCount - 1 do
+            Seg(aPts[iRing * iSegCount + iSegment], aPts[iRing * iSegCount + (iSegment + 1) mod iSegCount]);
+    for iRing := 0 to iRingCount - 2 do
     begin
-        J := 0;
-        while J < S do
+        iSegment := 0;
+        while iSegment < iSegCount do
         begin
-            Seg(Pts[I * S + J], Pts[(I + 1) * S + J]);
-            Inc(J, ALineEvery);
+            Seg(aPts[iRing * iSegCount + iSegment], aPts[(iRing + 1) * iSegCount + iSegment]);
+            Inc(iSegment, iALineEvery);
         end;
     end;
-    SetLength(Lines, NL);
-    SetLines(Lines);
+    SetLength(aLines, iLineCount);
+    SetLines(aLines);
 end;
 
 //***********************************************************************************************************
@@ -935,8 +943,8 @@ end;
 //***********************************************************************************************************
 destructor THoloLoft.Destroy;
 begin
-    FreeAndNil(FTriVB);
-    FreeAndNil(FTriIB);
+    FreeAndNil(oFTriVB);
+    FreeAndNil(oFTriIB);
     inherited;
 end;
 
@@ -952,60 +960,60 @@ end;
 //***********************************************************************************************************
 procedure THoloLoft.Render;
 var
-    Op: Single;
+    dOpacity: Single;
 begin
-    Op := FKit.FillOpacity(FStyle, FActive);
-    if (Op > 0) and (FTriVB <> nil) and (FTriIB <> nil) then
-        Context.DrawTriangles(FTriVB, FTriIB, FKit.FillMaterial(FStyle, FActive).Material,
-            AbsoluteOpacity * Op);
+    dOpacity := oFKit.dFillOpacity(eFStyle, bFActive);
+    if (dOpacity > 0) and (oFTriVB <> nil) and (oFTriIB <> nil) then
+        Context.DrawTriangles(oFTriVB, oFTriIB, oFKit.oFillMaterial(eFStyle, bFActive).Material,
+            AbsoluteOpacity * dOpacity);
     inherited;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloLoft.LineColor
+//** Nome funzione: THoloLoft.iLineColor
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Colore della rete di linee per stile/stato.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloLoft.LineColor: TAlphaColor;
+function THoloLoft.iLineColor: TAlphaColor;
 begin
-    Result := FKit.EdgeColor(FStyle, FActive);
+    Result := oFKit.iEdgeColor(eFStyle, bFActive);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloLoft.GetActive
+//** Nome funzione: THoloLoft.bGetActive
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Restituire lo stato acceso (evidenziato) della superficie.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloLoft.GetActive: Boolean;
+function THoloLoft.bGetActive: Boolean;
 begin
-    Result := FActive;
+    Result := bFActive;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloLoft.SetActive
-//** Parametri di ingresso: Value: Boolean
+//** Parametri di ingresso: bValue: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Evidenziare la superficie (es. tasto o grilletto premuto).
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloLoft.SetActive(const Value: Boolean);
+procedure THoloLoft.SetActive(const bValue: Boolean);
 begin
-    if FActive = Value then
+    if bFActive = bValue then
         Exit;
-    FActive := Value;
+    bFActive := bValue;
     Repaint;
 end;
 
@@ -1015,22 +1023,22 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloKit.Create
-//** Parametri di ingresso: AColors: TSkinColors
+//** Parametri di ingresso: rAColors: TSkinColors
 //** Parametri di uscita: nuova istanza della classe
 //** Scopo: Creare i materiali condivisi con i colori della skin.
 //** Data Ultima Modifica: 22/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-constructor THoloKit.Create(const AColors: TSkinColors);
+constructor THoloKit.Create(const rAColors: TSkinColors);
 begin
     inherited Create;
-    FShowLegends := True;
-    FMatNormal := TColorMaterialSource.Create(nil);
-    FMatDim := TColorMaterialSource.Create(nil);
-    FMatActive := TColorMaterialSource.Create(nil);
-    FMatText := TColorMaterialSource.Create(nil);
-    FLineMat := TColorMaterial.Create;
-    ApplyColors(AColors);
+    bFShowLegends := True;
+    oFMatNormal := TColorMaterialSource.Create(nil);
+    oFMatDim := TColorMaterialSource.Create(nil);
+    oFMatActive := TColorMaterialSource.Create(nil);
+    oFMatText := TColorMaterialSource.Create(nil);
+    oFLineMat := TColorMaterial.Create;
+    ApplyColors(rAColors);
 end;
 
 //***********************************************************************************************************
@@ -1045,11 +1053,11 @@ end;
 //***********************************************************************************************************
 destructor THoloKit.Destroy;
 begin
-    FMatNormal.Free;
-    FMatDim.Free;
-    FMatActive.Free;
-    FMatText.Free;
-    FLineMat.Free;
+    oFMatNormal.Free;
+    oFMatDim.Free;
+    oFMatActive.Free;
+    oFMatText.Free;
+    oFLineMat.Free;
     inherited;
 end;
 
@@ -1057,7 +1065,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloKit.ApplyColors
-//** Parametri di ingresso: AColors: TSkinColors
+//** Parametri di ingresso: rAColors: TSkinColors
 //** Parametri di uscita: nessuno
 //** Scopo: Applicare una nuova skin.
 //** Data Ultima Modifica: 23/09/2026
@@ -1067,50 +1075,50 @@ end;
 //** leggono il colore dal kit ad ogni rendering.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloKit.ApplyColors(const AColors: TSkinColors);
+procedure THoloKit.ApplyColors(const rAColors: TSkinColors);
 begin
-    FColors := AColors;
-    FMatNormal.Color := AColors.Primary;
-    FMatDim.Color := AColors.Dim;
-    FMatActive.Color := AColors.Accent;
-    FMatText.Color := AColors.Text;
+    rFColors := rAColors;
+    oFMatNormal.Color := rAColors.iPrimary;
+    oFMatDim.Color := rAColors.iDim;
+    oFMatActive.Color := rAColors.iAccent;
+    oFMatText.Color := rAColors.iText;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.FillMaterial
-//** Parametri di ingresso: AStyle: THoloStyle; AActive: Boolean
+//** Nome funzione: THoloKit.oFillMaterial
+//** Parametri di ingresso: eAStyle: THoloStyle; bAActive: Boolean
 //** Parametri di uscita: Result: TMaterialSource
 //** Scopo: Materiale del riempimento per stile/stato.
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.FillMaterial(AStyle: THoloStyle; AActive: Boolean): TMaterialSource;
+function THoloKit.oFillMaterial(eAStyle: THoloStyle; bAActive: Boolean): TMaterialSource;
 begin
-    if AActive then
-        Result := FMatActive
-    else if AStyle = hsDim then
-        Result := FMatDim
+    if bAActive then
+        Result := oFMatActive
+    else if eAStyle = hsDim then
+        Result := oFMatDim
     else
-        Result := FMatNormal;
+        Result := oFMatNormal;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.FillOpacity
-//** Parametri di ingresso: AStyle: THoloStyle; AActive: Boolean
+//** Nome funzione: THoloKit.dFillOpacity
+//** Parametri di ingresso: eAStyle: THoloStyle; bAActive: Boolean
 //** Parametri di uscita: Result: Single
 //** Scopo: Opacita' del riempimento per stile/stato (0 = nascosto).
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.FillOpacity(AStyle: THoloStyle; AActive: Boolean): Single;
+function THoloKit.dFillOpacity(eAStyle: THoloStyle; bAActive: Boolean): Single;
 begin
-    if AActive then
+    if bAActive then
         Exit(0.62);
-    case AStyle of
+    case eAStyle of
         hsNormal: Result := 0.16;
         hsDim:    Result := 0.12;
         hsGhost:  Result := 0;
@@ -1123,64 +1131,66 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.EdgeColor
-//** Parametri di ingresso: AStyle: THoloStyle; AActive: Boolean
+//** Nome funzione: THoloKit.iEdgeColor
+//** Parametri di ingresso: eAStyle: THoloStyle; bAActive: Boolean
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Colore degli spigoli per stile/stato.
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.EdgeColor(AStyle: THoloStyle; AActive: Boolean): TAlphaColor;
+function THoloKit.iEdgeColor(eAStyle: THoloStyle; bAActive: Boolean): TAlphaColor;
 begin
-    if AActive then
-        Result := FColors.Accent
-    else if AStyle = hsDim then
-        Result := FColors.Dim
+    if bAActive then
+        Result := rFColors.iAccent
+    else if eAStyle = hsDim then
+        Result := rFColors.iDim
     else
-        Result := FColors.Primary;
+        Result := rFColors.iPrimary;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Pivot
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z: Single
+//** Nome funzione: THoloKit.oPivot
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single
 //** Parametri di uscita: Result: TDummy
 //** Scopo: Creare un punto di articolazione (gimbal, gruppo) senza grafica.
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Pivot(AParent: TFmxObject; X, Y, Z: Single): TDummy;
+function THoloKit.oPivot(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single): TDummy;
 begin
     Result := TDummy.Create(nil);
     NoHit(Result);
-    Result.Parent := AParent;
-    Result.Position.Point := Point3D(X, Y, Z);
+    Result.Parent := oAParent;
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Box
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, W, H, D: Single; AStyle: THoloStyle
+//** Nome funzione: THoloKit.oBox
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+//**                        eAStyle: THoloStyle
 //** Parametri di uscita: Result: THoloShape
 //** Scopo: Creare un parallelepipedo olografico centrato in (X,Y,Z).
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Box(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-    AStyle: THoloStyle): THoloShape;
+function THoloKit.oBox(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+    eAStyle: THoloStyle): THoloShape;
 begin
-    Result := THoloShape.CreateShape(Self, AParent, skBox, Point3D(W, H, D), AStyle);
-    Result.Position.Point := Point3D(X, Y, Z);
+    Result := THoloShape.CreateShape(Self, oAParent, skBox, Point3D(dAWidth, dAHeight, dADepth), eAStyle);
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Cyl
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, ADiam, ALen: Single; AAxis: TAxis3;
-//**                        AStyle: THoloStyle
+//** Nome funzione: THoloKit.oCyl
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dADiam, dALen: Single; eAAxis:
+//**                        TAxis3;
+//**                        eAStyle: THoloStyle
 //** Parametri di uscita: Result: THoloShape
 //** Scopo: Creare un cilindro olografico orientato lungo l'asse richiesto.
 //** Data Ultima Modifica: 23/09/2026
@@ -1189,12 +1199,12 @@ end;
 //** di 90 gradi (la rotazione e' simmetrica, il segno non conta).
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Cyl(AParent: TFmxObject; X, Y, Z, ADiam, ALen: Single;
-    AAxis: TAxis3; AStyle: THoloStyle): THoloShape;
+function THoloKit.oCyl(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dADiam, dALen: Single;
+    eAAxis: TAxis3; eAStyle: THoloStyle): THoloShape;
 begin
-    Result := THoloShape.CreateShape(Self, AParent, skCylinder, Point3D(ADiam, ALen, ADiam), AStyle);
-    Result.Position.Point := Point3D(X, Y, Z);
-    case AAxis of
+    Result := THoloShape.CreateShape(Self, oAParent, skCylinder, Point3D(dADiam, dALen, dADiam), eAStyle);
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
+    case eAAxis of
         axX: Result.RotationAngle.Z := 90;
         axZ: Result.RotationAngle.X := 90;
     end;
@@ -1203,149 +1213,157 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Ball
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, W, H, D: Single; AStyle: THoloStyle
+//** Nome funzione: THoloKit.oBall
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+//**                        eAStyle: THoloStyle
 //** Parametri di uscita: Result: THoloShape
 //** Scopo: Creare una sfera/ellissoide olografica.
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Ball(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-    AStyle: THoloStyle): THoloShape;
+function THoloKit.oBall(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+    eAStyle: THoloStyle): THoloShape;
 begin
-    Result := THoloShape.CreateShape(Self, AParent, skSphere, Point3D(W, H, D), AStyle);
-    Result.Position.Point := Point3D(X, Y, Z);
+    Result := THoloShape.CreateShape(Self, oAParent, skSphere, Point3D(dAWidth, dAHeight, dADepth), eAStyle);
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Loft
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z: Single; ASections: array of TLoftSection;
-//**                        AStyle: THoloStyle; ASegments, ALineEvery: Integer; AAxis: TAxis3
+//** Nome funzione: THoloKit.oLoft
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single; aASections: array of
+//**                        TLoftSection;
+//**                        eAStyle: THoloStyle; iASegments, iALineEvery: Integer; eAAxis: TAxis3
 //** Parametri di uscita: Result: THoloLoft
 //** Scopo: Creare una superficie loft (alta densita' di poligoni) in (X,Y,Z).
 //** Data Ultima Modifica: 23/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Loft(AParent: TFmxObject; X, Y, Z: Single;
-    const ASections: array of TLoftSection; AStyle: THoloStyle; ASegments,
-    ALineEvery: Integer; AAxis: TAxis3): THoloLoft;
+function THoloKit.oLoft(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ: Single;
+    const aASections: array of TLoftSection; eAStyle: THoloStyle; iASegments,
+    iALineEvery: Integer; eAAxis: TAxis3): THoloLoft;
 begin
-    Result := THoloLoft.CreateLoft(Self, AParent, ASections, ASegments, ALineEvery, AStyle, AAxis);
-    Result.Position.Point := Point3D(X, Y, Z);
+    Result := THoloLoft.CreateLoft(Self, oAParent, aASections, iASegments, iALineEvery, eAStyle, eAAxis);
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.RBox
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, W, H, D: Single; AStyle: THoloStyle;
-//**                        AAxis: TAxis3; ATaper: Single; ASegments: Integer; ARound: Single
+//** Nome funzione: THoloKit.oRBox
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+//**                        eAStyle: THoloStyle;
+//**                        eAAxis: TAxis3; dATaper: Single; iASegments: Integer; dARound: Single
 //** Parametri di uscita: Result: THoloLoft
 //** Scopo: Creare un parallelepipedo ARROTONDATO ad alta definizione (corpi, piastre, copritasti)
 //**        centrato in (X,Y,Z) con ingombro W x H x D.
 //** Data Ultima Modifica: 24/09/2026
 //***********************************************************************************************************
-//** Funzionamento: loft lungo l'asse AAxis con sezioni a quadrato
-//** arrotondato (superellisse di esponente ARound) e smussi alle due
-//** estremita'. ATaper (0..0.5) restringe l'estremita' "negativa" dell'asse
+//** Funzionamento: loft lungo l'asse eAAxis con sezioni a quadrato
+//** arrotondato (superellisse di esponente dARound) e smussi alle due
+//** estremita'. dATaper (0..0.5) restringe l'estremita' "negativa" dell'asse
 //** (per i copritasti con asse Z e' la faccia rivolta alla camera), come la
 //** sagoma tronco-piramidale di un tasto.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.RBox(AParent: TFmxObject; X, Y, Z, W, H, D: Single;
-    AStyle: THoloStyle; AAxis: TAxis3; ATaper: Single; ASegments: Integer;
-    ARound: Single): THoloLoft;
+function THoloKit.oRBox(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dAWidth, dAHeight, dADepth: Single;
+    eAStyle: THoloStyle; eAAxis: TAxis3; dATaper: Single; iASegments: Integer;
+    dARound: Single): THoloLoft;
 var
-    L, SA, SB, Bv, T: Single;
+    dBoxLen, dHalfHeight, dHalfDepth, dBevel, dTaper: Single;
 begin
-    case AAxis of
+    case eAAxis of
         axX:
             begin
-                L := W;
-                SA := H / 2;
-                SB := D / 2;
+                dBoxLen := dAWidth;
+                dHalfHeight := dAHeight / 2;
+                dHalfDepth := dADepth / 2;
             end;
         axY:
             begin
-                L := H;
-                SA := W / 2;
-                SB := D / 2;
+                dBoxLen := dAHeight;
+                dHalfHeight := dAWidth / 2;
+                dHalfDepth := dADepth / 2;
             end;
     else
         begin
-            L := D;
-            SA := W / 2;
-            SB := H / 2;
+            dBoxLen := dADepth;
+            dHalfHeight := dAWidth / 2;
+            dHalfDepth := dAHeight / 2;
         end;
     end;
-    Bv := Min(L * 0.25, Min(SA, SB) * 0.35);
-    T := EnsureRange(ATaper, 0, 0.5);
-    Result := Loft(AParent, X, Y, Z, [
-        Sec(-L / 2,            0, 0, SA * (1 - T) - Bv * 0.6, SB * (1 - T) - Bv * 0.6, ARound),
-        Sec(-L / 2 + Bv * 0.4, 0, 0, SA * (1 - T) - Bv * 0.15, SB * (1 - T) - Bv * 0.15, ARound),
-        Sec(-L / 2 + Bv,       0, 0, SA * (1 - T * 0.85), SB * (1 - T * 0.85), ARound),
-        Sec(L / 2 - Bv,        0, 0, SA, SB, ARound),
-        Sec(L / 2,             0, 0, SA - Bv * 0.4, SB - Bv * 0.4, ARound)],
-        AStyle, ASegments, 3, AAxis);
+    dBevel := Min(dBoxLen * 0.25, Min(dHalfHeight, dHalfDepth) * 0.35);
+    dTaper := EnsureRange(dATaper, 0, 0.5);
+    Result := oLoft(oAParent, dAPosX, dAPosY, dAPosZ, [
+        rSec(-dBoxLen / 2,            0, 0, dHalfHeight * (1 - dTaper) - dBevel * 0.6, dHalfDepth * (1
+            - dTaper) - dBevel * 0.6, dARound),
+        rSec(-dBoxLen / 2 + dBevel * 0.4, 0, 0, dHalfHeight * (1 - dTaper) - dBevel * 0.15, dHalfDepth * (1
+            - dTaper) - dBevel * 0.15, dARound),
+        rSec(-dBoxLen / 2 + dBevel,       0, 0, dHalfHeight * (1 - dTaper * 0.85), dHalfDepth * (1
+            - dTaper * 0.85), dARound),
+        rSec(dBoxLen / 2 - dBevel,        0, 0, dHalfHeight, dHalfDepth, dARound),
+        rSec(dBoxLen / 2,             0, 0, dHalfHeight - dBevel * 0.4, dHalfDepth - dBevel * 0.4, dARound)],
+        eAStyle, iASegments, 3, eAAxis);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Ring
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, ARadius: Single; ADashed: Boolean; AStyle:
+//** Nome funzione: THoloKit.oRing
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dARadius: Single; bADashed:
+//**                        Boolean; eAStyle:
 //**                        THoloStyle
 //** Parametri di uscita: Result: THoloRing
 //** Scopo: Creare un anello orizzontale (piano XZ).
 //** Data Ultima Modifica: 24/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Ring(AParent: TFmxObject; X, Y, Z, ARadius: Single;
-    ADashed: Boolean; AStyle: THoloStyle): THoloRing;
+function THoloKit.oRing(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dARadius: Single;
+    bADashed: Boolean; eAStyle: THoloStyle): THoloRing;
 begin
-    Result := THoloRing.CreateRing(Self, AParent, ARadius, ADashed, AStyle);
-    Result.Position.Point := Point3D(X, Y, Z);
+    Result := THoloRing.CreateRing(Self, oAParent, dARadius, bADashed, eAStyle);
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: THoloKit.Text
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, Z, ASize: Single; S: string; AForce: Boolean;
-//**                        AFamily: string
+//** Nome funzione: THoloKit.oText
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dASize: Single; sAText: string;
+//**                        bAForce: Boolean;
+//**                        sAFamily: string
 //** Parametri di uscita: Result: TText3D
 //** Scopo: Creare una scritta 3D (legenda di tasti/pulsanti) rivolta alla camera.
 //** Data Ultima Modifica: 24/09/2026
 //***********************************************************************************************************
 //** Funzionamento: la scritta giace nel piano XY ed e' adattata (Stretch) a un
-//** riquadro alto ASize; restituisce nil se le legende sono disattivate,
-//** salvo AForce = True (scritte indispensabili, es. ABXY del gamepad).
+//** riquadro alto dASize; restituisce nil se le legende sono disattivate,
+//** salvo bAForce = True (scritte indispensabili, es. ABXY del gamepad).
 //***********************************************************************************************************
 //***********************************************************************************************************
-function THoloKit.Text(AParent: TFmxObject; X, Y, Z, ASize: Single;
-    const S: string; AForce: Boolean; const AFamily: string): TText3D;
+function THoloKit.oText(oAParent: TFmxObject; dAPosX, dAPosY, dAPosZ, dASize: Single;
+    const sAText: string; bAForce: Boolean; const sAFamily: string): TText3D;
 begin
     Result := nil;
-    if (S = '') or not (FShowLegends or AForce) then
+    if (sAText = '') or not (bFShowLegends or bAForce) then
         Exit;
     Result := TText3D.Create(nil);
     NoHit(Result);
-    Result.Parent := AParent;
-    Result.Position.Point := Point3D(X, Y, Z);
-    Result.Width := Max(ASize * 0.7, ASize * Length(S) * 0.6);
-    Result.Height := ASize;
+    Result.Parent := oAParent;
+    Result.Position.Point := Point3D(dAPosX, dAPosY, dAPosZ);
+    Result.Width := Max(dASize * 0.7, dASize * Length(sAText) * 0.6);
+    Result.Height := dASize;
     Result.Depth := 0.01;
     Result.Stretch := True;
-    if AFamily <> '' then
-        Result.Font.Family := AFamily
+    if sAFamily <> '' then
+        Result.Font.Family := sAFamily
     else
         Result.Font.Family := 'Segoe UI';
-    Result.Text := S;
-    Result.MaterialSource := FMatText;
-    Result.MaterialShaftSource := FMatText;
-    Result.MaterialBackSource := FMatText;
+    Result.Text := sAText;
+    Result.MaterialSource := oFMatText;
+    Result.MaterialShaftSource := oFMatText;
+    Result.MaterialBackSource := oFMatText;
 end;
 
 end.

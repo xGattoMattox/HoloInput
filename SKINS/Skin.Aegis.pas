@@ -21,9 +21,9 @@ uses
 type
     TSkinAegis = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAegis.Id: string;
+class function TSkinAegis.sId: string;
 begin
     Result := 'aegis';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinAegis.DisplayName
+//** Nome funzione: TSkinAegis.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Aegis Dynamics" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAegis.DisplayName: string;
+class function TSkinAegis.sDisplayName: string;
 begin
-    Result := Tr('skin.aegis', 'Aegis Dynamics');
+    Result := sTr('skin.aegis', 'Aegis Dynamics');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinAegis.Colors: TSkinColors;
+class function TSkinAegis.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFB9C6D2), TAlphaColor($FFE3252C), TAlphaColor($FF0D1015));
+    Result := rMakeSkinColors(TAlphaColor($FFB9C6D2), TAlphaColor($FFE3252C), TAlphaColor($FF0D1015));
 end;
 
 initialization

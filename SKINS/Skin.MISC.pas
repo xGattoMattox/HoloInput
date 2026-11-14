@@ -21,9 +21,9 @@ uses
 type
     TSkinMISC = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinMISC.Id: string;
+class function TSkinMISC.sId: string;
 begin
     Result := 'misc';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinMISC.DisplayName
+//** Nome funzione: TSkinMISC.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "MISC - Musashi Industrial" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinMISC.DisplayName: string;
+class function TSkinMISC.sDisplayName: string;
 begin
-    Result := Tr('skin.misc', 'MISC - Musashi Industrial');
+    Result := sTr('skin.misc', 'MISC - Musashi Industrial');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinMISC.Colors: TSkinColors;
+class function TSkinMISC.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FF3FD9A6), TAlphaColor($FFF4E05C), TAlphaColor($FF0A1513));
+    Result := rMakeSkinColors(TAlphaColor($FF3FD9A6), TAlphaColor($FFF4E05C), TAlphaColor($FF0A1513));
 end;
 
 initialization

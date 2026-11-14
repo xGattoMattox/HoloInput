@@ -19,9 +19,9 @@ uses
 type
     TBtnSxGrid16 = class(TBtnDxGrid16)
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
-        class function Mirrored: Boolean; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
+        class function bMirrored: Boolean; override;
     end;
 
 implementation
@@ -32,7 +32,7 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnSxGrid16.ModelId
+//** Nome funzione: TBtnSxGrid16.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Griglia 4x4 (16 pulsanti) (SX)" (chiave salvata nel file
@@ -40,7 +40,7 @@ uses
 //** Data Ultima Modifica: 09/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxGrid16.ModelId: string;
+class function TBtnSxGrid16.sModelId: string;
 begin
     Result := 'btnsx.grid16';
 end;
@@ -48,16 +48,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnSxGrid16.DisplayName
+//** Nome funzione: TBtnSxGrid16.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Griglia 4x4 (16 pulsanti) (SX)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxGrid16.DisplayName: string;
+class function TBtnSxGrid16.sDisplayName: string;
 begin
-    Result := Tr('model.btnsx.grid16', 'Griglia 4x4 (16 pulsanti) (SX)');
+    Result := sTr('model.btnsx.grid16', 'Griglia 4x4 (16 pulsanti) (SX)');
 end;
 
 //***********************************************************************************************************
@@ -70,7 +70,7 @@ end;
 //** Data Ultima Modifica: 09/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxGrid16.Mirrored: Boolean;
+class function TBtnSxGrid16.bMirrored: Boolean;
 begin
     Result := True;
 end;

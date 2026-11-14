@@ -22,8 +22,8 @@ type
     protected
         class function Spec: TObjPadSpec; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -34,14 +34,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TPadXboxObj.ModelId
+//** Nome funzione: TPadXboxObj.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Xbox (3D)" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 21/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TPadXboxObj.ModelId: string;
+class function TPadXboxObj.sModelId: string;
 begin
     Result := 'pad.xboxobj';
 end;
@@ -49,16 +49,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TPadXboxObj.DisplayName
+//** Nome funzione: TPadXboxObj.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Xbox (3D)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TPadXboxObj.DisplayName: string;
+class function TPadXboxObj.sDisplayName: string;
 begin
-    Result := Tr('model.pad.xboxobj', 'Xbox (3D)');
+    Result := sTr('model.pad.xboxobj', 'Xbox (3D)');
 end;
 
 //***********************************************************************************************************

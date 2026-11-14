@@ -4,7 +4,7 @@
 //** Nome unit: Holo.Input
 //** Scopo: Acquisizione globale degli input, funzionante anche quando il gioco ha il fuoco (l'overlay non e'
 //**        mai la finestra attiva).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: - Tastiera e mouse : Raw Input (WM_INPUT) con RIDEV_INPUTSINK.
 //**                        La tastiera e' identificata per SCAN CODE (posizione
@@ -85,53 +85,53 @@ const
 
 type
     TJoyState = record
-        Connected: Boolean;
-        Axes: array[0..JOY_AXES - 1] of Single;  // -1..+1
-        Buttons: UInt32;                         // bit 0 = pulsante 1
-        POV: Integer;                            // -1 = centrato, altrimenti gradi 0..359
-        function Button(AIndex: Integer): Boolean;
-        function Axis(AIndex: Integer): Single;
+        bConnected: Boolean;
+        aAxes: array[0..JOY_AXES - 1] of Single;  // -1..+1
+        iButtons: UInt32;                         // bit 0 = pulsante 1
+        iPOV: Integer;                            // -1 = centrato, altrimenti gradi 0..359
+        function bButton(iAIndex: Integer): Boolean;
+        function dAxis(iAIndex: Integer): Single;
     end;
 
     TPadState = record
-        Connected: Boolean;
-        LX, LY, RX, RY: Single;   // -1..+1 (Y positivo = su)
-        LT, RT: Single;           // 0..1
-        Buttons: Word;            // maschera XI_*
-        function Pressed(AMask: Word): Boolean;
+        bConnected: Boolean;
+        dLX, dLY, dRX, dRY: Single;   // -1..+1 (Y positivo = su)
+        dLT, dRT: Single;           // 0..1
+        iButtons: Word;            // maschera XI_*
+        function bPressed(iAMask: Word): Boolean;
     end;
 
     TMouseState = record
-        Buttons: Byte;            // maschera MBTN_*
-        DX, DY: Single;           // movimento grezzo dell'ultimo frame (count)
-        PosX, PosY: Single;       // posizione accumulata -1..+1 (NON si ricentra)
-        VelX, VelY: Single;       // velocita' smussata -1..+1 (per l'inclinazione)
-        WheelDelta: Single;       // scatti della rotella nell'ultimo frame
-        WheelAngle: Single;       // angolo accumulato della rotella (gradi)
-        WheelPulse: Single;       // 1 dopo uno scatto, decade a 0
-        function Pressed(AMask: Byte): Boolean;
+        iButtons: Byte;            // maschera MBTN_*
+        dDX, dDY: Single;           // movimento grezzo dell'ultimo frame (count)
+        dPosX, dPosY: Single;       // posizione accumulata -1..+1 (NON si ricentra)
+        dVelX, dVelY: Single;       // velocita' smussata -1..+1 (per l'inclinazione)
+        dWheelDelta: Single;       // scatti della rotella nell'ultimo frame
+        dWheelAngle: Single;       // angolo accumulato della rotella (gradi)
+        dWheelPulse: Single;       // 1 dopo uno scatto, decade a 0
+        function bPressed(iAMask: Byte): Boolean;
     end;
 
     TInputSnapshot = record
-        Keys: array[0..KEY_IDS - 1] of Boolean;
-        Mouse: TMouseState;
-        Pads: array[0..MAX_PADS - 1] of TPadState;
-        Joys: array[0..MAX_JOY - 1] of TJoyState;
-        Frame: Cardinal;
+        aKeys: array[0..KEY_IDS - 1] of Boolean;
+        rMouse: TMouseState;
+        aPads: array[0..MAX_PADS - 1] of TPadState;
+        aJoys: array[0..MAX_JOY - 1] of TJoyState;
+        iFrame: Cardinal;
     end;
     PInputSnapshot = ^TInputSnapshot;
 
     TJoyDeviceInfo = record
-        Id: Integer;
-        Present: Boolean;
-        Name: string;
-        NumAxes, NumButtons: Integer;
-        HasPOV: Boolean;
-        Background: Boolean;      // abbinato a un dispositivo HID: letto anche in background
-        BgAxes: string;           // assi HID usati per X, Y, Z, R, U, V (es. "X Y Z Rz Rx Ry")
+        iId: Integer;
+        bPresent: Boolean;
+        sName: string;
+        iNumAxes, iNumButtons: Integer;
+        bHasPOV: Boolean;
+        bBackground: Boolean;      // abbinato a un dispositivo HID: letto anche in background
+        sBgAxes: string;           // assi HID usati per X, Y, Z, R, U, V (es. "X Y Z Rz Rx Ry")
     end;
 
-    THotkeyEvent = procedure(Sender: TObject; AHotkeyId: Integer) of object;
+    THotkeyEvent = procedure(oSender: TObject; iAHotkeyId: Integer) of object;
 
     //** Strutture Win32 dichiarate localmente **************************************************************
     TJoyCapsRec = record
@@ -167,95 +167,95 @@ type
 
     /// Un valore (asse o hat) di un dispositivo HID.
     THidAxisRec = record
-        Usage: Word;              // 0 = assente
-        Link: Word;               // link collection (per HidP_GetUsageValue)
-        Min, Max: Integer;        // range logico
-        BitSize: Word;
-        Signed: Boolean;          // range con valori negativi: va esteso il segno
+        iUsage: Word;              // 0 = assente
+        iLink: Word;               // link collection (per HidP_GetUsageValue)
+        iMin, iMax: Integer;        // range logico
+        iBitSize: Word;
+        bSigned: Boolean;          // range con valori negativi: va esteso il segno
     end;
 
     /// Un joystick/pulsantiera letto in Raw Input HID.
     THidJoyRec = record
-        Handle: THandle;          // handle Raw Input del dispositivo
-        Valid: Boolean;           // e' un joystick/gamepad/controller multi-asse leggibile
-        Name: string;             // percorso del dispositivo (per l'ordine a parita' di VID/PID)
-        Vid, Pid: Word;
-        Preparsed: TBytes;        // dati "preparsed" per le funzioni HidP_*
-        Axis: array[0..JOY_AXES - 1] of THidAxisRec;   // X, Y, Z, R, U, V
-        Hat: THidAxisRec;
-        MaxButtons: Cardinal;     // lunghezza massima della lista dei pulsanti premuti
-        JoyId: Integer;           // ID WinMM abbinato (-1 = nessuno)
-        Live: Boolean;            // ha gia' inviato almeno un rapporto
-        State: TJoyState;         // ultimo stato letto
+        hHandle: THandle;          // handle Raw Input del dispositivo
+        bValid: Boolean;           // e' un joystick/gamepad/controller multi-asse leggibile
+        sName: string;             // percorso del dispositivo (per l'ordine a parita' di VID/PID)
+        iVid, iPid: Word;
+        aPreparsed: TBytes;        // dati "preparsed" per le funzioni HidP_*
+        aAxis: array[0..JOY_AXES - 1] of THidAxisRec;   // X, Y, Z, R, U, V
+        rHat: THidAxisRec;
+        iMaxButtons: Cardinal;     // lunghezza massima della lista dei pulsanti premuti
+        iJoyId: Integer;           // ID WinMM abbinato (-1 = nessuno)
+        bLive: Boolean;            // ha gia' inviato almeno un rapporto
+        rState: TJoyState;         // ultimo stato letto
     end;
 
     //** TInputManager **************************************************************************************
     TInputManager = class
     private
-        FWnd: HWND;
-        FState: TInputSnapshot;
-        FMouseButtons: Byte;
-        FRawDX, FRawDY, FRawWheel: Integer;
-        FLastAbsX, FLastAbsY: Integer;
-        FHasAbs: Boolean;
-        FMouseRange: Single;
-        FUsedJoy: array[0..MAX_JOY - 1] of Boolean;
-        FUsedPad: array[0..MAX_PADS - 1] of Boolean;
-        FJoyCaps: array[0..MAX_JOY - 1] of TJoyCapsRec;
-        FJoyCapsOk: array[0..MAX_JOY - 1] of Boolean;
-        FJoyRetryAt: array[0..MAX_JOY - 1] of UInt64;
-        FPadRetryAt: array[0..MAX_PADS - 1] of UInt64;
-        FXInputLib: HMODULE;
-        FXInputGetState: TXInputGetStateFn;
-        FSafetyAt: UInt64;
-        FKeyIdleChecks, FBtnIdleChecks: Integer;
-        FHotkeysOk: Boolean;
-        FStreamerHotkeyOk: Boolean;
-        FOnHotkey: THotkeyEvent;
-        FHid: TArray<THidJoyRec>;                 // dispositivi HID (joystick, gamepad, multi-asse)
-        FJoyHid: array[0..MAX_JOY - 1] of Integer; // ID WinMM -> indice in FHid (-1 = nessuno)
-        FJoyCheckAt: array[0..MAX_JOY - 1] of UInt64;  // prossimo controllo di presenza (lettura HID)
-        FHidMapDirty: Boolean;                    // abbinamento ID WinMM <-> HID da ricalcolare
-        FRawBuf: TBytes;                          // buffer per i pacchetti Raw Input grandi (HID)
-        FUsageBuf: array of Word;                 // pulsanti premuti letti da HidP_GetUsages
-        procedure WndProc(var AMsg: TMessage);
-        procedure HandleRawInput(ARaw: LPARAM);
+        hFWnd: HWND;
+        rFState: TInputSnapshot;
+        iFMouseButtons: Byte;
+        iFRawDX, iFRawDY, iFRawWheel: Integer;
+        iFLastAbsX, iFLastAbsY: Integer;
+        bFHasAbs: Boolean;
+        dFMouseRange: Single;
+        aFUsedJoy: array[0..MAX_JOY - 1] of Boolean;
+        aFUsedPad: array[0..MAX_PADS - 1] of Boolean;
+        aFJoyCaps: array[0..MAX_JOY - 1] of TJoyCapsRec;
+        aFJoyCapsOk: array[0..MAX_JOY - 1] of Boolean;
+        aFJoyRetryAt: array[0..MAX_JOY - 1] of UInt64;
+        aFPadRetryAt: array[0..MAX_PADS - 1] of UInt64;
+        hFXInputLib: HMODULE;
+        mFXInputGetState: TXInputGetStateFn;
+        iFSafetyAt: UInt64;
+        iFKeyIdleChecks, iFBtnIdleChecks: Integer;
+        bFHotkeysOk: Boolean;
+        bFStreamerHotkeyOk: Boolean;
+        mFOnHotkey: THotkeyEvent;
+        aFHid: TArray<THidJoyRec>;                 // dispositivi HID (joystick, gamepad, multi-asse)
+        aFJoyHid: array[0..MAX_JOY - 1] of Integer; // ID WinMM -> indice in aFHid (-1 = nessuno)
+        aFJoyCheckAt: array[0..MAX_JOY - 1] of UInt64;  // prossimo controllo di presenza (lettura HID)
+        bFHidMapDirty: Boolean;                    // abbinamento ID WinMM <-> HID da ricalcolare
+        aFRawBuf: TBytes;                          // buffer per i pacchetti Raw Input grandi (HID)
+        aFUsageBuf: array of Word;                 // pulsanti premuti letti da HidP_GetUsages
+        procedure WndProc(var rAMsg: TMessage);
+        procedure HandleRawInput(iARaw: LPARAM);
         procedure RegisterRawDevices;
         procedure LoadXInput;
-        function ReadJoyCaps(AId: Integer): Boolean;
-        procedure PollJoystick(AId: Integer; ANow: UInt64);
-        procedure PollPad(AIndex: Integer; ANow: UInt64);
-        procedure SafetyCheck(ANow: UInt64);
-        function HidIndex(AHandle: THandle): Integer;
-        function AddHidDevice(AHandle: THandle): Integer;
+        function bReadJoyCaps(iAId: Integer): Boolean;
+        procedure PollJoystick(iAId: Integer; iANow: UInt64);
+        procedure PollPad(iAIndex: Integer; iANow: UInt64);
+        procedure SafetyCheck(iANow: UInt64);
+        function iHidIndex(hAHandle: THandle): Integer;
+        function iAddHidDevice(hAHandle: THandle): Integer;
         procedure SyncHidDevices;
         procedure RebuildHidMap;
-        procedure HandleHidInput(ADevice: THandle; AData: PByte);
-        procedure ParseHidReport(AIndex: Integer; AReport: PByte; ALength: Cardinal);
+        procedure HandleHidInput(hADevice: THandle; pAData: PByte; iASize: Cardinal);
+        procedure ParseHidReport(iAIndex: Integer; pAReport: PByte; iALength: Cardinal);
     public
         constructor Create;
         destructor Destroy; override;
-        procedure Poll(ADeltaT: Single);
+        procedure Poll(dADeltaT: Single);
         procedure ClearUsage;
-        procedure UseJoystick(AId: Integer);
-        procedure UsePad(AIndex: Integer);
+        procedure UseJoystick(iAId: Integer);
+        procedure UsePad(iAIndex: Integer);
         procedure ResetMouse;
-        function RegisterHotkeys: Boolean;
-        function EnumJoysticks: TArray<TJoyDeviceInfo>;
-        function XInputAvailable: Boolean;
-        function PadConnected(AIndex: Integer): Boolean;
-        function StatePtr: PInputSnapshot;
-        property MouseRange: Single read FMouseRange write FMouseRange;
-        property HotkeysOk: Boolean read FHotkeysOk;
+        function bRegisterHotkeys: Boolean;
+        function aEnumJoysticks: TArray<TJoyDeviceInfo>;
+        function bXInputAvailable: Boolean;
+        function bPadConnected(iAIndex: Integer): Boolean;
+        function pStatePtr: PInputSnapshot;
+        property dMouseRange: Single read dFMouseRange write dFMouseRange;
+        property bHotkeysOk: Boolean read bFHotkeysOk;
         /// True se Ctrl+Alt+F9 (modalita' streamer) e' stato registrato.
-        property StreamerHotkeyOk: Boolean read FStreamerHotkeyOk;
-        property OnHotkey: THotkeyEvent read FOnHotkey write FOnHotkey;
+        property bStreamerHotkeyOk: Boolean read bFStreamerHotkeyOk;
+        property mOnHotkey: THotkeyEvent read mFOnHotkey write mFOnHotkey;
     end;
 
 implementation
 
 uses
-    System.Win.Registry;
+    System.Win.Registry, Holo.SafeDll;
 
 //** Dichiarazioni Raw Input / WinMM ************************************************************************
 const
@@ -357,7 +357,7 @@ function HI_GetRawInputData(hRawInput: THandle; uiCommand: UINT; pData: Pointer;
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HI_joyGetPosEx(uJoyID: UINT; var pji: TJoyInfoExRec): UINT; stdcall;
-    external 'winmm.dll' name 'joyGetPosEx';
+    external 'winmm.dll' name 'joyGetPosEx' delayed;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
@@ -370,9 +370,11 @@ function HI_joyGetPosEx(uJoyID: UINT; var pji: TJoyInfoExRec): UINT; stdcall;
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HI_joyGetDevCaps(uJoyID: NativeUInt; var pjc: TJoyCapsRec; cbjc: UINT): UINT; stdcall;
-    external 'winmm.dll' name 'joyGetDevCapsW';
+    external 'winmm.dll' name 'joyGetDevCapsW' delayed;
 
 //** Dichiarazioni Raw Input HID (joystick letti in background) *********************************************
+// hid.dll e winmm.dll sono "delayed": caricate al primo uso, dopo che Holo.SafeDll ha limitato la
+// ricerca delle DLL a System32 (un import normale le cercherebbe prima accanto all'exe).
 const
     RIM_TYPEHID = 2;
     RIDI_PREPARSEDDATA = $20000005;
@@ -483,7 +485,7 @@ function HI_GetRawInputDeviceInfo(hDevice: THandle; uiCommand: UINT; pData: Poin
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HI_HidP_GetCaps(PreparsedData: Pointer; var Capabilities: THidpCapsRec): Integer; stdcall;
-    external 'hid.dll' name 'HidP_GetCaps';
+    external 'hid.dll' name 'HidP_GetCaps' delayed;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
@@ -496,7 +498,7 @@ function HI_HidP_GetCaps(PreparsedData: Pointer; var Capabilities: THidpCapsRec)
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HI_HidP_GetValueCaps(ReportType: Integer; ValueCaps: Pointer; var ValueCapsLength: Word;
-    PreparsedData: Pointer): Integer; stdcall; external 'hid.dll' name 'HidP_GetValueCaps';
+    PreparsedData: Pointer): Integer; stdcall; external 'hid.dll' name 'HidP_GetValueCaps' delayed;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
@@ -511,7 +513,7 @@ function HI_HidP_GetValueCaps(ReportType: Integer; ValueCaps: Pointer; var Value
 //***********************************************************************************************************
 function HI_HidP_GetUsageValue(ReportType: Integer; UsagePage, LinkCollection, Usage: Word;
     var UsageValue: Cardinal; PreparsedData, Report: Pointer; ReportLength: Cardinal): Integer; stdcall;
-    external 'hid.dll' name 'HidP_GetUsageValue';
+    external 'hid.dll' name 'HidP_GetUsageValue' delayed;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
@@ -526,7 +528,7 @@ function HI_HidP_GetUsageValue(ReportType: Integer; UsagePage, LinkCollection, U
 //***********************************************************************************************************
 function HI_HidP_GetUsages(ReportType: Integer; UsagePage, LinkCollection: Word; UsageList: Pointer;
     var UsageLength: Cardinal; PreparsedData, Report: Pointer; ReportLength: Cardinal): Integer; stdcall;
-    external 'hid.dll' name 'HidP_GetUsages';
+    external 'hid.dll' name 'HidP_GetUsages' delayed;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
@@ -539,40 +541,40 @@ function HI_HidP_GetUsages(ReportType: Integer; UsagePage, LinkCollection: Word;
 //***********************************************************************************************************
 //***********************************************************************************************************
 function HI_HidP_MaxUsageListLength(ReportType: Integer; UsagePage: Word;
-    PreparsedData: Pointer): Cardinal; stdcall; external 'hid.dll' name 'HidP_MaxUsageListLength';
+    PreparsedData: Pointer): Cardinal; stdcall; external 'hid.dll' name 'HidP_MaxUsageListLength' delayed;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: HidValue
-//** Parametri di ingresso: AValue: Cardinal; AAxis: THidAxisRec
+//** Nome funzione: iHidValue
+//** Parametri di ingresso: iAValue: Cardinal; rAAxis: THidAxisRec
 //** Parametri di uscita: Result: Int64
 //** Scopo: Valore di un asse HID con il segno corretto (i valori arrivano come bit grezzi).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function HidValue(AValue: Cardinal; const AAxis: THidAxisRec): Int64;
+function iHidValue(iAValue: Cardinal; const rAAxis: THidAxisRec): Int64;
 begin
-    Result := AValue;
-    if AAxis.Signed and (AAxis.BitSize > 0) and (AAxis.BitSize < 32) and
-        (((AValue shr (AAxis.BitSize - 1)) and 1) <> 0) then
-        Result := Int64(AValue) - (Int64(1) shl AAxis.BitSize);
+    Result := iAValue;
+    if rAAxis.bSigned and (rAAxis.iBitSize > 0) and (rAAxis.iBitSize < 32) and
+        (((iAValue shr (rAAxis.iBitSize - 1)) and 1) <> 0) then
+        Result := Int64(iAValue) - (Int64(1) shl rAAxis.iBitSize);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: HidAxisName
-//** Parametri di ingresso: AUsage: Word
+//** Nome funzione: sHidAxisName
+//** Parametri di ingresso: iAUsage: Word
 //** Parametri di uscita: Result: string
 //** Scopo: Nome di un asse HID (per il log del Setup); "-" se assente.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function HidAxisName(AUsage: Word): string;
+function sHidAxisName(iAUsage: Word): string;
 begin
-    if (AUsage >= HID_USAGE_X) and (AUsage <= HID_USAGE_X + 7) then
-        Result := HID_AXIS_NAMES[AUsage - HID_USAGE_X]
+    if (iAUsage >= HID_USAGE_X) and (iAUsage <= HID_USAGE_X + 7) then
+        Result := HID_AXIS_NAMES[iAUsage - HID_USAGE_X]
     else
         Result := '-';
 end;
@@ -582,8 +584,8 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: NormAxis
-//** Parametri di ingresso: AValue, AMin, AMax: Cardinal
+//** Nome funzione: dNormAxis
+//** Parametri di ingresso: iAValue, iAMin, iAMax: Cardinal
 //** Parametri di uscita: Result: Single
 //** Scopo: Normalizzare un asse WinMM nell'intervallo -1..+1.
 //** Data Ultima Modifica: 17/09/2026
@@ -591,19 +593,19 @@ end;
 //** Funzionamento: proporzione lineare tra minimo e massimo dichiarati dal driver.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function NormAxis(AValue, AMin, AMax: Cardinal): Single;
+function dNormAxis(iAValue, iAMin, iAMax: Cardinal): Single;
 begin
-    if AMax <= AMin then
+    if iAMax <= iAMin then
         Exit(0);
-    Result := ((Int64(AValue) - Int64(AMin)) / (Int64(AMax) - Int64(AMin))) * 2 - 1;
+    Result := ((Int64(iAValue) - Int64(iAMin)) / (Int64(iAMax) - Int64(iAMin))) * 2 - 1;
     Result := EnsureRange(Result, -1, 1);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: NormThumb
-//** Parametri di ingresso: AValue: SmallInt; ADead: Integer
+//** Nome funzione: dNormThumb
+//** Parametri di ingresso: iAValue: SmallInt; iADead: Integer
 //** Parametri di uscita: Result: Single
 //** Scopo: Normalizzare una levetta XInput con zona morta.
 //** Data Ultima Modifica: 17/09/2026
@@ -611,23 +613,23 @@ end;
 //** Funzionamento: sotto la soglia restituisce 0, oltre riscala da 0 a 1.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function NormThumb(AValue: SmallInt; ADead: Integer): Single;
+function dNormThumb(iAValue: SmallInt; iADead: Integer): Single;
 var
-    A: Integer;
+    iMagnitude: Integer;
 begin
-    A := Abs(Integer(AValue));
-    if A <= ADead then
+    iMagnitude := Abs(Integer(iAValue));
+    if iMagnitude <= iADead then
         Exit(0);
-    Result := Min(1, (A - ADead) / (32767 - ADead));
-    if AValue < 0 then
+    Result := Min(1, (iMagnitude - iADead) / (32767 - iADead));
+    if iAValue < 0 then
         Result := -Result;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: JoyOemName
-//** Parametri di ingresso: AMid, APid: Word
+//** Nome funzione: sJoyOemName
+//** Parametri di ingresso: iAMid, iAPid: Word
 //** Parametri di uscita: Result: string
 //** Scopo: Leggere il nome commerciale del joystick (es. "VKB-Sim Gladiator").
 //** Data Ultima Modifica: 17/09/2026
@@ -636,26 +638,26 @@ end;
 //** quello reale nel registro sotto ...\Joystick\OEM\VID_xxxx&PID_xxxx\OEMName.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function JoyOemName(AMid, APid: Word): string;
+function sJoyOemName(iAMid, iAPid: Word): string;
 const
     Roots: array[0..1] of HKEY = (HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE);
 var
-    Reg: TRegistry;
-    Key: string;
-    I: Integer;
+    oReg: TRegistry;
+    sKey: string;
+    iRoot: Integer;
 begin
     Result := '';
-    Key := Format('System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_%.4X&PID_%.4X',
-        [AMid, APid]);
-    for I := Low(Roots) to High(Roots) do
+    sKey := Format('System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_%.4X&PID_%.4X',
+        [iAMid, iAPid]);
+    for iRoot := Low(Roots) to High(Roots) do
     begin
-        Reg := TRegistry.Create(KEY_READ);
+        oReg := TRegistry.Create(KEY_READ);
         try
-            Reg.RootKey := Roots[I];
-            if Reg.OpenKeyReadOnly(Key) and Reg.ValueExists('OEMName') then
-                Result := Trim(Reg.ReadString('OEMName'));
+            oReg.RootKey := Roots[iRoot];
+            if oReg.OpenKeyReadOnly(sKey) and oReg.ValueExists('OEMName') then
+                Result := Trim(oReg.ReadString('OEMName'));
         finally
-            Reg.Free;
+            oReg.Free;
         end;
         if Result <> '' then
             Exit;
@@ -667,33 +669,33 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TJoyState.Button
-//** Parametri di ingresso: AIndex: Integer
+//** Nome funzione: TJoyState.bButton
+//** Parametri di ingresso: iAIndex: Integer
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Stato di un pulsante (indice 0-based, 0..31).
 //** Data Ultima Modifica: 17/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TJoyState.Button(AIndex: Integer): Boolean;
+function TJoyState.bButton(iAIndex: Integer): Boolean;
 begin
-    Result := Connected and (AIndex >= 0) and (AIndex < 32) and
-        ((Buttons and (UInt32(1) shl AIndex)) <> 0);
+    Result := bConnected and (iAIndex >= 0) and (iAIndex < 32) and
+        ((iButtons and (UInt32(1) shl iAIndex)) <> 0);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TJoyState.Axis
-//** Parametri di ingresso: AIndex: Integer
+//** Nome funzione: TJoyState.dAxis
+//** Parametri di ingresso: iAIndex: Integer
 //** Parametri di uscita: Result: Single
 //** Scopo: Valore di un asse (0..5) oppure 0 se l'indice non e' valido.
 //** Data Ultima Modifica: 17/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TJoyState.Axis(AIndex: Integer): Single;
+function TJoyState.dAxis(iAIndex: Integer): Single;
 begin
-    if Connected and (AIndex >= 0) and (AIndex < JOY_AXES) then
-        Result := Axes[AIndex]
+    if bConnected and (iAIndex >= 0) and (iAIndex < JOY_AXES) then
+        Result := aAxes[iAIndex]
     else
         Result := 0;
 end;
@@ -701,31 +703,31 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TPadState.Pressed
-//** Parametri di ingresso: AMask: Word
+//** Nome funzione: TPadState.bPressed
+//** Parametri di ingresso: iAMask: Word
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Verificare se un pulsante XInput (maschera XI_*) e' premuto.
 //** Data Ultima Modifica: 17/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TPadState.Pressed(AMask: Word): Boolean;
+function TPadState.bPressed(iAMask: Word): Boolean;
 begin
-    Result := Connected and ((Buttons and AMask) <> 0);
+    Result := bConnected and ((iButtons and iAMask) <> 0);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseState.Pressed
-//** Parametri di ingresso: AMask: Byte
+//** Nome funzione: TMouseState.bPressed
+//** Parametri di ingresso: iAMask: Byte
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Verificare se un pulsante del mouse (maschera MBTN_*) e' premuto.
 //** Data Ultima Modifica: 17/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TMouseState.Pressed(AMask: Byte): Boolean;
+function TMouseState.bPressed(iAMask: Byte): Boolean;
 begin
-    Result := (Buttons and AMask) <> 0;
+    Result := (iButtons and iAMask) <> 0;
 end;
 
 //** TInputManager ******************************************************************************************
@@ -746,14 +748,14 @@ end;
 //***********************************************************************************************************
 constructor TInputManager.Create;
 var
-    I: Integer;
+    iJoy: Integer;
 begin
     inherited Create;
-    FMouseRange := 3000;
-    for I := 0 to MAX_JOY - 1 do
-        FJoyHid[I] := -1;
-    FHidMapDirty := True;
-    FWnd := AllocateHWnd(WndProc);
+    dFMouseRange := 3000;
+    for iJoy := 0 to MAX_JOY - 1 do
+        aFJoyHid[iJoy] := -1;
+    bFHidMapDirty := True;
+    hFWnd := AllocateHWnd(WndProc);
     RegisterRawDevices;
     LoadXInput;
 end;
@@ -770,17 +772,17 @@ end;
 //***********************************************************************************************************
 destructor TInputManager.Destroy;
 begin
-    if FWnd <> 0 then
+    if hFWnd <> 0 then
     begin
-        UnregisterHotKey(FWnd, HK_LOCK);
-        UnregisterHotKey(FWnd, HK_SETUP);
-        UnregisterHotKey(FWnd, HK_VISIBLE);
-        UnregisterHotKey(FWnd, HK_STREAMER);
-        DeallocateHWnd(FWnd);
-        FWnd := 0;
+        UnregisterHotKey(hFWnd, HK_LOCK);
+        UnregisterHotKey(hFWnd, HK_SETUP);
+        UnregisterHotKey(hFWnd, HK_VISIBLE);
+        UnregisterHotKey(hFWnd, HK_STREAMER);
+        DeallocateHWnd(hFWnd);
+        hFWnd := 0;
     end;
-    if FXInputLib <> 0 then
-        FreeLibrary(FXInputLib);
+    if hFXInputLib <> 0 then
+        FreeLibrary(hFXInputLib);
     inherited;
 end;
 
@@ -800,50 +802,50 @@ end;
 //***********************************************************************************************************
 procedure TInputManager.RegisterRawDevices;
 var
-    Dev: array[0..4] of TRawInputDeviceRec;
+    aDev: array[0..4] of TRawInputDeviceRec;
 begin
-    Dev[0].usUsagePage := $01;
-    Dev[0].usUsage := $02;        // mouse
-    Dev[0].dwFlags := RIDEV_INPUTSINK;
-    Dev[0].hwndTarget := FWnd;
-    Dev[1].usUsagePage := $01;
-    Dev[1].usUsage := $06;        // tastiera
-    Dev[1].dwFlags := RIDEV_INPUTSINK;
-    Dev[1].hwndTarget := FWnd;
+    aDev[0].usUsagePage := $01;
+    aDev[0].usUsage := $02;        // mouse
+    aDev[0].dwFlags := RIDEV_INPUTSINK;
+    aDev[0].hwndTarget := hFWnd;
+    aDev[1].usUsagePage := $01;
+    aDev[1].usUsage := $06;        // tastiera
+    aDev[1].dwFlags := RIDEV_INPUTSINK;
+    aDev[1].hwndTarget := hFWnd;
     // joystick, gamepad e controller multi-asse (HID): letti anche in background
-    Dev[2].usUsagePage := HID_PAGE_DESKTOP;
-    Dev[2].usUsage := HID_USAGE_JOYSTICK;
-    Dev[2].dwFlags := RIDEV_INPUTSINK;
-    Dev[2].hwndTarget := FWnd;
-    Dev[3] := Dev[2];
-    Dev[3].usUsage := HID_USAGE_GAMEPAD;
-    Dev[4] := Dev[2];
-    Dev[4].usUsage := HID_USAGE_MULTIAXIS;
-    HI_RegisterRawInputDevices(@Dev[0], Length(Dev), SizeOf(TRawInputDeviceRec));
+    aDev[2].usUsagePage := HID_PAGE_DESKTOP;
+    aDev[2].usUsage := HID_USAGE_JOYSTICK;
+    aDev[2].dwFlags := RIDEV_INPUTSINK;
+    aDev[2].hwndTarget := hFWnd;
+    aDev[3] := aDev[2];
+    aDev[3].usUsage := HID_USAGE_GAMEPAD;
+    aDev[4] := aDev[2];
+    aDev[4].usUsage := HID_USAGE_MULTIAXIS;
+    HI_RegisterRawInputDevices(@aDev[0], Length(aDev), SizeOf(TRawInputDeviceRec));
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.RegisterHotkeys
+//** Nome funzione: TInputManager.bRegisterHotkeys
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Registrare le hotkey globali (Ctrl+Alt+F12/F11/F10, piu' F9 per la modalita' streamer).
 //** Data Ultima Modifica: 18/09/2026
 //***********************************************************************************************************
 //** Funzionamento: restituisce False se un'altra applicazione usa gia' una
-//** delle tre principali; l'esito di F9 e' in StreamerHotkeyOk.
+//** delle tre principali; l'esito di F9 e' in bStreamerHotkeyOk.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.RegisterHotkeys: Boolean;
+function TInputManager.bRegisterHotkeys: Boolean;
 const
     Mods = MOD_CONTROL or MOD_ALT or HI_MOD_NOREPEAT;
 begin
-    FHotkeysOk := RegisterHotKey(FWnd, HK_LOCK, Mods, VK_F12);
-    FHotkeysOk := RegisterHotKey(FWnd, HK_SETUP, Mods, VK_F11) and FHotkeysOk;
-    FHotkeysOk := RegisterHotKey(FWnd, HK_VISIBLE, Mods, VK_F10) and FHotkeysOk;
-    FStreamerHotkeyOk := RegisterHotKey(FWnd, HK_STREAMER, Mods, VK_F9);
-    Result := FHotkeysOk;
+    bFHotkeysOk := RegisterHotKey(hFWnd, HK_LOCK, Mods, VK_F12);
+    bFHotkeysOk := RegisterHotKey(hFWnd, HK_SETUP, Mods, VK_F11) and bFHotkeysOk;
+    bFHotkeysOk := RegisterHotKey(hFWnd, HK_VISIBLE, Mods, VK_F10) and bFHotkeysOk;
+    bFStreamerHotkeyOk := RegisterHotKey(hFWnd, HK_STREAMER, Mods, VK_F9);
+    Result := bFHotkeysOk;
 end;
 
 //***********************************************************************************************************
@@ -853,47 +855,49 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Caricare XInput senza renderlo un requisito dell'eseguibile.
-//** Data Ultima Modifica: 18/09/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
-//** Funzionamento: prova le DLL dalla piu' recente alla piu' vecchia.
+//** Funzionamento: prova le DLL dalla piu' recente alla piu' vecchia, solo
+//** dalla cartella di sistema (LoadLibraryEx con LOAD_LIBRARY_SEARCH_SYSTEM32):
+//** una DLL con lo stesso nome accanto all'exe non viene mai caricata.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TInputManager.LoadXInput;
 const
     Dlls: array[0..2] of string = ('xinput1_4.dll', 'xinput1_3.dll', 'xinput9_1_0.dll');
 var
-    I: Integer;
+    iDll: Integer;
 begin
-    for I := Low(Dlls) to High(Dlls) do
+    for iDll := Low(Dlls) to High(Dlls) do
     begin
-        FXInputLib := LoadLibrary(PChar(Dlls[I]));
-        if FXInputLib <> 0 then
+        hFXInputLib := LoadLibraryEx(PChar(Dlls[iDll]), 0, HOLO_LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if hFXInputLib <> 0 then
             Break;
     end;
-    if FXInputLib <> 0 then
-        @FXInputGetState := GetProcAddress(FXInputLib, 'XInputGetState');
+    if hFXInputLib <> 0 then
+        @mFXInputGetState := GetProcAddress(hFXInputLib, 'XInputGetState');
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.XInputAvailable
+//** Nome funzione: TInputManager.bXInputAvailable
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indica se XInput e' disponibile sul sistema.
 //** Data Ultima Modifica: 18/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.XInputAvailable: Boolean;
+function TInputManager.bXInputAvailable: Boolean;
 begin
-    Result := Assigned(FXInputGetState);
+    Result := Assigned(mFXInputGetState);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.PadConnected
-//** Parametri di ingresso: AIndex: Integer
+//** Nome funzione: TInputManager.bPadConnected
+//** Parametri di ingresso: iAIndex: Integer
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Interrogare subito uno slot XInput (0..3) e dire se c'e' un gamepad collegato.
 //** Data Ultima Modifica: 27/10/2026
@@ -902,46 +906,46 @@ end;
 //** (che legge solo gli slot usati dai widget); usata dalla scansione del Setup.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.PadConnected(AIndex: Integer): Boolean;
+function TInputManager.bPadConnected(iAIndex: Integer): Boolean;
 var
-    XS: TXInputStateRec;
+    rState: TXInputStateRec;
 begin
     Result := False;
-    if (not Assigned(FXInputGetState)) or (AIndex < 0) or (AIndex >= MAX_PADS) then
+    if (not Assigned(mFXInputGetState)) or (iAIndex < 0) or (iAIndex >= MAX_PADS) then
         Exit;
-    FillChar(XS, SizeOf(XS), 0);
-    Result := FXInputGetState(AIndex, XS) = ERROR_SUCCESS;
+    FillChar(rState, SizeOf(rState), 0);
+    Result := mFXInputGetState(iAIndex, rState) = ERROR_SUCCESS;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.WndProc
-//** Parametri di ingresso: AMsg: TMessage (var)
-//** Parametri di uscita: AMsg: TMessage (var)
+//** Parametri di ingresso: rAMsg: TMessage (var)
+//** Parametri di uscita: rAMsg: TMessage (var)
 //** Scopo: Procedura della finestra di servizio.
 //** Data Ultima Modifica: 18/09/2026
 //***********************************************************************************************************
 //** Funzionamento: smista WM_INPUT al parser Raw Input e WM_HOTKEY all'evento
-//** OnHotkey; tutti gli altri messaggi vanno a DefWindowProc.
+//** mOnHotkey; tutti gli altri messaggi vanno a DefWindowProc.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.WndProc(var AMsg: TMessage);
+procedure TInputManager.WndProc(var rAMsg: TMessage);
 begin
-    case AMsg.Msg of
+    case rAMsg.Msg of
         WM_INPUT:
             begin
-                HandleRawInput(AMsg.LParam);
-                AMsg.Result := DefWindowProc(FWnd, AMsg.Msg, AMsg.WParam, AMsg.LParam);
+                HandleRawInput(rAMsg.LParam);
+                rAMsg.Result := DefWindowProc(hFWnd, rAMsg.Msg, rAMsg.WParam, rAMsg.LParam);
             end;
         WM_HOTKEY:
             begin
-                if Assigned(FOnHotkey) then
-                    FOnHotkey(Self, Integer(AMsg.WParam));
-                AMsg.Result := 0;
+                if Assigned(mFOnHotkey) then
+                    mFOnHotkey(Self, Integer(rAMsg.WParam));
+                rAMsg.Result := 0;
             end;
     else
-        AMsg.Result := DefWindowProc(FWnd, AMsg.Msg, AMsg.WParam, AMsg.LParam);
+        rAMsg.Result := DefWindowProc(hFWnd, rAMsg.Msg, rAMsg.WParam, rAMsg.LParam);
     end;
 end;
 
@@ -949,10 +953,10 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.HandleRawInput
-//** Parametri di ingresso: ARaw: LPARAM
+//** Parametri di ingresso: iARaw: LPARAM
 //** Parametri di uscita: nessuno
 //** Scopo: Decodificare un pacchetto Raw Input di mouse, tastiera o controller HID.
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento:
 //**  - mouse: accumula i delta (relativi o assoluti per desktop remoto/tablet),
@@ -964,93 +968,101 @@ end;
 //** rapporti HID possono superare il buffer locale.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.HandleRawInput(ARaw: LPARAM);
+procedure TInputManager.HandleRawInput(iARaw: LPARAM);
 var
-    Buf: array[0..255] of Byte;
-    P: PByte;
-    Size, Need: UINT;
-    Hdr: PRawInputHeaderRec;
-    M: PRawMouseRec;
-    K: PRawKeyboardRec;
-    F: Word;
-    Id: Integer;
+    aBuf: array[0..255] of Byte;
+    pPacket: PByte;
+    iSize, iNeed, iGot: UINT;
+    pHdr: PRawInputHeaderRec;
+    pMouse: PRawMouseRec;
+    pKeyboard: PRawKeyboardRec;
+    iButtonFlags: Word;
+    iKeyId: Integer;
 begin
     // dimensione del pacchetto: mouse e tastiera stanno nel buffer locale, i
-    // rapporti HID possono essere piu' grandi (buffer FRawBuf riusato)
-    Need := 0;
-    if HI_GetRawInputData(THandle(ARaw), RID_INPUT, nil, Need, SizeOf(TRawInputHeaderRec)) <> 0 then
+    // rapporti HID possono essere piu' grandi (buffer aFRawBuf riusato)
+    iNeed := 0;
+    if HI_GetRawInputData(THandle(iARaw), RID_INPUT, nil, iNeed, SizeOf(TRawInputHeaderRec)) <> 0 then
         Exit;
-    if Need <= SizeOf(Buf) then
-        P := @Buf[0]
+    if iNeed <= SizeOf(aBuf) then
+        pPacket := @aBuf[0]
     else
     begin
-        if Cardinal(Length(FRawBuf)) < Need then
-            SetLength(FRawBuf, Need);
-        P := @FRawBuf[0];
+        if Cardinal(Length(aFRawBuf)) < iNeed then
+            SetLength(aFRawBuf, iNeed);
+        pPacket := @aFRawBuf[0];
     end;
-    Size := Need;
-    if HI_GetRawInputData(THandle(ARaw), RID_INPUT, P, Size,
-        SizeOf(TRawInputHeaderRec)) = $FFFFFFFF then
+    iSize := iNeed;
+    iGot := HI_GetRawInputData(THandle(iARaw), RID_INPUT, pPacket, iSize, SizeOf(TRawInputHeaderRec));
+    if (iGot = $FFFFFFFF) or (iGot < SizeOf(TRawInputHeaderRec)) then
         Exit;
-    Hdr := PRawInputHeaderRec(P);
+    pHdr := PRawInputHeaderRec(pPacket);
 
-    if Hdr.dwType = RIM_TYPEHID then
-        HandleHidInput(Hdr.hDevice, P + SizeOf(TRawInputHeaderRec))
-    else if Hdr.dwType = RIM_TYPEMOUSE then
+    if pHdr.dwType = RIM_TYPEHID then
+        HandleHidInput(pHdr.hDevice, pPacket + SizeOf(TRawInputHeaderRec), iGot - SizeOf(TRawInputHeaderRec))
+    else if pHdr.dwType = RIM_TYPEMOUSE then
     begin
-        M := PRawMouseRec(P + SizeOf(TRawInputHeaderRec));
-        if (M.usFlags and MOUSE_MOVE_ABSOLUTE) <> 0 then
+        pMouse := PRawMouseRec(pPacket + SizeOf(TRawInputHeaderRec));
+        if (pMouse.usFlags and MOUSE_MOVE_ABSOLUTE) <> 0 then
         begin
-            if FHasAbs then
+            if bFHasAbs then
             begin
-                Inc(FRawDX, (M.lLastX - FLastAbsX) div 16);
-                Inc(FRawDY, (M.lLastY - FLastAbsY) div 16);
+                Inc(iFRawDX, (pMouse.lLastX - iFLastAbsX) div 16);
+                Inc(iFRawDY, (pMouse.lLastY - iFLastAbsY) div 16);
             end;
-            FLastAbsX := M.lLastX;
-            FLastAbsY := M.lLastY;
-            FHasAbs := True;
+            iFLastAbsX := pMouse.lLastX;
+            iFLastAbsY := pMouse.lLastY;
+            bFHasAbs := True;
         end
         else
         begin
-            Inc(FRawDX, M.lLastX);
-            Inc(FRawDY, M.lLastY);
+            Inc(iFRawDX, pMouse.lLastX);
+            Inc(iFRawDY, pMouse.lLastY);
         end;
-        F := M.usButtonFlags;
-        if (F and RI_MOUSE_LEFT_BUTTON_DOWN) <> 0 then FMouseButtons := FMouseButtons or MBTN_LEFT;
-        if (F and RI_MOUSE_LEFT_BUTTON_UP) <> 0 then FMouseButtons := FMouseButtons and not MBTN_LEFT;
-        if (F and RI_MOUSE_RIGHT_BUTTON_DOWN) <> 0 then FMouseButtons := FMouseButtons or MBTN_RIGHT;
-        if (F and RI_MOUSE_RIGHT_BUTTON_UP) <> 0 then FMouseButtons := FMouseButtons and not MBTN_RIGHT;
-        if (F and RI_MOUSE_MIDDLE_BUTTON_DOWN) <> 0 then FMouseButtons := FMouseButtons or MBTN_MIDDLE;
-        if (F and RI_MOUSE_MIDDLE_BUTTON_UP) <> 0 then FMouseButtons := FMouseButtons and not MBTN_MIDDLE;
-        if (F and RI_MOUSE_BUTTON_4_DOWN) <> 0 then FMouseButtons := FMouseButtons or MBTN_X1;
-        if (F and RI_MOUSE_BUTTON_4_UP) <> 0 then FMouseButtons := FMouseButtons and not MBTN_X1;
-        if (F and RI_MOUSE_BUTTON_5_DOWN) <> 0 then FMouseButtons := FMouseButtons or MBTN_X2;
-        if (F and RI_MOUSE_BUTTON_5_UP) <> 0 then FMouseButtons := FMouseButtons and not MBTN_X2;
-        if (F and RI_MOUSE_WHEEL) <> 0 then
-            Inc(FRawWheel, SmallInt(M.usButtonData));
+        iButtonFlags := pMouse.usButtonFlags;
+        if (iButtonFlags and RI_MOUSE_LEFT_BUTTON_DOWN) <> 0 then iFMouseButtons := iFMouseButtons
+            or MBTN_LEFT;
+        if (iButtonFlags and RI_MOUSE_LEFT_BUTTON_UP) <> 0 then iFMouseButtons := iFMouseButtons
+            and not MBTN_LEFT;
+        if (iButtonFlags and RI_MOUSE_RIGHT_BUTTON_DOWN) <> 0 then iFMouseButtons := iFMouseButtons
+            or MBTN_RIGHT;
+        if (iButtonFlags and RI_MOUSE_RIGHT_BUTTON_UP) <> 0 then iFMouseButtons := iFMouseButtons
+            and not MBTN_RIGHT;
+        if (iButtonFlags and RI_MOUSE_MIDDLE_BUTTON_DOWN) <> 0 then iFMouseButtons := iFMouseButtons
+            or MBTN_MIDDLE;
+        if (iButtonFlags and RI_MOUSE_MIDDLE_BUTTON_UP) <> 0 then iFMouseButtons := iFMouseButtons
+            and not MBTN_MIDDLE;
+        if (iButtonFlags and RI_MOUSE_BUTTON_4_DOWN) <> 0 then iFMouseButtons := iFMouseButtons or MBTN_X1;
+        if (iButtonFlags and RI_MOUSE_BUTTON_4_UP) <> 0 then iFMouseButtons := iFMouseButtons
+            and not MBTN_X1;
+        if (iButtonFlags and RI_MOUSE_BUTTON_5_DOWN) <> 0 then iFMouseButtons := iFMouseButtons or MBTN_X2;
+        if (iButtonFlags and RI_MOUSE_BUTTON_5_UP) <> 0 then iFMouseButtons := iFMouseButtons
+            and not MBTN_X2;
+        if (iButtonFlags and RI_MOUSE_WHEEL) <> 0 then
+            Inc(iFRawWheel, SmallInt(pMouse.usButtonData));
     end
-    else if Hdr.dwType = RIM_TYPEKEYBOARD then
+    else if pHdr.dwType = RIM_TYPEKEYBOARD then
     begin
-        K := PRawKeyboardRec(P + SizeOf(TRawInputHeaderRec));
-        if K.VKey = $FF then
+        pKeyboard := PRawKeyboardRec(pPacket + SizeOf(TRawInputHeaderRec));
+        if pKeyboard.VKey = $FF then
             Exit;                                   // tasto "finto" generato dal driver
-        Id := K.MakeCode and $FF;
-        case K.VKey of
-            VK_NUMLOCK:  Id := SC_NUMLOCK;
-            VK_PAUSE:    Id := SC_PAUSE;
-            VK_SNAPSHOT: Id := SC_PRTSC;
+        iKeyId := pKeyboard.MakeCode and $FF;
+        case pKeyboard.VKey of
+            VK_NUMLOCK:  iKeyId := SC_NUMLOCK;
+            VK_PAUSE:    iKeyId := SC_PAUSE;
+            VK_SNAPSHOT: iKeyId := SC_PRTSC;
         else
-            if (K.Flags and RI_KEY_E1) <> 0 then
+            if (pKeyboard.Flags and RI_KEY_E1) <> 0 then
                 Exit;
-            if (K.Flags and RI_KEY_E0) <> 0 then
+            if (pKeyboard.Flags and RI_KEY_E0) <> 0 then
             begin
-                if (Id = SC_LSHIFT) or (Id = SC_RSHIFT) then
+                if (iKeyId = SC_LSHIFT) or (iKeyId = SC_RSHIFT) then
                     Exit;                               // Shift finto inviato con i tasti cursore
-                Id := Id or $100;
+                iKeyId := iKeyId or $100;
             end;
         end;
-        if (Id > 0) and (Id < KEY_IDS) then
-            FState.Keys[Id] := (K.Flags and RI_KEY_BREAK) = 0;
+        if (iKeyId > 0) and (iKeyId < KEY_IDS) then
+            rFState.aKeys[iKeyId] := (pKeyboard.Flags and RI_KEY_BREAK) = 0;
     end;
 end;
 
@@ -1069,26 +1081,26 @@ end;
 //***********************************************************************************************************
 procedure TInputManager.ClearUsage;
 begin
-    FillChar(FUsedJoy, SizeOf(FUsedJoy), 0);
-    FillChar(FUsedPad, SizeOf(FUsedPad), 0);
+    FillChar(aFUsedJoy, SizeOf(aFUsedJoy), 0);
+    FillChar(aFUsedPad, SizeOf(aFUsedPad), 0);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.UseJoystick
-//** Parametri di ingresso: AId: Integer
+//** Parametri di ingresso: iAId: Integer
 //** Parametri di uscita: nessuno
 //** Scopo: Segnalare che un joystick WinMM va letto ad ogni frame.
 //** Data Ultima Modifica: 18/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.UseJoystick(AId: Integer);
+procedure TInputManager.UseJoystick(iAId: Integer);
 begin
-    if (AId >= 0) and (AId < MAX_JOY) then
+    if (iAId >= 0) and (iAId < MAX_JOY) then
     begin
-        FUsedJoy[AId] := True;
-        FJoyRetryAt[AId] := 0;
+        aFUsedJoy[iAId] := True;
+        aFJoyRetryAt[iAId] := 0;
     end;
 end;
 
@@ -1096,18 +1108,18 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.UsePad
-//** Parametri di ingresso: AIndex: Integer
+//** Parametri di ingresso: iAIndex: Integer
 //** Parametri di uscita: nessuno
 //** Scopo: Segnalare che uno slot XInput va letto ad ogni frame.
 //** Data Ultima Modifica: 18/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.UsePad(AIndex: Integer);
+procedure TInputManager.UsePad(iAIndex: Integer);
 begin
-    if (AIndex >= 0) and (AIndex < MAX_PADS) then
+    if (iAIndex >= 0) and (iAIndex < MAX_PADS) then
     begin
-        FUsedPad[AIndex] := True;
-        FPadRetryAt[AIndex] := 0;
+        aFUsedPad[iAIndex] := True;
+        aFPadRetryAt[iAIndex] := 0;
     end;
 end;
 
@@ -1123,47 +1135,47 @@ end;
 //***********************************************************************************************************
 procedure TInputManager.ResetMouse;
 begin
-    FState.Mouse.PosX := 0;
-    FState.Mouse.PosY := 0;
+    rFState.rMouse.dPosX := 0;
+    rFState.rMouse.dPosY := 0;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.StatePtr
+//** Nome funzione: TInputManager.pStatePtr
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: PInputSnapshot
 //** Scopo: Puntatore allo stato corrente (evita copie del record grande).
 //** Data Ultima Modifica: 19/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.StatePtr: PInputSnapshot;
+function TInputManager.pStatePtr: PInputSnapshot;
 begin
-    Result := @FState;
+    Result := @rFState;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.ReadJoyCaps
-//** Parametri di ingresso: AId: Integer
+//** Nome funzione: TInputManager.bReadJoyCaps
+//** Parametri di ingresso: iAId: Integer
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Leggere le capacita' (range assi, POV) di un joystick WinMM.
 //** Data Ultima Modifica: 19/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.ReadJoyCaps(AId: Integer): Boolean;
+function TInputManager.bReadJoyCaps(iAId: Integer): Boolean;
 begin
-    FillChar(FJoyCaps[AId], SizeOf(TJoyCapsRec), 0);
-    Result := HI_joyGetDevCaps(NativeUInt(AId), FJoyCaps[AId], SizeOf(TJoyCapsRec)) = JOYERR_NOERROR;
-    FJoyCapsOk[AId] := Result;
+    FillChar(aFJoyCaps[iAId], SizeOf(TJoyCapsRec), 0);
+    Result := HI_joyGetDevCaps(NativeUInt(iAId), aFJoyCaps[iAId], SizeOf(TJoyCapsRec)) = JOYERR_NOERROR;
+    aFJoyCapsOk[iAId] := Result;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.PollJoystick
-//** Parametri di ingresso: AId: Integer; ANow: UInt64
+//** Parametri di ingresso: iAId: Integer; iANow: UInt64
 //** Parametri di uscita: nessuno
 //** Scopo: Leggere lo stato di un joystick (ID WinMM): da HID se possibile, altrimenti da WinMM.
 //** Data Ultima Modifica: 31/10/2026
@@ -1176,81 +1188,81 @@ end;
 //** riprovato solo dopo 2 secondi (joyGetPosEx su id assenti e' lento).
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.PollJoystick(AId: Integer; ANow: UInt64);
+procedure TInputManager.PollJoystick(iAId: Integer; iANow: UInt64);
 var
-    Info: TJoyInfoExRec;
-    C: ^TJoyCapsRec;
-    J: ^TJoyState;
-    H: Integer;
-    Caps: TJoyCapsRec;
+    rInfo: TJoyInfoExRec;
+    pCaps: ^TJoyCapsRec;
+    pJoy: ^TJoyState;
+    iHidIndex: Integer;
+    rCaps: TJoyCapsRec;
 begin
-    J := @FState.Joys[AId];
-    if FHidMapDirty then
+    pJoy := @rFState.aJoys[iAId];
+    if bFHidMapDirty then
         RebuildHidMap;
 
     // lettura HID (funziona anche in background) appena il dispositivo abbinato ha inviato dati
-    H := FJoyHid[AId];
-    if (H >= 0) and FHid[H].Live then
+    iHidIndex := aFJoyHid[iAId];
+    if (iHidIndex >= 0) and aFHid[iHidIndex].bLive then
     begin
         // ogni 2 s si controlla che il dispositivo sia ancora collegato
-        if ANow >= FJoyCheckAt[AId] then
+        if iANow >= aFJoyCheckAt[iAId] then
         begin
-            FJoyCheckAt[AId] := ANow + 2000;
-            FillChar(Caps, SizeOf(Caps), 0);
-            if HI_joyGetDevCaps(NativeUInt(AId), Caps, SizeOf(Caps)) <> JOYERR_NOERROR then
+            aFJoyCheckAt[iAId] := iANow + 2000;
+            FillChar(rCaps, SizeOf(rCaps), 0);
+            if HI_joyGetDevCaps(NativeUInt(iAId), rCaps, SizeOf(rCaps)) <> JOYERR_NOERROR then
             begin
-                FHidMapDirty := True;
-                FJoyCapsOk[AId] := False;
-                FJoyRetryAt[AId] := ANow + 2000;
-                J^ := Default(TJoyState);
-                J.POV := -1;
+                bFHidMapDirty := True;
+                aFJoyCapsOk[iAId] := False;
+                aFJoyRetryAt[iAId] := iANow + 2000;
+                pJoy^ := Default(TJoyState);
+                pJoy.iPOV := -1;
                 Exit;
             end;
         end;
-        J^ := FHid[H].State;
-        J.Connected := True;
+        pJoy^ := aFHid[iHidIndex].rState;
+        pJoy.bConnected := True;
         Exit;
     end;
 
-    if not FJoyCapsOk[AId] then
+    if not aFJoyCapsOk[iAId] then
     begin
-        if ANow < FJoyRetryAt[AId] then
+        if iANow < aFJoyRetryAt[iAId] then
             Exit;
-        FJoyRetryAt[AId] := ANow + 2000;
-        if not ReadJoyCaps(AId) then
+        aFJoyRetryAt[iAId] := iANow + 2000;
+        if not bReadJoyCaps(iAId) then
         begin
-            J^ := Default(TJoyState);
-            J.POV := -1;
+            pJoy^ := Default(TJoyState);
+            pJoy.iPOV := -1;
             Exit;
         end;
-        FHidMapDirty := True;    // dispositivo (ri)comparso: va (ri)abbinato al suo HID
+        bFHidMapDirty := True;    // dispositivo (ri)comparso: va (ri)abbinato al suo HID
     end;
 
-    FillChar(Info, SizeOf(Info), 0);
-    Info.dwSize := SizeOf(Info);
-    Info.dwFlags := JOY_RETURNALL;
-    if HI_joyGetPosEx(UINT(AId), Info) <> JOYERR_NOERROR then
+    FillChar(rInfo, SizeOf(rInfo), 0);
+    rInfo.dwSize := SizeOf(rInfo);
+    rInfo.dwFlags := JOY_RETURNALL;
+    if HI_joyGetPosEx(UINT(iAId), rInfo) <> JOYERR_NOERROR then
     begin
-        J^ := Default(TJoyState);
-        J.POV := -1;
-        FJoyCapsOk[AId] := False;
-        FJoyRetryAt[AId] := ANow + 2000;
+        pJoy^ := Default(TJoyState);
+        pJoy.iPOV := -1;
+        aFJoyCapsOk[iAId] := False;
+        aFJoyRetryAt[iAId] := iANow + 2000;
         Exit;
     end;
 
-    C := @FJoyCaps[AId];
-    J.Connected := True;
-    J.Axes[0] := NormAxis(Info.dwXpos, C.wXmin, C.wXmax);
-    J.Axes[1] := NormAxis(Info.dwYpos, C.wYmin, C.wYmax);
-    J.Axes[2] := NormAxis(Info.dwZpos, C.wZmin, C.wZmax);
-    J.Axes[3] := NormAxis(Info.dwRpos, C.wRmin, C.wRmax);
-    J.Axes[4] := NormAxis(Info.dwUpos, C.wUmin, C.wUmax);
-    J.Axes[5] := NormAxis(Info.dwVpos, C.wVmin, C.wVmax);
-    J.Buttons := Info.dwButtons;
-    if ((C.wCaps and JOYCAPS_HASPOV) <> 0) and (Info.dwPOV <= 35999) then
-        J.POV := Info.dwPOV div 100
+    pCaps := @aFJoyCaps[iAId];
+    pJoy.bConnected := True;
+    pJoy.aAxes[0] := dNormAxis(rInfo.dwXpos, pCaps.wXmin, pCaps.wXmax);
+    pJoy.aAxes[1] := dNormAxis(rInfo.dwYpos, pCaps.wYmin, pCaps.wYmax);
+    pJoy.aAxes[2] := dNormAxis(rInfo.dwZpos, pCaps.wZmin, pCaps.wZmax);
+    pJoy.aAxes[3] := dNormAxis(rInfo.dwRpos, pCaps.wRmin, pCaps.wRmax);
+    pJoy.aAxes[4] := dNormAxis(rInfo.dwUpos, pCaps.wUmin, pCaps.wUmax);
+    pJoy.aAxes[5] := dNormAxis(rInfo.dwVpos, pCaps.wVmin, pCaps.wVmax);
+    pJoy.iButtons := rInfo.dwButtons;
+    if ((pCaps.wCaps and JOYCAPS_HASPOV) <> 0) and (rInfo.dwPOV <= 35999) then
+        pJoy.iPOV := rInfo.dwPOV div 100
     else
-        J.POV := -1;
+        pJoy.iPOV := -1;
 end;
 
 //** Joystick in Raw Input HID ******************************************************************************
@@ -1258,30 +1270,30 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.HidIndex
-//** Parametri di ingresso: AHandle: THandle
+//** Nome funzione: TInputManager.iHidIndex
+//** Parametri di ingresso: hAHandle: THandle
 //** Parametri di uscita: Result: Integer
-//** Scopo: Indice in FHid del dispositivo con l'handle Raw Input indicato (-1 se sconosciuto).
+//** Scopo: Indice in aFHid del dispositivo con l'handle Raw Input indicato (-1 se sconosciuto).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.HidIndex(AHandle: THandle): Integer;
+function TInputManager.iHidIndex(hAHandle: THandle): Integer;
 var
-    I: Integer;
+    iHid: Integer;
 begin
-    for I := 0 to High(FHid) do
-        if FHid[I].Handle = AHandle then
-            Exit(I);
+    for iHid := 0 to High(aFHid) do
+        if aFHid[iHid].hHandle = hAHandle then
+            Exit(iHid);
     Result := -1;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.AddHidDevice
-//** Parametri di ingresso: AHandle: THandle
+//** Nome funzione: TInputManager.iAddHidDevice
+//** Parametri di ingresso: hAHandle: THandle
 //** Parametri di uscita: Result: Integer
-//** Scopo: Aggiungere a FHid un dispositivo HID con le sue caratteristiche; restituisce l'indice.
+//** Scopo: Aggiungere a aFHid un dispositivo HID con le sue caratteristiche; restituisce l'indice.
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //** Funzionamento: il dispositivo viene sempre aggiunto (cosi' i suoi
@@ -1294,7 +1306,7 @@ end;
 //** min) viene trattato come 0..2^bit-1.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.AddHidDevice(AHandle: THandle): Integer;
+function TInputManager.iAddHidDevice(hAHandle: THandle): Integer;
 const
     // per ogni posizione WinMM, gli assi HID candidati (0 = X .. 7 = Dial), in ordine di preferenza
     SLOT_CAND: array[0..JOY_AXES - 1, 0..3] of Integer = (
@@ -1305,114 +1317,116 @@ const
         (3, 6, 7, -1),       // U: Rx, Slider, Dial
         (4, 6, 7, -1));      // V: Ry, Slider, Dial
 var
-    Rec: THidJoyRec;
-    Info: TRidDeviceInfoRec;
-    Size: UINT;
-    DevName: string;
-    Caps: THidpCapsRec;
-    VC: array of THidpValueCapsRec;
-    N: Word;
-    Found: array[0..7] of THidAxisRec;
-    Used: array[0..7] of Boolean;
-    I, S, C: Integer;
-    U, UMin, UMax: Word;
-    Ax: THidAxisRec;
+    rRec: THidJoyRec;
+    rInfo: TRidDeviceInfoRec;
+    iSize: UINT;
+    sDevName: string;
+    rCaps: THidpCapsRec;
+    aValueCaps: array of THidpValueCapsRec;
+    iCapsCount: Word;
+    aFound: array[0..7] of THidAxisRec;
+    aUsed: array[0..7] of Boolean;
+    iCap, iSlot, iCandidate: Integer;
+    iUsage, iUMin, iUMax: Word;
+    rAxis: THidAxisRec;
 begin
-    Rec := Default(THidJoyRec);
-    Rec.Handle := AHandle;
-    Rec.JoyId := -1;
-    Rec.State.POV := -1;
+    rRec := Default(THidJoyRec);
+    rRec.hHandle := hAHandle;
+    rRec.iJoyId := -1;
+    rRec.rState.iPOV := -1;
     try
-        FillChar(Info, SizeOf(Info), 0);
-        Info.cbSize := SizeOf(Info);
-        Size := SizeOf(Info);
-        if HI_GetRawInputDeviceInfo(AHandle, RIDI_DEVICEINFO, @Info, Size) = $FFFFFFFF then
+        FillChar(rInfo, SizeOf(rInfo), 0);
+        rInfo.cbSize := SizeOf(rInfo);
+        iSize := SizeOf(rInfo);
+        if HI_GetRawInputDeviceInfo(hAHandle, RIDI_DEVICEINFO, @rInfo, iSize) = $FFFFFFFF then
             Exit;
-        if (Info.dwType <> RIM_TYPEHID) or (Info.usUsagePage <> HID_PAGE_DESKTOP) or
-            not (Info.usUsage in [HID_USAGE_JOYSTICK, HID_USAGE_GAMEPAD, HID_USAGE_MULTIAXIS]) then
+        if (rInfo.dwType <> RIM_TYPEHID) or (rInfo.usUsagePage <> HID_PAGE_DESKTOP) or
+            not (rInfo.usUsage in [HID_USAGE_JOYSTICK, HID_USAGE_GAMEPAD, HID_USAGE_MULTIAXIS]) then
             Exit;
-        Rec.Vid := Word(Info.dwVendorId);
-        Rec.Pid := Word(Info.dwProductId);
+        rRec.iVid := Word(rInfo.dwVendorId);
+        rRec.iPid := Word(rInfo.dwProductId);
 
-        Size := 0;
-        HI_GetRawInputDeviceInfo(AHandle, RIDI_DEVICENAME, nil, Size);
-        if Size > 0 then
+        iSize := 0;
+        HI_GetRawInputDeviceInfo(hAHandle, RIDI_DEVICENAME, nil, iSize);
+        if iSize > 0 then
         begin
-            SetLength(DevName, Size);
-            if HI_GetRawInputDeviceInfo(AHandle, RIDI_DEVICENAME, PChar(DevName), Size) <> $FFFFFFFF then
-                Rec.Name := string(PChar(DevName));
+            SetLength(sDevName, iSize);
+            if HI_GetRawInputDeviceInfo(hAHandle, RIDI_DEVICENAME, PChar(sDevName), iSize) <> $FFFFFFFF then
+                rRec.sName := string(PChar(sDevName));
         end;
 
-        Size := 0;
-        HI_GetRawInputDeviceInfo(AHandle, RIDI_PREPARSEDDATA, nil, Size);
-        if Size = 0 then
+        iSize := 0;
+        HI_GetRawInputDeviceInfo(hAHandle, RIDI_PREPARSEDDATA, nil, iSize);
+        if iSize = 0 then
             Exit;
-        SetLength(Rec.Preparsed, Size);
-        if HI_GetRawInputDeviceInfo(AHandle, RIDI_PREPARSEDDATA, @Rec.Preparsed[0], Size) = $FFFFFFFF then
+        SetLength(rRec.aPreparsed, iSize);
+        if HI_GetRawInputDeviceInfo(hAHandle, RIDI_PREPARSEDDATA, @rRec.aPreparsed[0],
+            iSize) = $FFFFFFFF then
             Exit;
-        FillChar(Caps, SizeOf(Caps), 0);
-        if HI_HidP_GetCaps(@Rec.Preparsed[0], Caps) <> HIDP_STATUS_SUCCESS then
+        FillChar(rCaps, SizeOf(rCaps), 0);
+        if HI_HidP_GetCaps(@rRec.aPreparsed[0], rCaps) <> HIDP_STATUS_SUCCESS then
             Exit;
 
-        FillChar(Found, SizeOf(Found), 0);
-        N := Caps.NumberInputValueCaps;
-        if N > 0 then
+        FillChar(aFound, SizeOf(aFound), 0);
+        iCapsCount := rCaps.NumberInputValueCaps;
+        if iCapsCount > 0 then
         begin
-            SetLength(VC, N);
-            if HI_HidP_GetValueCaps(HIDP_INPUT, @VC[0], N, @Rec.Preparsed[0]) = HIDP_STATUS_SUCCESS then
-                for I := 0 to Integer(N) - 1 do
-                    if VC[I].UsagePage = HID_PAGE_DESKTOP then
+            SetLength(aValueCaps, iCapsCount);
+            if HI_HidP_GetValueCaps(HIDP_INPUT, @aValueCaps[0], iCapsCount,
+                @rRec.aPreparsed[0]) = HIDP_STATUS_SUCCESS then
+                for iCap := 0 to Integer(iCapsCount) - 1 do
+                    if aValueCaps[iCap].UsagePage = HID_PAGE_DESKTOP then
                     begin
-                        UMin := VC[I].UsageMin;
-                        if VC[I].IsRange <> 0 then
-                            UMax := VC[I].UsageMax
+                        iUMin := aValueCaps[iCap].UsageMin;
+                        if aValueCaps[iCap].IsRange <> 0 then
+                            iUMax := aValueCaps[iCap].UsageMax
                         else
-                            UMax := UMin;
-                        Ax := Default(THidAxisRec);
-                        Ax.Link := VC[I].LinkCollection;
-                        Ax.BitSize := VC[I].BitSize;
-                        Ax.Min := VC[I].LogicalMin;
-                        Ax.Max := VC[I].LogicalMax;
-                        Ax.Signed := Ax.Min < 0;
-                        if (Ax.Max < Ax.Min) and (Ax.BitSize > 0) and (Ax.BitSize < 31) then
+                            iUMax := iUMin;
+                        rAxis := Default(THidAxisRec);
+                        rAxis.iLink := aValueCaps[iCap].LinkCollection;
+                        rAxis.iBitSize := aValueCaps[iCap].BitSize;
+                        rAxis.iMin := aValueCaps[iCap].LogicalMin;
+                        rAxis.iMax := aValueCaps[iCap].LogicalMax;
+                        rAxis.bSigned := rAxis.iMin < 0;
+                        if (rAxis.iMax < rAxis.iMin) and (rAxis.iBitSize > 0) and (rAxis.iBitSize < 31) then
                         begin
-                            Ax.Min := 0;
-                            Ax.Max := (1 shl Ax.BitSize) - 1;
-                            Ax.Signed := False;
+                            rAxis.iMin := 0;
+                            rAxis.iMax := (1 shl rAxis.iBitSize) - 1;
+                            rAxis.bSigned := False;
                         end;
-                        for U := UMin to UMax do
+                        for iUsage := iUMin to iUMax do
                         begin
-                            Ax.Usage := U;
-                            if U = HID_USAGE_HAT then
+                            rAxis.iUsage := iUsage;
+                            if iUsage = HID_USAGE_HAT then
                             begin
-                                if Rec.Hat.Usage = 0 then
-                                    Rec.Hat := Ax;
+                                if rRec.rHat.iUsage = 0 then
+                                    rRec.rHat := rAxis;
                             end
-                            else if (U >= HID_USAGE_X) and (U <= HID_USAGE_X + 7) and
-                                (Found[U - HID_USAGE_X].Usage = 0) then
-                                Found[U - HID_USAGE_X] := Ax;
+                            else if (iUsage >= HID_USAGE_X) and (iUsage <= HID_USAGE_X + 7) and
+                                (aFound[iUsage - HID_USAGE_X].iUsage = 0) then
+                                aFound[iUsage - HID_USAGE_X] := rAxis;
                         end;
                     end;
         end;
 
-        FillChar(Used, SizeOf(Used), 0);
-        for S := 0 to JOY_AXES - 1 do
-            for C := 0 to 3 do
+        FillChar(aUsed, SizeOf(aUsed), 0);
+        for iSlot := 0 to JOY_AXES - 1 do
+            for iCandidate := 0 to 3 do
             begin
-                I := SLOT_CAND[S, C];
-                if (I >= 0) and not Used[I] and (Found[I].Usage <> 0) then
+                iCap := SLOT_CAND[iSlot, iCandidate];
+                if (iCap >= 0) and not aUsed[iCap] and (aFound[iCap].iUsage <> 0) then
                 begin
-                    Rec.Axis[S] := Found[I];
-                    Used[I] := True;
+                    rRec.aAxis[iSlot] := aFound[iCap];
+                    aUsed[iCap] := True;
                     Break;
                 end;
             end;
-        Rec.MaxButtons := HI_HidP_MaxUsageListLength(HIDP_INPUT, HID_PAGE_BUTTON, @Rec.Preparsed[0]);
-        Rec.Valid := True;
+        rRec.iMaxButtons := HI_HidP_MaxUsageListLength(HIDP_INPUT, HID_PAGE_BUTTON, @rRec.aPreparsed[0]);
+        rRec.bValid := True;
     finally
-        SetLength(FHid, Length(FHid) + 1);
-        FHid[High(FHid)] := Rec;
-        Result := High(FHid);
+        SetLength(aFHid, Length(aFHid) + 1);
+        aFHid[High(aFHid)] := rRec;
+        Result := High(aFHid);
     end;
 end;
 
@@ -1422,41 +1436,41 @@ end;
 //** Nome procedura: TInputManager.SyncHidDevices
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
-//** Scopo: Allineare FHid ai dispositivi Raw Input collegati (toglie gli scollegati, aggiunge i
+//** Scopo: Allineare aFHid ai dispositivi Raw Input collegati (toglie gli scollegati, aggiunge i
 //**        nuovi).
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TInputManager.SyncHidDevices;
 var
-    List: array of TRawInputDeviceListRec;
-    N, Count: UINT;
-    I, J: Integer;
-    Keep: TArray<THidJoyRec>;
-    Found: Boolean;
+    aList: array of TRawInputDeviceListRec;
+    iDeviceCount, iCount: UINT;
+    iHid, iDevice: Integer;
+    aKeep: TArray<THidJoyRec>;
+    bFound: Boolean;
 begin
-    N := 0;
-    if HI_GetRawInputDeviceList(nil, N, SizeOf(TRawInputDeviceListRec)) = $FFFFFFFF then
+    iDeviceCount := 0;
+    if HI_GetRawInputDeviceList(nil, iDeviceCount, SizeOf(TRawInputDeviceListRec)) = $FFFFFFFF then
         Exit;
-    SetLength(List, N + 8);
-    N := Length(List);
-    Count := HI_GetRawInputDeviceList(@List[0], N, SizeOf(TRawInputDeviceListRec));
-    if Count = $FFFFFFFF then
+    SetLength(aList, iDeviceCount + 8);
+    iDeviceCount := Length(aList);
+    iCount := HI_GetRawInputDeviceList(@aList[0], iDeviceCount, SizeOf(TRawInputDeviceListRec));
+    if iCount = $FFFFFFFF then
         Exit;
-    Keep := nil;
-    for I := 0 to High(FHid) do
+    aKeep := nil;
+    for iHid := 0 to High(aFHid) do
     begin
-        Found := False;
-        for J := 0 to Integer(Count) - 1 do
-            if List[J].hDevice = FHid[I].Handle then
-                Found := True;
-        if Found then
-            Keep := Keep + [FHid[I]];
+        bFound := False;
+        for iDevice := 0 to Integer(iCount) - 1 do
+            if aList[iDevice].hDevice = aFHid[iHid].hHandle then
+                bFound := True;
+        if bFound then
+            aKeep := aKeep + [aFHid[iHid]];
     end;
-    FHid := Keep;
-    for J := 0 to Integer(Count) - 1 do
-        if (List[J].dwType = RIM_TYPEHID) and (HidIndex(List[J].hDevice) < 0) then
-            AddHidDevice(List[J].hDevice);
+    aFHid := aKeep;
+    for iDevice := 0 to Integer(iCount) - 1 do
+        if (aList[iDevice].dwType = RIM_TYPEHID) and (iHidIndex(aList[iDevice].hDevice) < 0) then
+            iAddHidDevice(aList[iDevice].hDevice);
 end;
 
 //***********************************************************************************************************
@@ -1478,30 +1492,30 @@ end;
 //***********************************************************************************************************
 procedure TInputManager.RebuildHidMap;
 var
-    J, I, Best: Integer;
-    Caps: TJoyCapsRec;
+    iJoy, iHid, iBest: Integer;
+    rCaps: TJoyCapsRec;
 begin
-    FHidMapDirty := False;
+    bFHidMapDirty := False;
     SyncHidDevices;
-    for J := 0 to MAX_JOY - 1 do
-        FJoyHid[J] := -1;
-    for I := 0 to High(FHid) do
-        FHid[I].JoyId := -1;
-    for J := 0 to MAX_JOY - 1 do
+    for iJoy := 0 to MAX_JOY - 1 do
+        aFJoyHid[iJoy] := -1;
+    for iHid := 0 to High(aFHid) do
+        aFHid[iHid].iJoyId := -1;
+    for iJoy := 0 to MAX_JOY - 1 do
     begin
-        FillChar(Caps, SizeOf(Caps), 0);
-        if HI_joyGetDevCaps(NativeUInt(J), Caps, SizeOf(Caps)) <> JOYERR_NOERROR then
+        FillChar(rCaps, SizeOf(rCaps), 0);
+        if HI_joyGetDevCaps(NativeUInt(iJoy), rCaps, SizeOf(rCaps)) <> JOYERR_NOERROR then
             Continue;
-        Best := -1;
-        for I := 0 to High(FHid) do
-            if FHid[I].Valid and (FHid[I].JoyId < 0) and (FHid[I].Vid = Caps.wMid) and
-                (FHid[I].Pid = Caps.wPid) then
-                if (Best < 0) or (CompareText(FHid[I].Name, FHid[Best].Name) < 0) then
-                    Best := I;
-        if Best >= 0 then
+        iBest := -1;
+        for iHid := 0 to High(aFHid) do
+            if aFHid[iHid].bValid and (aFHid[iHid].iJoyId < 0) and (aFHid[iHid].iVid = rCaps.wMid) and
+                (aFHid[iHid].iPid = rCaps.wPid) then
+                if (iBest < 0) or (CompareText(aFHid[iHid].sName, aFHid[iBest].sName) < 0) then
+                    iBest := iHid;
+        if iBest >= 0 then
         begin
-            FHid[Best].JoyId := J;
-            FJoyHid[J] := Best;
+            aFHid[iBest].iJoyId := iJoy;
+            aFJoyHid[iJoy] := iBest;
         end;
     end;
 end;
@@ -1510,48 +1524,53 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.HandleHidInput
-//** Parametri di ingresso: ADevice: THandle; AData: PByte
+//** Parametri di ingresso: hADevice: THandle; pAData: PByte; iASize: Cardinal
 //** Parametri di uscita: nessuno
 //** Scopo: Gestire un pacchetto Raw Input HID (struttura RAWHID: dimensione, numero di rapporti,
 //**        rapporti).
-//** Data Ultima Modifica: 31/10/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: un dispositivo mai visto viene aggiunto e l'abbinamento
 //** ricalcolato; i rapporti vengono letti solo se il dispositivo e' abbinato a
 //** un ID WinMM usato da un widget (i controller inviano centinaia di
-//** rapporti al secondo).
+//** rapporti al secondo). iASize e' il numero di byte disponibili in pAData: se
+//** dimensione x numero dei rapporti non ci sta, il pacchetto e' ignorato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.HandleHidInput(ADevice: THandle; AData: PByte);
+procedure TInputManager.HandleHidInput(hADevice: THandle; pAData: PByte; iASize: Cardinal);
 var
-    I: Integer;
-    SizeHid, Count, R: Cardinal;
-    Rep: PByte;
+    iHid: Integer;
+    iSizeHid, iCount, iReport: Cardinal;
+    pRep: PByte;
 begin
-    I := HidIndex(ADevice);
-    if I < 0 then
+    iHid := iHidIndex(hADevice);
+    if iHid < 0 then
     begin
-        I := AddHidDevice(ADevice);
-        FHidMapDirty := True;
+        iHid := iAddHidDevice(hADevice);
+        bFHidMapDirty := True;
     end;
-    if not FHid[I].Valid then
+    if not aFHid[iHid].bValid then
         Exit;
-    if FHidMapDirty then
+    if bFHidMapDirty then
     begin
         RebuildHidMap;
-        I := HidIndex(ADevice);
-        if (I < 0) or not FHid[I].Valid then
+        iHid := iHidIndex(hADevice);
+        if (iHid < 0) or not aFHid[iHid].bValid then
             Exit;
     end;
-    if (FHid[I].JoyId < 0) or not FUsedJoy[FHid[I].JoyId] then
+    if (aFHid[iHid].iJoyId < 0) or not aFUsedJoy[aFHid[iHid].iJoyId] then
         Exit;
-    SizeHid := PCardinal(AData)^;
-    Count := PCardinal(AData + 4)^;
-    Rep := AData + 8;
-    for R := 1 to Count do
+    if iASize < 8 then
+        Exit;
+    iSizeHid := PCardinal(pAData)^;
+    iCount := PCardinal(pAData + 4)^;
+    if (iSizeHid = 0) or (UInt64(iSizeHid) * iCount > iASize - 8) then
+        Exit;
+    pRep := pAData + 8;
+    for iReport := 1 to iCount do
     begin
-        ParseHidReport(I, Rep, SizeHid);
-        Inc(Rep, SizeHid);
+        ParseHidReport(iHid, pRep, iSizeHid);
+        Inc(pRep, iSizeHid);
     end;
 end;
 
@@ -1559,7 +1578,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.ParseHidReport
-//** Parametri di ingresso: AIndex: Integer; AReport: PByte; ALength: Cardinal
+//** Parametri di ingresso: iAIndex: Integer; pAReport: PByte; iALength: Cardinal
 //** Parametri di uscita: nessuno
 //** Scopo: Leggere assi, hat e pulsanti da un rapporto HID e aggiornare lo stato del dispositivo.
 //** Data Ultima Modifica: 31/10/2026
@@ -1570,69 +1589,73 @@ end;
 //** dispositivi usano piu' rapporti) restano quelli precedenti.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.ParseHidReport(AIndex: Integer; AReport: PByte; ALength: Cardinal);
+procedure TInputManager.ParseHidReport(iAIndex: Integer; pAReport: PByte; iALength: Cardinal);
 var
-    H: ^THidJoyRec;
-    Pre: Pointer;
-    A: Integer;
-    V, N, K: Cardinal;
-    X: Int64;
-    Btn: UInt32;
-    U: Word;
+    pHid: ^THidJoyRec;
+    pPre: Pointer;
+    iAxis: Integer;
+    iRawValue, iUsageCount, iUsageIndex: Cardinal;
+    iAxisValue: Int64;
+    iBtn: UInt32;
+    iButtonUsage: Word;
 begin
-    H := @FHid[AIndex];
-    Pre := @H.Preparsed[0];
-    for A := 0 to JOY_AXES - 1 do
-        if H.Axis[A].Usage <> 0 then
-            if HI_HidP_GetUsageValue(HIDP_INPUT, HID_PAGE_DESKTOP, H.Axis[A].Link, H.Axis[A].Usage, V, Pre,
-                AReport, ALength) = HIDP_STATUS_SUCCESS then
+    pHid := @aFHid[iAIndex];
+    pPre := @pHid.aPreparsed[0];
+    for iAxis := 0 to JOY_AXES - 1 do
+        if pHid.aAxis[iAxis].iUsage <> 0 then
+            if HI_HidP_GetUsageValue(HIDP_INPUT, HID_PAGE_DESKTOP, pHid.aAxis[iAxis].iLink,
+                pHid.aAxis[iAxis].iUsage, iRawValue, pPre,
+                pAReport, iALength) = HIDP_STATUS_SUCCESS then
             begin
-                X := HidValue(V, H.Axis[A]);
-                if H.Axis[A].Max > H.Axis[A].Min then
-                    H.State.Axes[A] := EnsureRange((X - H.Axis[A].Min) / (H.Axis[A].Max - H.Axis[A].Min) * 2 - 1,
+                iAxisValue := iHidValue(iRawValue, pHid.aAxis[iAxis]);
+                if pHid.aAxis[iAxis].iMax > pHid.aAxis[iAxis].iMin then
+                    pHid.rState.aAxes[iAxis] := EnsureRange((iAxisValue - pHid.aAxis[iAxis].iMin) / (pHid.aAxis[iAxis].iMax - pHid.aAxis[iAxis].iMin) * 2 - 1,
                         -1, 1)
                 else
-                    H.State.Axes[A] := 0;
+                    pHid.rState.aAxes[iAxis] := 0;
             end;
 
-    if H.Hat.Usage <> 0 then
-        if HI_HidP_GetUsageValue(HIDP_INPUT, HID_PAGE_DESKTOP, H.Hat.Link, H.Hat.Usage, V, Pre,
-            AReport, ALength) = HIDP_STATUS_SUCCESS then
+    if pHid.rHat.iUsage <> 0 then
+        if HI_HidP_GetUsageValue(HIDP_INPUT, HID_PAGE_DESKTOP, pHid.rHat.iLink, pHid.rHat.iUsage, iRawValue,
+            pPre,
+            pAReport, iALength) = HIDP_STATUS_SUCCESS then
         begin
-            X := HidValue(V, H.Hat);
-            if (H.Hat.Max > H.Hat.Min) and (X >= H.Hat.Min) and (X <= H.Hat.Max) then
-                H.State.POV := Integer(((X - H.Hat.Min) * 360) div (H.Hat.Max - H.Hat.Min + 1))
+            iAxisValue := iHidValue(iRawValue, pHid.rHat);
+            if (pHid.rHat.iMax > pHid.rHat.iMin) and (iAxisValue >= pHid.rHat.iMin)
+                and (iAxisValue <= pHid.rHat.iMax) then
+                pHid.rState.iPOV := Integer(((iAxisValue - pHid.rHat.iMin) * 360) div (pHid.rHat.iMax
+                    - pHid.rHat.iMin + 1))
             else
-                H.State.POV := -1;
+                pHid.rState.iPOV := -1;
         end;
 
-    if H.MaxButtons > 0 then
+    if pHid.iMaxButtons > 0 then
     begin
-        if Cardinal(Length(FUsageBuf)) < H.MaxButtons then
-            SetLength(FUsageBuf, H.MaxButtons);
-        N := H.MaxButtons;
-        if HI_HidP_GetUsages(HIDP_INPUT, HID_PAGE_BUTTON, 0, @FUsageBuf[0], N, Pre, AReport,
-            ALength) = HIDP_STATUS_SUCCESS then
+        if Cardinal(Length(aFUsageBuf)) < pHid.iMaxButtons then
+            SetLength(aFUsageBuf, pHid.iMaxButtons);
+        iUsageCount := pHid.iMaxButtons;
+        if HI_HidP_GetUsages(HIDP_INPUT, HID_PAGE_BUTTON, 0, @aFUsageBuf[0], iUsageCount, pPre, pAReport,
+            iALength) = HIDP_STATUS_SUCCESS then
         begin
-            Btn := 0;
-            for K := 1 to N do
+            iBtn := 0;
+            for iUsageIndex := 1 to iUsageCount do
             begin
-                U := FUsageBuf[K - 1];
-                if (U >= 1) and (U <= 32) then
-                    Btn := Btn or (UInt32(1) shl (U - 1));
+                iButtonUsage := aFUsageBuf[iUsageIndex - 1];
+                if (iButtonUsage >= 1) and (iButtonUsage <= 32) then
+                    iBtn := iBtn or (UInt32(1) shl (iButtonUsage - 1));
             end;
-            H.State.Buttons := Btn;
+            pHid.rState.iButtons := iBtn;
         end;
     end;
-    H.Live := True;
-    H.State.Connected := True;
+    pHid.bLive := True;
+    pHid.rState.bConnected := True;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.PollPad
-//** Parametri di ingresso: AIndex: Integer; ANow: UInt64
+//** Parametri di ingresso: iAIndex: Integer; iANow: UInt64
 //** Parametri di uscita: nessuno
 //** Scopo: Leggere lo stato di un gamepad XInput.
 //** Data Ultima Modifica: 19/09/2026
@@ -1640,42 +1663,42 @@ end;
 //** Funzionamento: come per i joystick, uno slot vuoto viene ritentato ogni 2 s.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.PollPad(AIndex: Integer; ANow: UInt64);
+procedure TInputManager.PollPad(iAIndex: Integer; iANow: UInt64);
 var
-    XS: TXInputStateRec;
-    P: ^TPadState;
+    rState: TXInputStateRec;
+    pPad: ^TPadState;
 begin
-    if not Assigned(FXInputGetState) then
+    if not Assigned(mFXInputGetState) then
         Exit;
-    P := @FState.Pads[AIndex];
-    if (not P.Connected) and (ANow < FPadRetryAt[AIndex]) then
+    pPad := @rFState.aPads[iAIndex];
+    if (not pPad.bConnected) and (iANow < aFPadRetryAt[iAIndex]) then
         Exit;
-    FillChar(XS, SizeOf(XS), 0);
-    if FXInputGetState(AIndex, XS) <> ERROR_SUCCESS then
+    FillChar(rState, SizeOf(rState), 0);
+    if mFXInputGetState(iAIndex, rState) <> ERROR_SUCCESS then
     begin
-        P^ := Default(TPadState);
-        FPadRetryAt[AIndex] := ANow + 2000;
+        pPad^ := Default(TPadState);
+        aFPadRetryAt[iAIndex] := iANow + 2000;
         Exit;
     end;
-    P.Connected := True;
-    P.Buttons := XS.Gamepad.wButtons;
-    P.LX := NormThumb(XS.Gamepad.sThumbLX, 7849);
-    P.LY := NormThumb(XS.Gamepad.sThumbLY, 7849);
-    P.RX := NormThumb(XS.Gamepad.sThumbRX, 8689);
-    P.RY := NormThumb(XS.Gamepad.sThumbRY, 8689);
-    P.LT := 0;
-    P.RT := 0;
-    if XS.Gamepad.bLeftTrigger > 30 then
-        P.LT := XS.Gamepad.bLeftTrigger / 255;
-    if XS.Gamepad.bRightTrigger > 30 then
-        P.RT := XS.Gamepad.bRightTrigger / 255;
+    pPad.bConnected := True;
+    pPad.iButtons := rState.Gamepad.wButtons;
+    pPad.dLX := dNormThumb(rState.Gamepad.sThumbLX, 7849);
+    pPad.dLY := dNormThumb(rState.Gamepad.sThumbLY, 7849);
+    pPad.dRX := dNormThumb(rState.Gamepad.sThumbRX, 8689);
+    pPad.dRY := dNormThumb(rState.Gamepad.sThumbRY, 8689);
+    pPad.dLT := 0;
+    pPad.dRT := 0;
+    if rState.Gamepad.bLeftTrigger > 30 then
+        pPad.dLT := rState.Gamepad.bLeftTrigger / 255;
+    if rState.Gamepad.bRightTrigger > 30 then
+        pPad.dRT := rState.Gamepad.bRightTrigger / 255;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.SafetyCheck
-//** Parametri di ingresso: ANow: UInt64
+//** Parametri di ingresso: iANow: UInt64
 //** Parametri di uscita: nessuno
 //** Scopo: Evitare tasti "incollati" se un rilascio va perso (es. Ctrl+Alt+Canc, schermata UAC,
 //**        cambio desktop).
@@ -1686,72 +1709,72 @@ end;
 //** consecutivi, azzera lo stato. Idem per i pulsanti del mouse.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.SafetyCheck(ANow: UInt64);
+procedure TInputManager.SafetyCheck(iANow: UInt64);
 var
-    VK: Integer;
-    AnyState, AnyPhys: Boolean;
+    iKey: Integer;
+    bAnyState, bAnyPhys: Boolean;
 begin
-    if ANow < FSafetyAt then
+    if iANow < iFSafetyAt then
         Exit;
-    FSafetyAt := ANow + 1000;
+    iFSafetyAt := iANow + 1000;
 
-    AnyState := False;
-    for VK := 0 to KEY_IDS - 1 do
-        if FState.Keys[VK] then
+    bAnyState := False;
+    for iKey := 0 to KEY_IDS - 1 do
+        if rFState.aKeys[iKey] then
         begin
-            AnyState := True;
+            bAnyState := True;
             Break;
         end;
-    if AnyState then
+    if bAnyState then
     begin
-        AnyPhys := False;
-        for VK := 8 to 254 do
-            if (GetAsyncKeyState(VK) and $8000) <> 0 then
+        bAnyPhys := False;
+        for iKey := 8 to 254 do
+            if (GetAsyncKeyState(iKey) and $8000) <> 0 then
             begin
-                AnyPhys := True;
+                bAnyPhys := True;
                 Break;
             end;
-        if AnyPhys then
-            FKeyIdleChecks := 0
+        if bAnyPhys then
+            iFKeyIdleChecks := 0
         else
         begin
-            Inc(FKeyIdleChecks);
-            if FKeyIdleChecks >= 2 then
+            Inc(iFKeyIdleChecks);
+            if iFKeyIdleChecks >= 2 then
             begin
-                FillChar(FState.Keys, SizeOf(FState.Keys), 0);
-                FKeyIdleChecks := 0;
+                FillChar(rFState.aKeys, SizeOf(rFState.aKeys), 0);
+                iFKeyIdleChecks := 0;
             end;
         end;
     end
     else
-        FKeyIdleChecks := 0;
+        iFKeyIdleChecks := 0;
 
-    if FMouseButtons <> 0 then
+    if iFMouseButtons <> 0 then
     begin
-        AnyPhys := ((GetAsyncKeyState(VK_LBUTTON) or GetAsyncKeyState(VK_RBUTTON) or
+        bAnyPhys := ((GetAsyncKeyState(VK_LBUTTON) or GetAsyncKeyState(VK_RBUTTON) or
             GetAsyncKeyState(VK_MBUTTON) or GetAsyncKeyState(VK_XBUTTON1) or
             GetAsyncKeyState(VK_XBUTTON2)) and $8000) <> 0;
-        if AnyPhys then
-            FBtnIdleChecks := 0
+        if bAnyPhys then
+            iFBtnIdleChecks := 0
         else
         begin
-            Inc(FBtnIdleChecks);
-            if FBtnIdleChecks >= 2 then
+            Inc(iFBtnIdleChecks);
+            if iFBtnIdleChecks >= 2 then
             begin
-                FMouseButtons := 0;
-                FBtnIdleChecks := 0;
+                iFMouseButtons := 0;
+                iFBtnIdleChecks := 0;
             end;
         end;
     end
     else
-        FBtnIdleChecks := 0;
+        iFBtnIdleChecks := 0;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TInputManager.Poll
-//** Parametri di ingresso: ADeltaT: Single
+//** Parametri di ingresso: dADeltaT: Single
 //** Parametri di uscita: nessuno
 //** Scopo: Aggiornare lo snapshot degli input; va chiamata una volta per frame.
 //** Data Ultima Modifica: 19/09/2026
@@ -1764,64 +1787,64 @@ end;
 //**  - esegue il controllo anti-tasti-incollati.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TInputManager.Poll(ADeltaT: Single);
+procedure TInputManager.Poll(dADeltaT: Single);
 var
-    Now: UInt64;
-    I: Integer;
-    M: ^TMouseState;
-    K, TX, TY: Single;
+    iNow: UInt64;
+    iJoy: Integer;
+    pMouse: ^TMouseState;
+    dSmoothing, dTargetX, dTargetY: Single;
 begin
-    Now := GetTickCount64;
-    M := @FState.Mouse;
+    iNow := GetTickCount64;
+    pMouse := @rFState.rMouse;
 
-    M.DX := FRawDX;
-    M.DY := FRawDY;
-    FRawDX := 0;
-    FRawDY := 0;
-    if FMouseRange < 1 then
-        FMouseRange := 1;
-    M.PosX := EnsureRange(M.PosX + M.DX / FMouseRange, -1, 1);
-    M.PosY := EnsureRange(M.PosY + M.DY / FMouseRange, -1, 1);
-    if ADeltaT > 0 then
+    pMouse.dDX := iFRawDX;
+    pMouse.dDY := iFRawDY;
+    iFRawDX := 0;
+    iFRawDY := 0;
+    if dFMouseRange < 1 then
+        dFMouseRange := 1;
+    pMouse.dPosX := EnsureRange(pMouse.dPosX + pMouse.dDX / dFMouseRange, -1, 1);
+    pMouse.dPosY := EnsureRange(pMouse.dPosY + pMouse.dDY / dFMouseRange, -1, 1);
+    if dADeltaT > 0 then
     begin
-        TX := EnsureRange(M.DX / (FMouseRange * 60 * ADeltaT * 0.02), -1, 1);
-        TY := EnsureRange(M.DY / (FMouseRange * 60 * ADeltaT * 0.02), -1, 1);
-        K := 1 - Exp(-ADeltaT * 12);
-        M.VelX := M.VelX + (TX - M.VelX) * K;
-        M.VelY := M.VelY + (TY - M.VelY) * K;
+        dTargetX := EnsureRange(pMouse.dDX / (dFMouseRange * 60 * dADeltaT * 0.02), -1, 1);
+        dTargetY := EnsureRange(pMouse.dDY / (dFMouseRange * 60 * dADeltaT * 0.02), -1, 1);
+        dSmoothing := 1 - Exp(-dADeltaT * 12);
+        pMouse.dVelX := pMouse.dVelX + (dTargetX - pMouse.dVelX) * dSmoothing;
+        pMouse.dVelY := pMouse.dVelY + (dTargetY - pMouse.dVelY) * dSmoothing;
     end;
-    M.WheelDelta := FRawWheel / 120;
-    FRawWheel := 0;
-    if M.WheelDelta <> 0 then
+    pMouse.dWheelDelta := iFRawWheel / 120;
+    iFRawWheel := 0;
+    if pMouse.dWheelDelta <> 0 then
     begin
-        M.WheelAngle := M.WheelAngle - M.WheelDelta * 24;
-        while M.WheelAngle >= 360 do M.WheelAngle := M.WheelAngle - 360;
-        while M.WheelAngle < 0 do M.WheelAngle := M.WheelAngle + 360;
-        M.WheelPulse := 1;
+        pMouse.dWheelAngle := pMouse.dWheelAngle - pMouse.dWheelDelta * 24;
+        while pMouse.dWheelAngle >= 360 do pMouse.dWheelAngle := pMouse.dWheelAngle - 360;
+        while pMouse.dWheelAngle < 0 do pMouse.dWheelAngle := pMouse.dWheelAngle + 360;
+        pMouse.dWheelPulse := 1;
     end
     else
     begin
-        M.WheelPulse := M.WheelPulse - ADeltaT * 4;
-        if M.WheelPulse < 0 then
-            M.WheelPulse := 0;
+        pMouse.dWheelPulse := pMouse.dWheelPulse - dADeltaT * 4;
+        if pMouse.dWheelPulse < 0 then
+            pMouse.dWheelPulse := 0;
     end;
-    M.Buttons := FMouseButtons;
+    pMouse.iButtons := iFMouseButtons;
 
-    for I := 0 to MAX_JOY - 1 do
-        if FUsedJoy[I] then
-            PollJoystick(I, Now);
-    for I := 0 to MAX_PADS - 1 do
-        if FUsedPad[I] then
-            PollPad(I, Now);
+    for iJoy := 0 to MAX_JOY - 1 do
+        if aFUsedJoy[iJoy] then
+            PollJoystick(iJoy, iNow);
+    for iJoy := 0 to MAX_PADS - 1 do
+        if aFUsedPad[iJoy] then
+            PollPad(iJoy, iNow);
 
-    SafetyCheck(Now);
-    Inc(FState.Frame);
+    SafetyCheck(iNow);
+    Inc(rFState.iFrame);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TInputManager.EnumJoysticks
+//** Nome funzione: TInputManager.aEnumJoysticks
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TArray<TJoyDeviceInfo>
 //** Scopo: Elencare i 16 id joystick WinMM con nome, assi e pulsanti (usato dal Setup per scegliere
@@ -1830,46 +1853,47 @@ end;
 //** Data Ultima Modifica: 31/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TInputManager.EnumJoysticks: TArray<TJoyDeviceInfo>;
+function TInputManager.aEnumJoysticks: TArray<TJoyDeviceInfo>;
 var
-    I, H, A: Integer;
-    Info: TJoyInfoExRec;
-    Caps: TJoyCapsRec;
+    iJoy, iHidIndex, iAxis: Integer;
+    rInfo: TJoyInfoExRec;
+    rCaps: TJoyCapsRec;
 begin
     SetLength(Result, MAX_JOY);
-    for I := 0 to MAX_JOY - 1 do
+    for iJoy := 0 to MAX_JOY - 1 do
     begin
-        Result[I] := Default(TJoyDeviceInfo);
-        Result[I].Id := I;
-        FillChar(Caps, SizeOf(Caps), 0);
-        if HI_joyGetDevCaps(NativeUInt(I), Caps, SizeOf(Caps)) <> JOYERR_NOERROR then
+        Result[iJoy] := Default(TJoyDeviceInfo);
+        Result[iJoy].iId := iJoy;
+        FillChar(rCaps, SizeOf(rCaps), 0);
+        if HI_joyGetDevCaps(NativeUInt(iJoy), rCaps, SizeOf(rCaps)) <> JOYERR_NOERROR then
             Continue;
-        FillChar(Info, SizeOf(Info), 0);
-        Info.dwSize := SizeOf(Info);
-        Info.dwFlags := JOY_RETURNALL;
-        Result[I].Present := HI_joyGetPosEx(UINT(I), Info) = JOYERR_NOERROR;
-        if not Result[I].Present then
+        FillChar(rInfo, SizeOf(rInfo), 0);
+        rInfo.dwSize := SizeOf(rInfo);
+        rInfo.dwFlags := JOY_RETURNALL;
+        Result[iJoy].bPresent := HI_joyGetPosEx(UINT(iJoy), rInfo) = JOYERR_NOERROR;
+        if not Result[iJoy].bPresent then
             Continue;
-        Result[I].Name := JoyOemName(Caps.wMid, Caps.wPid);
-        if Result[I].Name = '' then
-            Result[I].Name := Trim(string(PWideChar(@Caps.szPname[0])));
-        Result[I].NumAxes := Caps.wNumAxes;
-        Result[I].NumButtons := Caps.wNumButtons;
-        Result[I].HasPOV := (Caps.wCaps and JOYCAPS_HASPOV) <> 0;
+        Result[iJoy].sName := sJoyOemName(rCaps.wMid, rCaps.wPid);
+        if Result[iJoy].sName = '' then
+            Result[iJoy].sName := Trim(string(PWideChar(@rCaps.szPname[0])));
+        Result[iJoy].iNumAxes := rCaps.wNumAxes;
+        Result[iJoy].iNumButtons := rCaps.wNumButtons;
+        Result[iJoy].bHasPOV := (rCaps.wCaps and JOYCAPS_HASPOV) <> 0;
     end;
     // abbinamento ai dispositivi HID (lettura in background) e assi usati
     RebuildHidMap;
-    for I := 0 to MAX_JOY - 1 do
-        if Result[I].Present and (FJoyHid[I] >= 0) then
+    for iJoy := 0 to MAX_JOY - 1 do
+        if Result[iJoy].bPresent and (aFJoyHid[iJoy] >= 0) then
         begin
-            H := FJoyHid[I];
-            Result[I].Background := True;
-            Result[I].BgAxes := '';
-            for A := 0 to JOY_AXES - 1 do
+            iHidIndex := aFJoyHid[iJoy];
+            Result[iJoy].bBackground := True;
+            Result[iJoy].sBgAxes := '';
+            for iAxis := 0 to JOY_AXES - 1 do
             begin
-                if A > 0 then
-                    Result[I].BgAxes := Result[I].BgAxes + ' ';
-                Result[I].BgAxes := Result[I].BgAxes + HidAxisName(FHid[H].Axis[A].Usage);
+                if iAxis > 0 then
+                    Result[iJoy].sBgAxes := Result[iJoy].sBgAxes + ' ';
+                Result[iJoy].sBgAxes := Result[iJoy].sBgAxes
+                    + sHidAxisName(aFHid[iHidIndex].aAxis[iAxis].iUsage);
             end;
         end;
 end;

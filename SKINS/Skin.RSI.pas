@@ -21,9 +21,9 @@ uses
 type
     TSkinRSI = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -37,7 +37,7 @@ type
 //** Data Ultima Modifica: 09/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinRSI.Id: string;
+class function TSkinRSI.sId: string;
 begin
     Result := 'rsi';
 end;
@@ -45,16 +45,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinRSI.DisplayName
+//** Nome funzione: TSkinRSI.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "RSI - Roberts Space Industries" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinRSI.DisplayName: string;
+class function TSkinRSI.sDisplayName: string;
 begin
-    Result := Tr('skin.rsi', 'RSI - Roberts Space Industries');
+    Result := sTr('skin.rsi', 'RSI - Roberts Space Industries');
 end;
 
 //***********************************************************************************************************
@@ -67,9 +67,9 @@ end;
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinRSI.Colors: TSkinColors;
+class function TSkinRSI.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FF2BC4F0), TAlphaColor($FFFF9A1F), TAlphaColor($FF06121C));
+    Result := rMakeSkinColors(TAlphaColor($FF2BC4F0), TAlphaColor($FFFF9A1F), TAlphaColor($FF06121C));
 end;
 
 initialization

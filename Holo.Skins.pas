@@ -21,43 +21,43 @@ uses
 type
     /// Palette usata da widget, pulsanti e modelli 3D.
     TSkinColors = record
-        Primary: TAlphaColor;      // linee olografiche e superfici normali
-        Accent: TAlphaColor;       // evidenziazione degli input attivi
-        Dim: TAlphaColor;          // parti secondarie (basi, piastre)
-        Text: TAlphaColor;         // testi e legende
-        PanelBack: TAlphaColor;    // sfondo semitrasparente dei widget
-        PanelBorder: TAlphaColor;  // cornici e angoli dei widget
+        iPrimary: TAlphaColor;      // linee olografiche e superfici normali
+        iAccent: TAlphaColor;       // evidenziazione degli input attivi
+        iDim: TAlphaColor;          // parti secondarie (basi, piastre)
+        iText: TAlphaColor;         // testi e legende
+        iPanelBack: TAlphaColor;    // sfondo semitrasparente dei widget
+        iPanelBorder: TAlphaColor;  // cornici e angoli dei widget
     end;
 
     /// Classe base astratta di una skin (si usano solo metodi di classe).
     TSkin = class abstract
     public
-        class function Id: string; virtual; abstract;           // chiave salvata nel file .ini
-        class function DisplayName: string; virtual; abstract;  // nome mostrato nel setup
-        class function Colors: TSkinColors; virtual; abstract;  // palette
+        class function sId: string; virtual; abstract;           // chiave salvata nel file .ini
+        class function sDisplayName: string; virtual; abstract;  // nome mostrato nel setup
+        class function rColors: TSkinColors; virtual; abstract;  // palette
     end;
     TSkinClass = class of TSkin;
 
-function WithAlpha(AColor: TAlphaColor; AAlpha: Byte): TAlphaColor;
-function MixColors(A, B: TAlphaColor; T: Single): TAlphaColor;
-function MakeSkinColors(APrimary, AAccent, APanel: TAlphaColor): TSkinColors;
-function DefaultSkinColors: TSkinColors;
+function iWithAlpha(iAColor: TAlphaColor; iAAlpha: Byte): TAlphaColor;
+function iMixColors(iAFrom, iATo: TAlphaColor; dAAmount: Single): TAlphaColor;
+function rMakeSkinColors(iAPrimary, iAAccent, iAPanel: TAlphaColor): TSkinColors;
+function rDefaultSkinColors: TSkinColors;
 
-procedure RegisterSkin(AClass: TSkinClass);
-function SkinCount: Integer;
-function SkinByIndex(AIndex: Integer): TSkinClass;
-function SkinIndexOf(const AId: string): Integer;
-function FindSkin(const AId: string): TSkinClass;
+procedure RegisterSkin(oAClass: TSkinClass);
+function iSkinCount: Integer;
+function oSkinByIndex(iAIndex: Integer): TSkinClass;
+function iSkinIndexOf(const sAId: string): Integer;
+function oFindSkin(const sAId: string): TSkinClass;
 
 implementation
 
 var
-    GSkins: TList<TSkinClass> = nil;
+    oGSkins: TList<TSkinClass> = nil;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: Skins
+//** Nome funzione: oSkins
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TList<TSkinClass>
 //** Scopo: Restituire la lista globale delle skin.
@@ -67,18 +67,18 @@ var
 //** inizializzazione delle unit non ha importanza.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function Skins: TList<TSkinClass>;
+function oSkins: TList<TSkinClass>;
 begin
-    if GSkins = nil then
-        GSkins := TList<TSkinClass>.Create;
-    Result := GSkins;
+    if oGSkins = nil then
+        oGSkins := TList<TSkinClass>.Create;
+    Result := oGSkins;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: WithAlpha
-//** Parametri di ingresso: AColor: TAlphaColor; AAlpha: Byte
+//** Nome funzione: iWithAlpha
+//** Parametri di ingresso: iAColor: TAlphaColor; iAAlpha: Byte
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Cambiare il canale alfa di un colore.
 //** Data Ultima Modifica: 15/09/2026
@@ -86,20 +86,20 @@ end;
 //** Funzionamento: sovrascrive il byte A della struttura TAlphaColorRec.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function WithAlpha(AColor: TAlphaColor; AAlpha: Byte): TAlphaColor;
+function iWithAlpha(iAColor: TAlphaColor; iAAlpha: Byte): TAlphaColor;
 var
-    R: TAlphaColorRec;
+    rColorRec: TAlphaColorRec;
 begin
-    R.Color := AColor;
-    R.A := AAlpha;
-    Result := R.Color;
+    rColorRec.Color := iAColor;
+    rColorRec.A := iAAlpha;
+    Result := rColorRec.Color;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MixColors
-//** Parametri di ingresso: A, B: TAlphaColor; T: Single
+//** Nome funzione: iMixColors
+//** Parametri di ingresso: iAFrom, iATo: TAlphaColor; dAAmount: Single
 //** Parametri di uscita: Result: TAlphaColor
 //** Scopo: Interpolare linearmente due colori (T=0 -> A, T=1 -> B).
 //** Data Ultima Modifica: 15/09/2026
@@ -107,25 +107,25 @@ end;
 //** Funzionamento: interpola separatamente i quattro canali ARGB.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MixColors(A, B: TAlphaColor; T: Single): TAlphaColor;
+function iMixColors(iAFrom, iATo: TAlphaColor; dAAmount: Single): TAlphaColor;
 var
-    CA, CB, CR: TAlphaColorRec;
+    rFromRec, rToRec, rResultRec: TAlphaColorRec;
 begin
-    T := EnsureRange(T, 0, 1);
-    CA.Color := A;
-    CB.Color := B;
-    CR.A := Round(CA.A + (CB.A - CA.A) * T);
-    CR.R := Round(CA.R + (CB.R - CA.R) * T);
-    CR.G := Round(CA.G + (CB.G - CA.G) * T);
-    CR.B := Round(CA.B + (CB.B - CA.B) * T);
-    Result := CR.Color;
+    dAAmount := EnsureRange(dAAmount, 0, 1);
+    rFromRec.Color := iAFrom;
+    rToRec.Color := iATo;
+    rResultRec.A := Round(rFromRec.A + (rToRec.A - rFromRec.A) * dAAmount);
+    rResultRec.R := Round(rFromRec.R + (rToRec.R - rFromRec.R) * dAAmount);
+    rResultRec.G := Round(rFromRec.G + (rToRec.G - rFromRec.G) * dAAmount);
+    rResultRec.B := Round(rFromRec.B + (rToRec.B - rFromRec.B) * dAAmount);
+    Result := rResultRec.Color;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MakeSkinColors
-//** Parametri di ingresso: APrimary, AAccent, APanel: TAlphaColor
+//** Nome funzione: rMakeSkinColors
+//** Parametri di ingresso: iAPrimary, iAAccent, iAPanel: TAlphaColor
 //** Parametri di uscita: Result: TSkinColors
 //** Scopo: Costruire una palette completa partendo da tre colori chiave.
 //** Data Ultima Modifica: 15/09/2026
@@ -134,20 +134,20 @@ end;
 //** mescolando il primario con il colore del pannello o con il bianco.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MakeSkinColors(APrimary, AAccent, APanel: TAlphaColor): TSkinColors;
+function rMakeSkinColors(iAPrimary, iAAccent, iAPanel: TAlphaColor): TSkinColors;
 begin
-    Result.Primary := WithAlpha(APrimary, $FF);
-    Result.Accent := WithAlpha(AAccent, $FF);
-    Result.Dim := WithAlpha(MixColors(APrimary, APanel, 0.55), $FF);
-    Result.Text := WithAlpha(MixColors(APrimary, TAlphaColors.White, 0.55), $FF);
-    Result.PanelBack := WithAlpha(APanel, $A8);
-    Result.PanelBorder := WithAlpha(APrimary, $D0);
+    Result.iPrimary := iWithAlpha(iAPrimary, $FF);
+    Result.iAccent := iWithAlpha(iAAccent, $FF);
+    Result.iDim := iWithAlpha(iMixColors(iAPrimary, iAPanel, 0.55), $FF);
+    Result.iText := iWithAlpha(iMixColors(iAPrimary, TAlphaColors.White, 0.55), $FF);
+    Result.iPanelBack := iWithAlpha(iAPanel, $A8);
+    Result.iPanelBorder := iWithAlpha(iAPrimary, $D0);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: DefaultSkinColors
+//** Nome funzione: rDefaultSkinColors
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TSkinColors
 //** Scopo: Palette di riserva se nessuna skin e' registrata/trovata.
@@ -156,19 +156,19 @@ end;
 //** Funzionamento: usa la prima skin registrata, altrimenti un ciano/arancio.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function DefaultSkinColors: TSkinColors;
+function rDefaultSkinColors: TSkinColors;
 begin
-    if SkinCount > 0 then
-        Result := SkinByIndex(0).Colors
+    if iSkinCount > 0 then
+        Result := oSkinByIndex(0).rColors
     else
-        Result := MakeSkinColors($FF2BC4F0, $FFFF9A1F, $FF07121C);
+        Result := rMakeSkinColors($FF2BC4F0, $FFFF9A1F, $FF07121C);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: RegisterSkin
-//** Parametri di ingresso: AClass: TSkinClass
+//** Parametri di ingresso: oAClass: TSkinClass
 //** Parametri di uscita: nessuno
 //** Scopo: Aggiungere una skin al registro (chiamata dalle unit in SKINS).
 //** Data Ultima Modifica: 15/09/2026
@@ -176,41 +176,41 @@ end;
 //** Funzionamento: evita duplicati e mantiene l'ordine di registrazione.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure RegisterSkin(AClass: TSkinClass);
+procedure RegisterSkin(oAClass: TSkinClass);
 begin
-    if (AClass <> nil) and (Skins.IndexOf(AClass) < 0) then
-        Skins.Add(AClass);
+    if (oAClass <> nil) and (oSkins.IndexOf(oAClass) < 0) then
+        oSkins.Add(oAClass);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: SkinCount
+//** Nome funzione: iSkinCount
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Integer
 //** Scopo: Numero di skin disponibili.
 //** Data Ultima Modifica: 15/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function SkinCount: Integer;
+function iSkinCount: Integer;
 begin
-    Result := Skins.Count;
+    Result := oSkins.Count;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: SkinByIndex
-//** Parametri di ingresso: AIndex: Integer
+//** Nome funzione: oSkinByIndex
+//** Parametri di ingresso: iAIndex: Integer
 //** Parametri di uscita: Result: TSkinClass
 //** Scopo: Skin per indice (ordine di registrazione), nil se fuori range.
 //** Data Ultima Modifica: 15/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function SkinByIndex(AIndex: Integer): TSkinClass;
+function oSkinByIndex(iAIndex: Integer): TSkinClass;
 begin
-    if (AIndex >= 0) and (AIndex < Skins.Count) then
-        Result := Skins[AIndex]
+    if (iAIndex >= 0) and (iAIndex < oSkins.Count) then
+        Result := oSkins[iAIndex]
     else
         Result := nil;
 end;
@@ -218,28 +218,28 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: SkinIndexOf
-//** Parametri di ingresso: AId: string
+//** Nome funzione: iSkinIndexOf
+//** Parametri di ingresso: sAId: string
 //** Parametri di uscita: Result: Integer
 //** Scopo: Posizione di una skin dato il suo Id (case-insensitive), -1 se assente.
 //** Data Ultima Modifica: 15/09/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function SkinIndexOf(const AId: string): Integer;
+function iSkinIndexOf(const sAId: string): Integer;
 var
-    I: Integer;
+    iSkin: Integer;
 begin
-    for I := 0 to Skins.Count - 1 do
-        if SameText(Skins[I].Id, AId) then
-            Exit(I);
+    for iSkin := 0 to oSkins.Count - 1 do
+        if SameText(oSkins[iSkin].sId, sAId) then
+            Exit(iSkin);
     Result := -1;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: FindSkin
-//** Parametri di ingresso: AId: string
+//** Nome funzione: oFindSkin
+//** Parametri di ingresso: sAId: string
 //** Parametri di uscita: Result: TSkinClass
 //** Scopo: Cercare una skin per Id.
 //** Data Ultima Modifica: 15/09/2026
@@ -247,19 +247,19 @@ end;
 //** Funzionamento: se non esiste restituisce la prima registrata (o nil).
 //***********************************************************************************************************
 //***********************************************************************************************************
-function FindSkin(const AId: string): TSkinClass;
+function oFindSkin(const sAId: string): TSkinClass;
 var
-    I: Integer;
+    iSkinIndex: Integer;
 begin
-    I := SkinIndexOf(AId);
-    if I < 0 then
-        I := 0;
-    Result := SkinByIndex(I);
+    iSkinIndex := iSkinIndexOf(sAId);
+    if iSkinIndex < 0 then
+        iSkinIndex := 0;
+    Result := oSkinByIndex(iSkinIndex);
 end;
 
 initialization
 
 finalization
-    FreeAndNil(GSkins);
+    FreeAndNil(oGSkins);
 
 end.

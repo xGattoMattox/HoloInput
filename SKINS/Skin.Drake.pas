@@ -21,9 +21,9 @@ uses
 type
     TSkinDrake = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinDrake.Id: string;
+class function TSkinDrake.sId: string;
 begin
     Result := 'drake';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinDrake.DisplayName
+//** Nome funzione: TSkinDrake.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Drake Interplanetary" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinDrake.DisplayName: string;
+class function TSkinDrake.sDisplayName: string;
 begin
-    Result := Tr('skin.drake', 'Drake Interplanetary');
+    Result := sTr('skin.drake', 'Drake Interplanetary');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinDrake.Colors: TSkinColors;
+class function TSkinDrake.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFF2A007), TAlphaColor($FFFF4122), TAlphaColor($FF17140F));
+    Result := rMakeSkinColors(TAlphaColor($FFF2A007), TAlphaColor($FFFF4122), TAlphaColor($FF17140F));
 end;
 
 initialization

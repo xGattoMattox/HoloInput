@@ -21,9 +21,9 @@ uses
 type
     TSkinOrigin = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinOrigin.Id: string;
+class function TSkinOrigin.sId: string;
 begin
     Result := 'origin';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinOrigin.DisplayName
+//** Nome funzione: TSkinOrigin.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Origin Jumpworks" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinOrigin.DisplayName: string;
+class function TSkinOrigin.sDisplayName: string;
 begin
-    Result := Tr('skin.origin', 'Origin Jumpworks');
+    Result := sTr('skin.origin', 'Origin Jumpworks');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 10/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinOrigin.Colors: TSkinColors;
+class function TSkinOrigin.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFE9E4D6), TAlphaColor($FFD4AF62), TAlphaColor($FF15161A));
+    Result := rMakeSkinColors(TAlphaColor($FFE9E4D6), TAlphaColor($FFD4AF62), TAlphaColor($FF15161A));
 end;
 
 initialization

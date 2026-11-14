@@ -21,9 +21,9 @@
 //**         (pulsanti 1..6 a partire dal "primo pulsante" del Setup), che si
 //**         abbassano e si accendono.
 //** Uso dei campi di TWidgetConfig per le manette:
-//**   AxisX / InvertX / RangeX = leva (asse principale);
-//**   AxisY / InvertY / RangeY = mini-stick sinistra / destra;
-//**   AxisZ / InvertZ / RangeZ = mini-stick su / giu'.
+//**   iAxisX / bInvertX / iRangeX = leva (asse principale);
+//**   iAxisY / bInvertY / iRangeY = mini-stick sinistra / destra;
+//**   iAxisZ / bInvertZ / iRangeZ = mini-stick su / giu'.
 //** La versione sinistra (Mirrored) specchia la posizione di hat e mini-stick.
 //***********************************************************************************************************
 //***********************************************************************************************************
@@ -58,11 +58,11 @@ type
     public
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
         procedure BindDevices(AInput: TInputManager; const B: TWidgetConfig); override;
-        function IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
-        function DeviceLabel(const B: TWidgetConfig): string; override;
-        class function Kind: TDeviceKind; override;
-        class function DefaultView: TModelView; override;
-        class function DefaultAxes: string; override;
+        function bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
+        function sDeviceLabel(const B: TWidgetConfig): string; override;
+        class function eKind: TDeviceKind; override;
+        class function rDefaultView: TModelView; override;
+        class function sDefaultAxes: string; override;
     end;
 
 implementation
@@ -86,9 +86,9 @@ const
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrottleModel.Kind: TDeviceKind;
+class function TThrottleModel.eKind: TDeviceKind;
 begin
-    if Mirrored then
+    if bMirrored then
         Result := dkThrLeft
     else
         Result := dkThrRight;
@@ -97,32 +97,32 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrottleModel.DefaultView
+//** Nome funzione: TThrottleModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista predefinita: di tre quarti, leggermente dall'alto, girata verso il centro.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrottleModel.DefaultView: TModelView;
+class function TThrottleModel.rDefaultView: TModelView;
 begin
-    if Mirrored then
-        Result := MakeView(-62, -28)
+    if bMirrored then
+        Result := rMakeView(-62, -28)
     else
-        Result := MakeView(-62, 28);
+        Result := rMakeView(-62, 28);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrottleModel.DefaultAxes
+//** Nome funzione: TThrottleModel.sDefaultAxes
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Mappatura assi proposta dal Setup: leva sull'asse Z, mini-stick sugli assi X e Y.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrottleModel.DefaultAxes: string;
+class function TThrottleModel.sDefaultAxes: string;
 begin
     Result := '2,0,1';
 end;
@@ -139,37 +139,37 @@ end;
 //***********************************************************************************************************
 procedure TThrottleModel.BindDevices(AInput: TInputManager; const B: TWidgetConfig);
 begin
-    AInput.UseJoystick(B.DeviceIndex);
+    AInput.UseJoystick(B.iDeviceIndex);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrottleModel.IsConnected
+//** Nome funzione: TThrottleModel.bIsConnected
 //** Parametri di ingresso: S: TInputSnapshot; B: TWidgetConfig
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il dispositivo della manetta risulta collegato.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TThrottleModel.IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
+function TThrottleModel.bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
 begin
-    Result := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)].Connected;
+    Result := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)].bConnected;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrottleModel.DeviceLabel
+//** Nome funzione: TThrottleModel.sDeviceLabel
 //** Parametri di ingresso: B: TWidgetConfig
 //** Parametri di uscita: Result: string
 //** Scopo: Etichetta del dispositivo mostrata nel widget (ID joystick).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TThrottleModel.DeviceLabel(const B: TWidgetConfig): string;
+function TThrottleModel.sDeviceLabel(const B: TWidgetConfig): string;
 begin
-    Result := Format(Tr('widget.label.joystick', 'JOY ID %d'), [B.DeviceIndex]);
+    Result := Format(sTr('widget.label.joystick', 'JOY ID %d'), [B.iDeviceIndex]);
 end;
 
 //***********************************************************************************************************
@@ -194,40 +194,41 @@ var
     I: Integer;
     X: Single;
 begin
-    FBody := Kit.Pivot(Root, 0, 0, BODY_DZ);
+    FBody := oKit.oPivot(oRoot, 0, 0, BODY_DZ);
 
     // base e guida della leva
-    Kit.RBox(FBody, 0, 0, -0.6, 3.0, 5.0, 1.2, hsDim, axZ, 0.08, 24);
-    Kit.RBox(FBody, 0, 0, -1.22, 0.34, 3.6, 0.05, hsGhost, axZ, 0, 16);
-    Kit.Box(FBody, MX(1.05), 1.7, -1.24, 0.5, 0.5, 0.06, hsGhost);     // targhetta
+    oKit.oRBox(FBody, 0, 0, -0.6, 3.0, 5.0, 1.2, hsDim, axZ, 0.08, 24);
+    oKit.oRBox(FBody, 0, 0, -1.22, 0.34, 3.6, 0.05, hsGhost, axZ, 0, 16);
+    oKit.oBox(FBody, dMX(1.05), 1.7, -1.24, 0.5, 0.5, 0.06, hsGhost);     // targhetta
 
     // leva: perno dentro la base, asta e impugnatura
-    FLever := Kit.Pivot(FBody, 0, 0, -0.4);
-    Kit.Cyl(FLever, 0, 0, -1.6, 0.34, 2.4, axZ, hsSolid);
-    Kit.RBox(FLever, 0, 0.1, -3.7, 1.8, 1.4, 1.4, hsNormal, axZ, 0.12, 24);
+    FLever := oKit.oPivot(FBody, 0, 0, -0.4);
+    oKit.oCyl(FLever, 0, 0, -1.6, 0.34, 2.4, axZ, hsSolid);
+    oKit.oRBox(FLever, 0, 0.1, -3.7, 1.8, 1.4, 1.4, hsNormal, axZ, 0.12, 24);
 
     // hat a 8 direzioni
-    Kit.Cyl(FLever, MX(-0.45), -0.25, GRIP_TOP + 0.02, 0.46, 0.06, axZ, hsDim);
-    FHatBase := Point3D(MX(-0.45), -0.25, GRIP_TOP - 0.08);
-    FHat := Kit.Cyl(FLever, FHatBase.X, FHatBase.Y, FHatBase.Z, 0.26, 0.14, axZ, hsNormal);
+    oKit.oCyl(FLever, dMX(-0.45), -0.25, GRIP_TOP + 0.02, 0.46, 0.06, axZ, hsDim);
+    FHatBase := Point3D(dMX(-0.45), -0.25, GRIP_TOP - 0.08);
+    FHat := oKit.oCyl(FLever, FHatBase.X, FHatBase.Y, FHatBase.Z, 0.26, 0.14, axZ, hsNormal);
 
     // mini-stick: base, perno e cappuccio con pomello
-    Kit.Cyl(FLever, MX(0.45), -0.25, GRIP_TOP + 0.02, 0.46, 0.06, axZ, hsDim);
-    FMini := Kit.Pivot(FLever, MX(0.45), -0.25, GRIP_TOP);
-    FMiniKnob := Kit.Cyl(FMini, 0, 0, -0.14, 0.14, 0.28, axZ, hsNormal);
-    Kit.Ball(FMini, 0, 0, -0.32, 0.24, 0.24, 0.12, hsSolid);
+    oKit.oCyl(FLever, dMX(0.45), -0.25, GRIP_TOP + 0.02, 0.46, 0.06, axZ, hsDim);
+    FMini := oKit.oPivot(FLever, dMX(0.45), -0.25, GRIP_TOP);
+    FMiniKnob := oKit.oCyl(FMini, 0, 0, -0.14, 0.14, 0.28, axZ, hsNormal);
+    oKit.oBall(FMini, 0, 0, -0.32, 0.24, 0.24, 0.12, hsSolid);
 
     // pulsanti 1-4 sul piano superiore, in fila verso il pilota
     for I := 0 to 3 do
     begin
-        X := MX(-0.6 + I * 0.4);
-        FButtons[I] := Kit.RBox(FLever, X, 0.4, GRIP_TOP - 0.06, 0.28, 0.28, 0.14, hsNormal, axZ, 0.1, 16);
+        X := dMX(-0.6 + I * 0.4);
+        FButtons[I] := oKit.oRBox(FLever, X, 0.4, GRIP_TOP - 0.06, 0.28, 0.28, 0.14, hsNormal, axZ, 0.1, 16);
         FBtnPush[I] := Point3D(0, 0, BTN_TRAVEL);                 // verso l'impugnatura (+Z)
     end;
     // pulsanti 5-6 sul fianco rivolto al pilota (+Y)
     for I := 4 to 5 do
     begin
-        FButtons[I] := Kit.Box(FLever, MX(-0.35 + (I - 4) * 0.7), 0.86, -3.55, 0.36, 0.12, 0.36, hsNormal);
+        FButtons[I] := oKit.oBox(FLever, dMX(-0.35 + (I - 4) * 0.7), 0.86, -3.55, 0.36, 0.12, 0.36,
+            hsNormal);
         FBtnPush[I] := Point3D(0, -BTN_TRAVEL, 0);                // verso l'impugnatura (-Y)
     end;
     for I := 0 to THR_BUTTONS - 1 do
@@ -246,9 +247,9 @@ end;
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: asse a fine corsa (+/-1) = meta' dell'ampiezza impostata
-//** (RangeX per la leva, RangeY / RangeZ per il mini-stick). L'hat si sposta
+//** (iRangeX per la leva, iRangeY / iRangeZ per il mini-stick). L'hat si sposta
 //** nella direzione del POV (0 = avanti, 90 = destra) e si accende; i pulsanti
-//** (ButtonOffset + 0..5) si abbassano e si accendono solo quando cambiano.
+//** (iButtonOffset + 0..5) si abbassano e si accendono solo quando cambiano.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure TThrottleModel.Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single);
@@ -260,39 +261,39 @@ var
 begin
     if FLever = nil then
         Exit;
-    J := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)];
-    AL := JoyAxisValue(J, B.AxisX, B.InvertX);
-    MXv := JoyAxisValue(J, B.AxisY, B.InvertY);
-    MYv := JoyAxisValue(J, B.AxisZ, B.InvertZ);
+    J := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)];
+    AL := dJoyAxisValue(J, B.iAxisX, B.bInvertX);
+    MXv := dJoyAxisValue(J, B.iAxisY, B.bInvertY);
+    MYv := dJoyAxisValue(J, B.iAxisZ, B.bInvertZ);
 
     // leva: avanti / indietro attorno all'asse X
-    FLever.RotationAngle.X := Rot(AL * B.RangeX * 0.5);
+    FLever.RotationAngle.X := dRot(AL * B.iRangeX * 0.5);
     // mini-stick: sinistra / destra attorno a Y, su / giu' attorno a X
-    FMini.RotationAngle.Y := Rot(MXv * B.RangeY * 0.5);
-    FMini.RotationAngle.X := Rot(MYv * B.RangeZ * 0.5);
-    FMiniKnob.Active := (Abs(MXv) > 0.2) or (Abs(MYv) > 0.2);
+    FMini.RotationAngle.Y := dRot(MXv * B.iRangeY * 0.5);
+    FMini.RotationAngle.X := dRot(MYv * B.iRangeZ * 0.5);
+    FMiniKnob.bActive := (Abs(MXv) > 0.2) or (Abs(MYv) > 0.2);
 
     // hat
-    HatOn := J.Connected and (J.POV >= 0);
+    HatOn := J.bConnected and (J.iPOV >= 0);
     if HatOn then
     begin
-        A := DegToRad(J.POV);
+        A := DegToRad(J.iPOV);
         FHat.Position.Point := Point3D(FHatBase.X + Sin(A) * HAT_STEP, FHatBase.Y - Cos(A) * HAT_STEP,
             FHatBase.Z);
     end
     else
         FHat.Position.Point := FHatBase;
-    if FHat.Active <> HatOn then
-        FHat.Active := HatOn;
+    if FHat.bActive <> HatOn then
+        FHat.bActive := HatOn;
 
     // pulsanti
     for I := 0 to THR_BUTTONS - 1 do
     begin
-        P := J.Button(B.ButtonOffset + I);
+        P := J.bButton(B.iButtonOffset + I);
         if P <> FPressed[I] then
         begin
             FPressed[I] := P;
-            FButtons[I].Active := P;
+            FButtons[I].bActive := P;
             if P then
                 FButtons[I].Position.Point := FBtnBase[I] + FBtnPush[I]
             else

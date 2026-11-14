@@ -21,9 +21,9 @@ uses
 type
     TSkinArgo = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinArgo.Id: string;
+class function TSkinArgo.sId: string;
 begin
     Result := 'argo';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinArgo.DisplayName
+//** Nome funzione: TSkinArgo.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "ARGO Astronautics" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinArgo.DisplayName: string;
+class function TSkinArgo.sDisplayName: string;
 begin
-    Result := Tr('skin.argo', 'ARGO Astronautics');
+    Result := sTr('skin.argo', 'ARGO Astronautics');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinArgo.Colors: TSkinColors;
+class function TSkinArgo.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFFFC400), TAlphaColor($FFFF6A00), TAlphaColor($FF121212));
+    Result := rMakeSkinColors(TAlphaColor($FFFFC400), TAlphaColor($FFFF6A00), TAlphaColor($FF121212));
 end;
 
 initialization

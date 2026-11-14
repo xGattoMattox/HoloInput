@@ -115,11 +115,11 @@ type
     public
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
         procedure BindDevices(AInput: TInputManager; const B: TWidgetConfig); override;
-        function IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
-        function DeviceLabel(const B: TWidgetConfig): string; override;
-        class function Kind: TDeviceKind; override;
-        class function Mirrored: Boolean; override;
-        class function DefaultView: TModelView; override;
+        function bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean; override;
+        function sDeviceLabel(const B: TWidgetConfig): string; override;
+        class function eKind: TDeviceKind; override;
+        class function bMirrored: Boolean; override;
+        class function rDefaultView: TModelView; override;
     end;
 
 /// Valori predefiniti per TObjStickSpec.
@@ -246,7 +246,7 @@ end;
 //** Data Ultima Modifica: 16/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TObjStickModel.Kind: TDeviceKind;
+class function TObjStickModel.eKind: TDeviceKind;
 begin
     if Spec.Left then
         Result := dkJoyLeft
@@ -264,7 +264,7 @@ end;
 //** Data Ultima Modifica: 16/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TObjStickModel.Mirrored: Boolean;
+class function TObjStickModel.bMirrored: Boolean;
 begin
     Result := Spec.Left;
 end;
@@ -272,16 +272,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjStickModel.DefaultView
+//** Nome funzione: TObjStickModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista di 3/4 dal lato del pilota.
 //** Data Ultima Modifica: 16/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TObjStickModel.DefaultView: TModelView;
+class function TObjStickModel.rDefaultView: TModelView;
 begin
-    Result := MakeView(0, Spec.ViewYaw);
+    Result := rMakeView(0, Spec.ViewYaw);
 end;
 
 //***********************************************************************************************************
@@ -296,37 +296,37 @@ end;
 //***********************************************************************************************************
 procedure TObjStickModel.BindDevices(AInput: TInputManager; const B: TWidgetConfig);
 begin
-    AInput.UseJoystick(B.DeviceIndex);
+    AInput.UseJoystick(B.iDeviceIndex);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjStickModel.IsConnected
+//** Nome funzione: TObjStickModel.bIsConnected
 //** Parametri di ingresso: S: TInputSnapshot; B: TWidgetConfig
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se il joystick risulta collegato.
 //** Data Ultima Modifica: 17/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TObjStickModel.IsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
+function TObjStickModel.bIsConnected(const S: TInputSnapshot; const B: TWidgetConfig): Boolean;
 begin
-    Result := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)].Connected;
+    Result := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)].bConnected;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TObjStickModel.DeviceLabel
+//** Nome funzione: TObjStickModel.sDeviceLabel
 //** Parametri di ingresso: B: TWidgetConfig
 //** Parametri di uscita: Result: string
 //** Scopo: Etichetta del dispositivo mostrata nel widget (ID del joystick).
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TObjStickModel.DeviceLabel(const B: TWidgetConfig): string;
+function TObjStickModel.sDeviceLabel(const B: TWidgetConfig): string;
 begin
-    Result := Format(Tr('widget.label.joystick', 'JOY ID %d'), [B.DeviceIndex]);
+    Result := Format(sTr('widget.label.joystick', 'JOY ID %d'), [B.iDeviceIndex]);
 end;
 
 //***********************************************************************************************************
@@ -404,7 +404,7 @@ begin
     ARoll := 0;
     if FSpec.ExtName = '' then
         Exit;
-    Ini := LoadHoloObjIni(FSpec.ExtName);
+    Ini := oLoadHoloObjIni(FSpec.ExtName);
     if Ini = nil then
         Exit;
     try
@@ -552,7 +552,7 @@ begin
         Par := FGripTwist
     else
         Par := FGripHolder;
-    Ini := LoadHoloObjIni(FSpec.GripName);
+    Ini := oLoadHoloObjIni(FSpec.GripName);
     if Ini = nil then
         Exit;
     Keys := TStringList.Create;
@@ -564,8 +564,8 @@ begin
             if (Idx < 0) or not ParseSpot(Ini.ReadString('Pulsanti', K, ''), P, D) then
                 Continue;
             P := MountPoint(P);
-            L := Kit.Ball(Par, P.X, P.Y, P.Z, D, D, D, hsSolid);
-            L.Active := True;
+            L := oKit.oBall(Par, P.X, P.Y, P.Z, D, D, D, hsSolid);
+            L.bActive := True;
             L.Visible := False;
             FLights := FLights + [L];
             FLightBtn := FLightBtn + [Idx];
@@ -573,8 +573,8 @@ begin
         if ParseSpot(Ini.ReadString('Hat', 'Centro', ''), P, D) then
         begin
             P := MountPoint(P);
-            FHat := Kit.Ball(Par, P.X, P.Y, P.Z, D, D, D, hsSolid);
-            FHat.Active := True;
+            FHat := oKit.oBall(Par, P.X, P.Y, P.Z, D, D, D, hsSolid);
+            FHat.bActive := True;
             FHat.Visible := False;
             FHatBase := P;
             FHatStep := D * 0.6;
@@ -639,13 +639,13 @@ begin
     FHatDX := Point3D(1, 0, 0);
     FHatDZ := Point3D(0, 0, 1);
 
-    HasB := LoadHoloObj(FSpec.BaseName, BD);
-    HasG := LoadHoloObj(FSpec.GripName, GD);
-    HasE := (FSpec.ExtName <> '') and LoadHoloObj(FSpec.ExtName, ED);
+    HasB := bLoadHoloObj(FSpec.BaseName, BD);
+    HasG := bLoadHoloObj(FSpec.GripName, GD);
+    HasE := (FSpec.ExtName <> '') and bLoadHoloObj(FSpec.ExtName, ED);
     if not (HasB or HasG or HasE) then
     begin
-        Kit.Text(Root, 0, 0, 0, 0.45, Tr('model.err.objmissing', 'FILE OBJ NON TROVATI'), True);
-        Kit.Text(Root, 0, 0.6, 0, 0.3, FSpec.BaseName + ' / ' + FSpec.GripName, True);
+        oKit.oText(oRoot, 0, 0, 0, 0.45, sTr('model.err.objmissing', 'FILE OBJ NON TROVATI'), True);
+        oKit.oText(oRoot, 0, 0.6, 0, 0.3, FSpec.BaseName + ' / ' + FSpec.GripName, True);
         SetExtent(7, 3, 1);
         Exit;
     end;
@@ -668,13 +668,13 @@ begin
     Any := False;
     Lo := Point3D(0, 0, 0);
     Hi := Point3D(0, 0, 0);
-    if BD.GetBounds(PMin, PMax) then
+    if BD.bGetBounds(PMin, PMax) then
     begin
         Lo := PMin;
         Hi := PMax;
         Any := True;
     end;
-    if HasE and ED.GetBounds(PMin, PMax) then
+    if HasE and ED.bGetBounds(PMin, PMax) then
     begin
         if Any then
         begin
@@ -689,9 +689,9 @@ begin
         Any := True;
     end;
     // impugnatura: vertici nella posizione montata (MountedPoint)
-    for I := 0 to High(GD.Verts) do
+    for I := 0 to High(GD.aVerts) do
     begin
-        P := MountedPoint(GD.Verts[I]);
+        P := MountedPoint(GD.aVerts[I]);
         if Any then
         begin
             Lo := Point3D(Min(Lo.X, P.X), Min(Lo.Y, P.Y), Min(Lo.Z, P.Z));
@@ -716,30 +716,30 @@ begin
 
     // 3. scena
     C := Point3D((Lo.X + Hi.X) / 2, (Lo.Y + Hi.Y) / 2, (Lo.Z + Hi.Z) / 2);
-    FAll := Kit.Pivot(Root, -C.X, -C.Y, -C.Z);
-    if not BD.IsEmpty then
-        FBase := THoloObjMesh.CreateMesh(Kit, FAll, BD, hsNormal);
+    FAll := oKit.oPivot(oRoot, -C.X, -C.Y, -C.Z);
+    if not BD.bIsEmpty then
+        FBase := THoloObjMesh.CreateMesh(oKit, FAll, BD, hsNormal);
 
-    FPitch := Kit.Pivot(FAll, 0, Gimbal, 0);
-    FRoll := Kit.Pivot(FPitch, 0, 0, 0);
-    FTwist := Kit.Pivot(FRoll, 0, 0, 0);
-    FGripHolder := Kit.Pivot(FTwist, 0, -Gimbal, 0);
-    if HasE and not ED.IsEmpty then
-        FExt := THoloObjMesh.CreateMesh(Kit, FGripHolder, ED, hsSolid);
+    FPitch := oKit.oPivot(FAll, 0, Gimbal, 0);
+    FRoll := oKit.oPivot(FPitch, 0, 0, 0);
+    FTwist := oKit.oPivot(FRoll, 0, 0, 0);
+    FGripHolder := oKit.oPivot(FTwist, 0, -Gimbal, 0);
+    if HasE and not ED.bIsEmpty then
+        FExt := THoloObjMesh.CreateMesh(oKit, FGripHolder, ED, hsSolid);
     GripPar := FGripHolder;
     if FHasMount then
     begin
         // collare terminale della prolunga: orientamento fisso + twist sull'asse dell'impugnatura
-        Mnt := Kit.Pivot(FGripHolder, FMountP.X, FMountP.Y, FMountP.Z);
-        FMountYaw := Kit.Pivot(Mnt, 0, 0, 0);
+        Mnt := oKit.oPivot(FGripHolder, FMountP.X, FMountP.Y, FMountP.Z);
+        FMountYaw := oKit.oPivot(Mnt, 0, 0, 0);
         FMountYaw.RotationAngle.Y := RadToDeg(FMountPsi) * FmxRotSign(False);
-        FMountTilt := Kit.Pivot(FMountYaw, 0, 0, 0);
+        FMountTilt := oKit.oPivot(FMountYaw, 0, 0, 0);
         FMountTilt.RotationAngle.X := RadToDeg(FMountPhi) * FmxRotSign(True);
-        FGripTwist := Kit.Pivot(FMountTilt, 0, 0, 0);
+        FGripTwist := oKit.oPivot(FMountTilt, 0, 0, 0);
         GripPar := FGripTwist;
     end;
-    if not GD.IsEmpty then
-        FGrip := THoloObjMesh.CreateMesh(Kit, GripPar, GD, hsSolid);
+    if not GD.bIsEmpty then
+        FGrip := THoloObjMesh.CreateMesh(oKit, GripPar, GD, hsSolid);
 
     // 4. comandi
     LoadControls;
@@ -758,7 +758,7 @@ end;
 //** Data Ultima Modifica: 27/10/2026
 //***********************************************************************************************************
 //** Funzionamento: assi (mappati/invertiti dal setup) -> rotazioni del gimbal;
-//** l'angolo di ogni asse e' meta' dell'ampiezza impostata nel setup (RangeX/Y/Z):
+//** l'angolo di ogni asse e' meta' dell'ampiezza impostata nel setup (iRangeX/Y/Z):
 //** con 60 gradi l'asse a fine corsa vale -30/+30 gradi. Con la prolunga il twist ruota FGripTwist, cioe'
 //** l'impugnatura attorno al proprio asse sul collare della prolunga, mentre
 //** pitch e roll restano sul gimbal della base. Pulsanti -> punti luce visibili
@@ -775,34 +775,34 @@ var
 begin
     if FPitch = nil then
         Exit;
-    J := S.Joys[EnsureRange(B.DeviceIndex, 0, MAX_JOY - 1)];
-    AX := JoyAxisValue(J, B.AxisX, B.InvertX);
-    AY := JoyAxisValue(J, B.AxisY, B.InvertY);
-    AZ := JoyAxisValue(J, B.AxisZ, B.InvertZ);
+    J := S.aJoys[EnsureRange(B.iDeviceIndex, 0, MAX_JOY - 1)];
+    AX := dJoyAxisValue(J, B.iAxisX, B.bInvertX);
+    AY := dJoyAxisValue(J, B.iAxisY, B.bInvertY);
+    AZ := dJoyAxisValue(J, B.iAxisZ, B.bInvertZ);
 
     // Y negativo = stick spinto in avanti (lontano dal pilota, +Z)
     // asse a fine corsa (+/-1) = meta' dell'ampiezza totale impostata
-    FPitch.RotationAngle.X := Rot(AY * B.RangeY * 0.5);
-    FRoll.RotationAngle.Z := Rot(AX * B.RangeX * 0.5);
+    FPitch.RotationAngle.X := dRot(AY * B.iRangeY * 0.5);
+    FRoll.RotationAngle.Z := dRot(AX * B.iRangeX * 0.5);
     // con la prolunga il twist ruota l'impugnatura sul collare terminale
     if FGripTwist <> nil then
-        FGripTwist.RotationAngle.Y := Rot(AZ * B.RangeZ * 0.5)
+        FGripTwist.RotationAngle.Y := dRot(AZ * B.iRangeZ * 0.5)
     else
-        FTwist.RotationAngle.Y := Rot(AZ * B.RangeZ * 0.5);
+        FTwist.RotationAngle.Y := dRot(AZ * B.iRangeZ * 0.5);
 
     for I := 0 to High(FLights) do
     begin
-        IsOn := J.Button(FLightBtn[I]);
+        IsOn := J.bButton(FLightBtn[I]);
         if FLights[I].Visible <> IsOn then
             FLights[I].Visible := IsOn;
     end;
 
     if FHat <> nil then
     begin
-        IsOn := J.Connected and (J.POV >= 0);
+        IsOn := J.bConnected and (J.iPOV >= 0);
         if IsOn then
         begin
-            A := DegToRad(J.POV);
+            A := DegToRad(J.iPOV);
             FHat.Position.Point := Point3D(
                 FHatBase.X + (FHatDX.X * Sin(A) + FHatDZ.X * Cos(A)) * FHatStep,
                 FHatBase.Y + (FHatDX.Y * Sin(A) + FHatDZ.Y * Cos(A)) * FHatStep,

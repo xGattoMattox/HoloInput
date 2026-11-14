@@ -4,31 +4,37 @@
 //** Nome unit: Holo.Updater
 //** Scopo: Aggiornamento automatico dalla pagina delle release su GitHub (controllo, download con barra
 //**        di progresso, verifica SHA-256, installazione e riavvio).
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento:
-//**   1. CheckForUpdate legge l'ultima release del repository ufficiale
+//**   1. bCheckForUpdate legge l'ultima release del repository ufficiale
 //**      (API di GitHub, HTTPS con THTTPClient: nessuna DLL esterna) e trova
 //**      lo zip "HoloInput-v<versione>-win64.zip" e il suo file di verifica
 //**      "<zip>.sha256" creati da TOOLS\make_release.bat.
-//**   2. UpdateAvailable confronta la versione della release con quella
+//**   2. bUpdateAvailable confronta la versione della release con quella
 //**      dell'exe (numeri separati da punti). Se la release e' piu' recente
-//**      CheckForUpdate legge anche le novita': le sezioni di CHANGELOG.md (al
+//**      bCheckForUpdate legge anche le novita': le sezioni di CHANGELOG.md (al
 //**      tag della release) delle versioni successive a quella in uso, oppure,
-//**      se mancano, il testo della release; AskUpdate le mostra nella finestra
+//**      se mancano, il testo della release; bAskUpdate le mostra nella finestra
 //**      che chiede se aggiornare.
-//**   3. RunUpdate mostra la finestra con la barra di progresso e, in un thread,
+//**   3. bRunUpdate mostra la finestra con la barra di progresso e, in un thread,
 //**      scarica il codice di verifica e lo zip, controlla lo SHA-256, estrae lo
 //**      zip in una cartella temporanea e installa: l'exe in uso viene rinominato
 //**      in "HoloInput.exe.old" (Windows lo consente anche mentre e' in
 //**      esecuzione) e al suo posto viene copiato quello nuovo, insieme ai
 //**      documenti dello zip (LICENSE, README, CHANGELOG). Senza file di
 //**      verifica o con un'impronta diversa l'aggiornamento viene annullato.
-//**   4. RestartAfterUpdate avvia il nuovo exe con "--after-update <pid>": il
+//**   4. bRestartAfterUpdate avvia il nuovo exe con "--after-update <pid>": il
 //**      nuovo processo (FinishPendingUpdate, chiamata dal .dpr) aspetta che il
 //**      vecchio sia chiuso, cosi' le hotkey globali si registrano senza
 //**      conflitti, e cancella il vecchio exe e i file temporanei.
 //** Il file HoloInput.ini non fa parte dello zip: la configurazione resta.
+//** Sicurezza: si scaricano solo file con indirizzo che inizia con
+//** UPD_DOWNLOAD_PREFIX (gli allegati delle release del repository ufficiale)
+//** e si apre nel browser solo una pagina del repository (bUrlAllowed); lo zip
+//** scaricato viene salvato con il nome fisso UPD_TEMP_FILE, mai con il nome
+//** indicato da GitHub. Download limitati: lo zip a UPD_MAX_ZIP byte, il file
+//** di verifica a UPD_MAX_TEXT (oltre, l'aggiornamento viene annullato).
 //***********************************************************************************************************
 //***********************************************************************************************************
 unit Holo.Updater;
@@ -49,37 +55,38 @@ const
 type
     /// Ultima release trovata su GitHub.
     TUpdateInfo = record
-        Version: string;          // es. "0.2026.11.8" (tag senza la "v" iniziale)
-        Tag: string;              // es. "v0.2026.11.8"
-        PageUrl: string;          // pagina della release
-        ZipName: string;
-        ZipUrl: string;
-        ZipSize: Int64;
-        HashUrl: string;          // file "<zip>.sha256" ('' se manca)
-        Body: string;             // testo della release (Markdown)
-        Notes: string;            // novita' rispetto alla versione in uso (testo semplice)
+        sVersion: string;          // es. "0.2026.11.8" (tag senza la "v" iniziale)
+        sTag: string;              // es. "v0.2026.11.8"
+        sPageUrl: string;          // pagina della release
+        sZipName: string;
+        sZipUrl: string;
+        iZipSize: Int64;
+        sHashUrl: string;          // file "<zip>.sha256" ('' se manca)
+        sBody: string;             // testo della release (Markdown)
+        sNotes: string;            // novita' rispetto alla versione in uso (testo semplice)
     end;
 
-/// Confronta due versioni "a.b.c.d": <0 se A e' precedente a B, 0 se uguali, >0 se successiva.
-function CompareVersions(const A, B: string): Integer;
-/// Legge l'ultima release da GitHub (e, se e' piu' recente di ACurrentVersion, le novita');
-/// False (con AError) se la richiesta non riesce.
-function CheckForUpdate(const ACurrentVersion: string; out AInfo: TUpdateInfo;
-    out AError: string): Boolean;
+/// Confronta due versioni "a.b.c.d": <0 se sAVersionA e' precedente a sAVersionB, 0 se uguali, >0 se
+/// successiva.
+function iCompareVersions(const sAVersionA, sAVersionB: string): Integer;
+/// Legge l'ultima release da GitHub (e, se e' piu' recente di sACurrentVersion, le novita');
+/// False (con sAError) se la richiesta non riesce.
+function bCheckForUpdate(const sACurrentVersion: string; out rAInfo: TUpdateInfo;
+    out sAError: string): Boolean;
 /// True se la release trovata e' piu' recente della versione in uso e ha lo zip da scaricare.
-function UpdateAvailable(const AInfo: TUpdateInfo; const ACurrentVersion: string): Boolean;
+function bUpdateAvailable(const rAInfo: TUpdateInfo; const sACurrentVersion: string): Boolean;
 /// Chiede se aggiornare mostrando le novita' (Aggiorna / Piu' tardi); True = Aggiorna.
-function AskUpdate(const AInfo: TUpdateInfo; const ACurrentVersion: string;
-    const AColors: TSkinColors): Boolean;
+function bAskUpdate(const rAInfo: TUpdateInfo; const sACurrentVersion: string;
+    const rAColors: TSkinColors): Boolean;
 /// Scarica e installa l'aggiornamento mostrando la barra di progresso. True = installato
-/// (va chiamata RestartAfterUpdate); False con AError = '' se l'utente ha annullato.
-function RunUpdate(const AInfo: TUpdateInfo; const AColors: TSkinColors; out AError: string): Boolean;
+/// (va chiamata bRestartAfterUpdate); False con sAError = '' se l'utente ha annullato.
+function bRunUpdate(const rAInfo: TUpdateInfo; const rAColors: TSkinColors; out sAError: string): Boolean;
 /// Avvia il nuovo exe (che aspetta la chiusura di questo processo); poi l'app va chiusa.
-function RestartAfterUpdate: Boolean;
+function bRestartAfterUpdate: Boolean;
 /// Da chiamare all'avvio (HoloInput.dpr): completa un aggiornamento appena installato.
 procedure FinishPendingUpdate;
 /// True se questo avvio segue un aggiornamento appena installato.
-function JustUpdated: Boolean;
+function bJustUpdated: Boolean;
 
 implementation
 
@@ -100,6 +107,12 @@ const
     UPD_BTN_H = 34;
     UPD_USER_AGENT = 'HoloInput-Updater';
     UPD_UI_INTERVAL_MS = 80;     // aggiornamento della barra di progresso durante il download
+    // unici indirizzi accettati: allegati delle release e pagine del repository ufficiale
+    UPD_DOWNLOAD_PREFIX = 'https://github.com/' + UPDATE_REPO + '/releases/download/';
+    UPD_PAGE_PREFIX = 'https://github.com/' + UPDATE_REPO + '/';
+    UPD_TEMP_FILE = 'TempGatto.nuovaversione';   // nome dello zip scaricato nella cartella temporanea
+    UPD_MAX_ZIP = 200 * 1024 * 1024;   // dimensione massima dello zip della release (byte)
+    UPD_MAX_TEXT = 64 * 1024;          // dimensione massima del file .sha256 (byte)
 
 type
     /// Fasi dell'aggiornamento mostrate nella finestra.
@@ -108,7 +121,7 @@ type
     /// Sfondo della finestra: pannello smussato con bordo accento e riga sotto il titolo.
     THoloUpdatePanel = class(TControl)
     private
-        FColors: TSkinColors;
+        rFColors: TSkinColors;
     protected
         procedure Paint; override;
     end;
@@ -116,13 +129,13 @@ type
     /// Barra di progresso nei colori della skin (Position 0..1).
     THoloProgressBar = class(TControl)
     private
-        FColors: TSkinColors;
-        FPosition: Single;
-        procedure SetPosition(AValue: Single);
+        rFColors: TSkinColors;
+        dFPosition: Single;
+        procedure SetPosition(dAValue: Single);
     protected
         procedure Paint; override;
     public
-        property Position: Single read FPosition write SetPosition;
+        property dPosition: Single read dFPosition write SetPosition;
     end;
 
     THoloUpdateForm = class;
@@ -130,22 +143,25 @@ type
     /// Thread che scarica, verifica e installa l'aggiornamento.
     TUpdateWorker = class(TThread)
     private
-        FForm: THoloUpdateForm;
-        FInfo: TUpdateInfo;
-        FError: string;
-        FSuccess: Boolean;
-        FCancel: Boolean;
-        FClock: TStopwatch;
-        FLastUi: Int64;
-        FStage: TUpdateStage;
-        FDone, FTotal: Int64;
-        procedure ReceiveData(const Sender: TObject; AContentLength: Int64; AReadCount: Int64;
-            var AAbort: Boolean);
-        procedure SetStage(AStage: TUpdateStage);
+        oFForm: THoloUpdateForm;
+        rFInfo: TUpdateInfo;
+        sFError: string;
+        bFSuccess: Boolean;
+        bFCancel: Boolean;
+        rFClock: TStopwatch;
+        iFLastUi: Int64;
+        eFStage: TUpdateStage;
+        iFDone, iFTotal: Int64;
+        iFLimit: Int64;                 // byte massimi del download in corso
+        bFTooBig: Boolean;              // download interrotto perche' oltre iFLimit
+        procedure ReceiveData(const oSender: TObject; iAContentLength: Int64; iAReadCount: Int64;
+            var bAAbort: Boolean);
+        procedure SetStage(eAStage: TUpdateStage);
         procedure ShowProgress;
-        function DownloadText(const AUrl: string): string;
-        procedure DownloadFile(const AUrl, AFileName: string);
-        procedure Install(const ASourceDir: string);
+        procedure RaiseTooBig;
+        function sDownloadText(const sAUrl: string): string;
+        procedure DownloadFile(const sAUrl, sAFileName: string);
+        procedure Install(const sASourceDir: string);
     protected
         procedure Execute; override;
     end;
@@ -153,15 +169,15 @@ type
     /// Finestra dell'aggiornamento (creata da codice, senza .fmx).
     THoloUpdateForm = class(TForm)
     private
-        FWorker: TUpdateWorker;
-        FStatus, FDetail: TLabel;
-        FBar: THoloProgressBar;
-        FCancelBtn: THoloButton;
-        FVersion: string;
-        FStarted: Boolean;
-        procedure CancelClick(Sender: TObject);
-        procedure WorkerDone(Sender: TObject);
-        procedure ShowStage(AStage: TUpdateStage; ADone, ATotal: Int64);
+        oFWorker: TUpdateWorker;
+        oFStatus, oFDetail: TLabel;
+        oFBar: THoloProgressBar;
+        oFCancelBtn: THoloButton;
+        sFVersion: string;
+        bFStarted: Boolean;
+        procedure CancelClick(oSender: TObject);
+        procedure WorkerDone(oSender: TObject);
+        procedure ShowStage(eAStage: TUpdateStage; iADone, iATotal: Int64);
     protected
         procedure DoShow; override;
         procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
@@ -172,28 +188,28 @@ type
     /// Finestra che chiede se aggiornare, con le novita' (creata da codice, senza .fmx).
     THoloAskUpdateForm = class(TForm)
     private
-        procedure OkClick(Sender: TObject);
-        procedure LaterClick(Sender: TObject);
+        procedure OkClick(oSender: TObject);
+        procedure LaterClick(oSender: TObject);
     protected
         procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
     end;
 
 var
-    GJustUpdated: Boolean = False;
+    bGJustUpdated: Boolean = False;
 
 //** funzioni di servizio ***********************************************************************************
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: UpdateTempDir
+//** Nome funzione: sUpdateTempDir
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Cartella temporanea dell'aggiornamento (%TEMP%\HoloInput-update).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function UpdateTempDir: string;
+function sUpdateTempDir: string;
 begin
     Result := TPath.Combine(TPath.GetTempPath, 'HoloInput-update');
 end;
@@ -201,7 +217,7 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: NewClient
+//** Nome funzione: oNewClient
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: THTTPClient
 //** Scopo: Creare il client HTTPS (WinHTTP di Windows) con user agent e tempi di attesa.
@@ -211,7 +227,7 @@ end;
 //** redirect (lo zip si scarica da un altro dominio di GitHub) sono seguiti.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function NewClient: THTTPClient;
+function oNewClient: THTTPClient;
 begin
     Result := THTTPClient.Create;
     Result.UserAgent := UPD_USER_AGENT;
@@ -223,8 +239,8 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: CompareVersions
-//** Parametri di ingresso: A, B: string
+//** Nome funzione: iCompareVersions
+//** Parametri di ingresso: sAVersionA, sAVersionB: string
 //** Parametri di uscita: Result: Integer
 //** Scopo: Confrontare due versioni "a.b.c.d" (una "v" iniziale viene ignorata).
 //** Data Ultima Modifica: 06/11/2026
@@ -233,41 +249,41 @@ end;
 //** ("1.2" = "1.2.0.0"), le parti non numeriche valgono 0.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function CompareVersions(const A, B: string): Integer;
+function iCompareVersions(const sAVersionA, sAVersionB: string): Integer;
 var
-    PA, PB: TArray<string>;
-    I, NA, NB: Integer;
+    aPartsA, aPartsB: TArray<string>;
+    iPart, iNumA, iNumB: Integer;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
-    //** Nome funzione: Clean
-    //** Parametri di ingresso: S: string
+    //** Nome funzione: sClean
+    //** Parametri di ingresso: sAVersion: string
     //** Parametri di uscita: Result: string
     //** Scopo: Togliere spazi e la "v" iniziale da una versione.
     //** Data Ultima Modifica: 06/11/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    function Clean(const S: string): string;
+    function sClean(const sAVersion: string): string;
     begin
-        Result := Trim(S);
+        Result := Trim(sAVersion);
         if (Result <> '') and CharInSet(Result[1], ['v', 'V']) then
             Delete(Result, 1, 1);
     end;
 
 begin
-    PA := Clean(A).Split(['.']);
-    PB := Clean(B).Split(['.']);
-    for I := 0 to Max(Length(PA), Length(PB)) - 1 do
+    aPartsA := sClean(sAVersionA).Split(['.']);
+    aPartsB := sClean(sAVersionB).Split(['.']);
+    for iPart := 0 to Max(Length(aPartsA), Length(aPartsB)) - 1 do
     begin
-        NA := 0;
-        NB := 0;
-        if I < Length(PA) then
-            NA := StrToIntDef(PA[I], 0);
-        if I < Length(PB) then
-            NB := StrToIntDef(PB[I], 0);
-        if NA <> NB then
-            Exit(CompareValue(NA, NB));
+        iNumA := 0;
+        iNumB := 0;
+        if iPart < Length(aPartsA) then
+            iNumA := StrToIntDef(aPartsA[iPart], 0);
+        if iPart < Length(aPartsB) then
+            iNumB := StrToIntDef(aPartsB[iPart], 0);
+        if iNumA <> iNumB then
+            Exit(CompareValue(iNumA, iNumB));
     end;
     Result := 0;
 end;
@@ -275,8 +291,8 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MarkdownToText
-//** Parametri di ingresso: AText: string
+//** Nome funzione: sMarkdownToText
+//** Parametri di ingresso: sAText: string
 //** Parametri di uscita: Result: string
 //** Scopo: Rendere leggibile come testo semplice un estratto Markdown (CHANGELOG o testo della
 //**        release).
@@ -288,251 +304,280 @@ end;
 //** e riduce a una le righe vuote consecutive.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MarkdownToText(const AText: string): string;
+function sMarkdownToText(const sAText: string): string;
 var
-    Lines: TStringList;
-    Res: TStringBuilder;
-    L, T: string;
-    I, P, Q: Integer;
-    LastBlank: Boolean;
+    oLines: TStringList;
+    oRes: TStringBuilder;
+    sLine, sTrimmed: string;
+    iLineIndex, iLinkStart, iLinkEnd: Integer;
+    bLastBlank: Boolean;
 begin
-    Lines := TStringList.Create;
-    Res := TStringBuilder.Create;
+    oLines := TStringList.Create;
+    oRes := TStringBuilder.Create;
     try
-        Lines.Text := AText;
-        LastBlank := True;
-        for I := 0 to Lines.Count - 1 do
+        oLines.Text := sAText;
+        bLastBlank := True;
+        for iLineIndex := 0 to oLines.Count - 1 do
         begin
-            L := TrimRight(Lines[I]);
+            sLine := TrimRight(oLines[iLineIndex]);
             // link [testo](indirizzo) -> testo
-            P := Pos('](', L);
-            while P > 0 do
+            iLinkStart := Pos('](', sLine);
+            while iLinkStart > 0 do
             begin
-                Q := Pos(')', L, P);
-                if Q = 0 then
+                iLinkEnd := Pos(')', sLine, iLinkStart);
+                if iLinkEnd = 0 then
                     Break;
-                Delete(L, P + 1, Q - P);
-                P := Pos('](', L);
+                Delete(sLine, iLinkStart + 1, iLinkEnd - iLinkStart);
+                iLinkStart := Pos('](', sLine);
             end;
-            L := L.Replace('**', '').Replace('`', '').Replace('*', '').Replace('[', '').Replace(']', '');
-            T := Trim(L);
-            if T.StartsWith('## ') then
-                L := #$25A0 + ' ' + Trim(Copy(T, 4, MaxInt)).Replace(' - ', '  -  ')
-            else if T.StartsWith('### ') then
-                L := Trim(Copy(T, 5, MaxInt)) + ':'
-            else if T.StartsWith('# ') then
-                L := Trim(Copy(T, 3, MaxInt))
-            else if T.StartsWith('- ') then
-                L := '  ' + #$2022 + ' ' + Trim(Copy(T, 3, MaxInt))
+            sLine := sLine.Replace('**', '').Replace('`', '').Replace('*', '').Replace('[', '').Replace(']',
+                '');
+            sTrimmed := Trim(sLine);
+            if sTrimmed.StartsWith('## ') then
+                sLine := #$25A0 + ' ' + Trim(Copy(sTrimmed, 4, MaxInt)).Replace(' - ', '  -  ')
+            else if sTrimmed.StartsWith('### ') then
+                sLine := Trim(Copy(sTrimmed, 5, MaxInt)) + ':'
+            else if sTrimmed.StartsWith('# ') then
+                sLine := Trim(Copy(sTrimmed, 3, MaxInt))
+            else if sTrimmed.StartsWith('- ') then
+                sLine := '  ' + #$2022 + ' ' + Trim(Copy(sTrimmed, 3, MaxInt))
             else
-                L := T;
-            if L = '' then
+                sLine := sTrimmed;
+            if sLine = '' then
             begin
-                if not LastBlank then
-                    Res.AppendLine;
-                LastBlank := True;
+                if not bLastBlank then
+                    oRes.AppendLine;
+                bLastBlank := True;
             end
             else
             begin
-                Res.AppendLine(L);
-                LastBlank := False;
+                oRes.AppendLine(sLine);
+                bLastBlank := False;
             end;
         end;
-        Result := Trim(Res.ToString);
+        Result := Trim(oRes.ToString);
     finally
-        Res.Free;
-        Lines.Free;
+        oRes.Free;
+        oLines.Free;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: ReleaseNotes
-//** Parametri di ingresso: AInfo: TUpdateInfo; ACurrentVersion: string
+//** Nome funzione: sReleaseNotes
+//** Parametri di ingresso: rAInfo: TUpdateInfo; sACurrentVersion: string
 //** Parametri di uscita: Result: string
 //** Scopo: Novita' della release rispetto alla versione in uso, come testo semplice.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: scarica CHANGELOG.md dal repository al tag della release
-//** e tiene le sezioni "## [versione]" successive a ACurrentVersion e non oltre
+//** e tiene le sezioni "## [versione]" successive a sACurrentVersion e non oltre
 //** la versione della release (la sezione [Unreleased] viene ignorata). Se il
 //** file non si legge o non contiene quelle sezioni usa il testo della release.
 //** Gli errori di rete non interrompono il controllo degli aggiornamenti.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function ReleaseNotes(const AInfo: TUpdateInfo; const ACurrentVersion: string): string;
+function sReleaseNotes(const rAInfo: TUpdateInfo; const sACurrentVersion: string): string;
 var
-    Client: THTTPClient;
-    Resp: IHTTPResponse;
-    Lines: TStringList;
-    Picked: TStringBuilder;
-    I, P: Integer;
-    L, Ver: string;
-    Keep: Boolean;
+    oClient: THTTPClient;
+    xResp: IHTTPResponse;
+    oLines: TStringList;
+    oPicked: TStringBuilder;
+    iLineIndex, iBracketPos: Integer;
+    sLine, sVer: string;
+    bKeep: Boolean;
 begin
     Result := '';
     try
-        Client := NewClient;
+        oClient := oNewClient;
         try
-            Resp := Client.Get('https://raw.githubusercontent.com/' + UPDATE_REPO + '/' + AInfo.Tag +
+            xResp := oClient.Get('https://raw.githubusercontent.com/' + UPDATE_REPO + '/' + rAInfo.sTag +
                 '/CHANGELOG.md');
-            if Resp.StatusCode = 200 then
+            if xResp.StatusCode = 200 then
             begin
-                Lines := TStringList.Create;
-                Picked := TStringBuilder.Create;
+                oLines := TStringList.Create;
+                oPicked := TStringBuilder.Create;
                 try
-                    Lines.Text := Resp.ContentAsString(TEncoding.UTF8);
-                    Keep := False;
-                    for I := 0 to Lines.Count - 1 do
+                    oLines.Text := xResp.ContentAsString(TEncoding.UTF8);
+                    bKeep := False;
+                    for iLineIndex := 0 to oLines.Count - 1 do
                     begin
-                        L := Lines[I];
-                        if L.StartsWith('## ') then
+                        sLine := oLines[iLineIndex];
+                        if sLine.StartsWith('## ') then
                         begin
                             // "## [0.2026.11.8] - 2026-11-08"
-                            Ver := '';
-                            P := Pos('[', L);
-                            if P > 0 then
-                                Ver := Copy(L, P + 1, Pos(']', L) - P - 1);
-                            Keep := (Ver <> '') and not SameText(Ver, 'Unreleased') and
-                                (CompareVersions(Ver, ACurrentVersion) > 0) and
-                                (CompareVersions(Ver, AInfo.Version) <= 0);
+                            sVer := '';
+                            iBracketPos := Pos('[', sLine);
+                            if iBracketPos > 0 then
+                                sVer := Copy(sLine, iBracketPos + 1, Pos(']', sLine) - iBracketPos - 1);
+                            bKeep := (sVer <> '') and not SameText(sVer, 'Unreleased') and
+                                (iCompareVersions(sVer, sACurrentVersion) > 0) and
+                                (iCompareVersions(sVer, rAInfo.sVersion) <= 0);
                         end;
-                        if Keep then
-                            Picked.AppendLine(L);
+                        if bKeep then
+                            oPicked.AppendLine(sLine);
                     end;
-                    Result := MarkdownToText(Picked.ToString);
+                    Result := sMarkdownToText(oPicked.ToString);
                 finally
-                    Picked.Free;
-                    Lines.Free;
+                    oPicked.Free;
+                    oLines.Free;
                 end;
             end;
         finally
-            Client.Free;
+            oClient.Free;
         end;
     except
         Result := '';
     end;
     if Result = '' then
-        Result := MarkdownToText(AInfo.Body);
+        Result := sMarkdownToText(rAInfo.sBody);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: CheckForUpdate
-//** Parametri di ingresso: ACurrentVersion: string
-//** Parametri di uscita: AInfo: TUpdateInfo; AError: string; Result: Boolean
+//** Nome funzione: bUrlAllowed
+//** Parametri di ingresso: sAUrl, sAPrefix: string
+//** Parametri di uscita: Result: Boolean
+//** Scopo: Verificare che un indirizzo letto da GitHub appartenga al repository ufficiale.
+//** Data Ultima Modifica: 10/11/2026
+//***********************************************************************************************************
+//** Funzionamento: l'indirizzo deve iniziare con sAPrefix (maiuscole e
+//** minuscole indifferenti) e continuare dopo il prefisso; non puo' contenere
+//** "..", "\" o "%" (niente salti ad altre cartelle del sito, neppure
+//** codificati).
+//***********************************************************************************************************
+//***********************************************************************************************************
+function bUrlAllowed(const sAUrl, sAPrefix: string): Boolean;
+begin
+    Result := sAUrl.StartsWith(sAPrefix, True) and (Length(sAUrl) > Length(sAPrefix)) and
+        not sAUrl.Contains('..') and not sAUrl.Contains('\') and not sAUrl.Contains('%');
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: bCheckForUpdate
+//** Parametri di ingresso: sACurrentVersion: string
+//** Parametri di uscita: rAInfo: TUpdateInfo; sAError: string; Result: Boolean
 //** Scopo: Leggere da GitHub l'ultima release pubblicata e, se e' piu' recente della versione in
 //**        uso, le sue novita'.
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 10/11/2026
 //***********************************************************************************************************
 //** Funzionamento: chiama l'API "releases/latest" del repository ufficiale e
 //** cerca tra gli allegati lo zip "HoloInput-...-win64.zip" e il file
-//** "<zip>.sha256". Se la release e' piu' recente di ACurrentVersion legge le
-//** novita' (ReleaseNotes). Puo' essere chiamata da un thread secondario (non
-//** usa l'interfaccia). False con AError se la rete o GitHub non rispondono.
+//** "<zip>.sha256", accettando solo indirizzi di download del repository
+//** ufficiale (bUrlAllowed); la pagina della release, se non e' del
+//** repository, diventa UPDATE_PAGE_URL. Se la release e' piu' recente di sACurrentVersion legge le
+//** novita' (sReleaseNotes). Puo' essere chiamata da un thread secondario (non
+//** usa l'interfaccia). False con sAError se la rete o GitHub non rispondono.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function CheckForUpdate(const ACurrentVersion: string; out AInfo: TUpdateInfo;
-    out AError: string): Boolean;
+function bCheckForUpdate(const sACurrentVersion: string; out rAInfo: TUpdateInfo;
+    out sAError: string): Boolean;
 var
-    Client: THTTPClient;
-    Resp: IHTTPResponse;
-    Root: TJSONValue;
-    Obj, Asset: TJSONObject;
-    Assets: TJSONArray;
-    I: Integer;
-    Name, Url: string;
+    oClient: THTTPClient;
+    xResp: IHTTPResponse;
+    oRoot: TJSONValue;
+    oObj, oAsset: TJSONObject;
+    oAssets: TJSONArray;
+    iAsset: Integer;
+    sName, sUrl: string;
 begin
     Result := False;
-    AInfo := Default(TUpdateInfo);
-    AError := '';
-    Root := nil;
+    rAInfo := Default(TUpdateInfo);
+    sAError := '';
+    oRoot := nil;
     try
-        Client := NewClient;
+        oClient := oNewClient;
         try
-            Client.Accept := 'application/vnd.github+json';
-            Resp := Client.Get(UPDATE_API_URL);
-            if Resp.StatusCode <> 200 then
+            oClient.Accept := 'application/vnd.github+json';
+            xResp := oClient.Get(UPDATE_API_URL);
+            if xResp.StatusCode <> 200 then
             begin
-                AError := Format('HTTP %d %s', [Resp.StatusCode, Resp.StatusText]);
+                sAError := Format('HTTP %d %s', [xResp.StatusCode, xResp.StatusText]);
                 Exit;
             end;
-            Root := TJSONObject.ParseJSONValue(Resp.ContentAsString(TEncoding.UTF8));
+            oRoot := TJSONObject.ParseJSONValue(xResp.ContentAsString(TEncoding.UTF8));
         finally
-            Client.Free;
+            oClient.Free;
         end;
-        if not (Root is TJSONObject) then
+        if not (oRoot is TJSONObject) then
         begin
-            Root.Free;
-            AError := 'risposta di GitHub non valida';
+            oRoot.Free;
+            sAError := 'risposta di GitHub non valida';
             Exit;
         end;
         try
-            Obj := TJSONObject(Root);
-            AInfo.Tag := Obj.GetValue<string>('tag_name', '');
-            AInfo.Version := AInfo.Tag;
-            if (AInfo.Version <> '') and CharInSet(AInfo.Version[1], ['v', 'V']) then
-                Delete(AInfo.Version, 1, 1);
-            AInfo.PageUrl := Obj.GetValue<string>('html_url', UPDATE_PAGE_URL);
-            AInfo.Body := Obj.GetValue<string>('body', '');
-            if Obj.TryGetValue<TJSONArray>('assets', Assets) then
+            oObj := TJSONObject(oRoot);
+            rAInfo.sTag := oObj.GetValue<string>('tag_name', '');
+            rAInfo.sVersion := rAInfo.sTag;
+            if (rAInfo.sVersion <> '') and CharInSet(rAInfo.sVersion[1], ['v', 'V']) then
+                Delete(rAInfo.sVersion, 1, 1);
+            rAInfo.sPageUrl := oObj.GetValue<string>('html_url', UPDATE_PAGE_URL);
+            if not bUrlAllowed(rAInfo.sPageUrl, UPD_PAGE_PREFIX) then
+                rAInfo.sPageUrl := UPDATE_PAGE_URL;
+            rAInfo.sBody := oObj.GetValue<string>('body', '');
+            if oObj.TryGetValue<TJSONArray>('assets', oAssets) then
             begin
                 // prima lo zip, poi il suo file di verifica
-                for I := 0 to Assets.Count - 1 do
-                    if Assets.Items[I] is TJSONObject then
+                for iAsset := 0 to oAssets.Count - 1 do
+                    if oAssets.Items[iAsset] is TJSONObject then
                     begin
-                        Asset := TJSONObject(Assets.Items[I]);
-                        Name := Asset.GetValue<string>('name', '');
-                        if Name.StartsWith('HoloInput', True) and Name.EndsWith('-win64.zip', True) then
+                        oAsset := TJSONObject(oAssets.Items[iAsset]);
+                        sName := oAsset.GetValue<string>('name', '');
+                        sUrl := oAsset.GetValue<string>('browser_download_url', '');
+                        if sName.StartsWith('HoloInput', True) and sName.EndsWith('-win64.zip', True) and
+                            bUrlAllowed(sUrl, UPD_DOWNLOAD_PREFIX) then
                         begin
-                            AInfo.ZipName := Name;
-                            AInfo.ZipUrl := Asset.GetValue<string>('browser_download_url', '');
-                            AInfo.ZipSize := Asset.GetValue<Int64>('size', 0);
+                            rAInfo.sZipName := sName;
+                            rAInfo.sZipUrl := sUrl;
+                            rAInfo.iZipSize := oAsset.GetValue<Int64>('size', 0);
                         end;
                     end;
-                if AInfo.ZipName <> '' then
-                    for I := 0 to Assets.Count - 1 do
-                        if Assets.Items[I] is TJSONObject then
+                if rAInfo.sZipName <> '' then
+                    for iAsset := 0 to oAssets.Count - 1 do
+                        if oAssets.Items[iAsset] is TJSONObject then
                         begin
-                            Asset := TJSONObject(Assets.Items[I]);
-                            Name := Asset.GetValue<string>('name', '');
-                            Url := Asset.GetValue<string>('browser_download_url', '');
-                            if SameText(Name, AInfo.ZipName + '.sha256') then
-                                AInfo.HashUrl := Url;
+                            oAsset := TJSONObject(oAssets.Items[iAsset]);
+                            sName := oAsset.GetValue<string>('name', '');
+                            sUrl := oAsset.GetValue<string>('browser_download_url', '');
+                            if SameText(sName, rAInfo.sZipName + '.sha256') and
+                                bUrlAllowed(sUrl, UPD_DOWNLOAD_PREFIX) then
+                                rAInfo.sHashUrl := sUrl;
                         end;
             end;
         finally
-            Root.Free;
+            oRoot.Free;
         end;
-        if AInfo.Version = '' then
+        if rAInfo.sVersion = '' then
         begin
-            AError := 'nessuna release trovata';
+            sAError := 'nessuna release trovata';
             Exit;
         end;
-        if UpdateAvailable(AInfo, ACurrentVersion) then
-            AInfo.Notes := ReleaseNotes(AInfo, ACurrentVersion);
+        if bUpdateAvailable(rAInfo, sACurrentVersion) then
+            rAInfo.sNotes := sReleaseNotes(rAInfo, sACurrentVersion);
         Result := True;
     except
-        on E: Exception do
-            AError := E.Message;
+        on oError: Exception do
+            sAError := oError.Message;
     end;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: UpdateAvailable
-//** Parametri di ingresso: AInfo: TUpdateInfo; ACurrentVersion: string
+//** Nome funzione: bUpdateAvailable
+//** Parametri di ingresso: rAInfo: TUpdateInfo; sACurrentVersion: string
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Indicare se la release trovata e' piu' recente della versione in uso e si puo' scaricare.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function UpdateAvailable(const AInfo: TUpdateInfo; const ACurrentVersion: string): Boolean;
+function bUpdateAvailable(const rAInfo: TUpdateInfo; const sACurrentVersion: string): Boolean;
 begin
-    Result := (AInfo.ZipUrl <> '') and (CompareVersions(AInfo.Version, ACurrentVersion) > 0);
+    Result := (rAInfo.sZipUrl <> '') and (iCompareVersions(rAInfo.sVersion, sACurrentVersion) > 0);
 end;
 
 //** THoloUpdatePanel ***************************************************************************************
@@ -549,26 +594,26 @@ end;
 //***********************************************************************************************************
 procedure THoloUpdatePanel.Paint;
 var
-    R: TRectF;
-    P: TPathData;
+    rRect: TRectF;
+    oPath: TPathData;
 begin
-    R := LocalRect;
-    R.Inflate(-1.5, -1.5);
-    P := ChamferPath(R, 18);
+    rRect := LocalRect;
+    rRect.Inflate(-1.5, -1.5);
+    oPath := oChamferPath(rRect, 18);
     try
         Canvas.Fill.Kind := TBrushKind.Solid;
-        Canvas.Fill.Color := WithAlpha(MixColors(FColors.PanelBack, TAlphaColors.Black, 0.35), $F4);
-        Canvas.FillPath(P, AbsoluteOpacity);
+        Canvas.Fill.Color := iWithAlpha(iMixColors(rFColors.iPanelBack, TAlphaColors.Black, 0.35), $F4);
+        Canvas.FillPath(oPath, AbsoluteOpacity);
         Canvas.Stroke.Kind := TBrushKind.Solid;
         Canvas.Stroke.Dash := TStrokeDash.Solid;
         Canvas.Stroke.Thickness := 2;
-        Canvas.Stroke.Color := FColors.Accent;
-        Canvas.DrawPath(P, AbsoluteOpacity);
+        Canvas.Stroke.Color := rFColors.iAccent;
+        Canvas.DrawPath(oPath, AbsoluteOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
     Canvas.Stroke.Thickness := 1;
-    Canvas.Stroke.Color := FColors.PanelBorder;
+    Canvas.Stroke.Color := rFColors.iPanelBorder;
     Canvas.DrawLine(PointF(UPD_PAD, UPD_TITLE_LINE_Y), PointF(Width - UPD_PAD, UPD_TITLE_LINE_Y),
         AbsoluteOpacity);
 end;
@@ -579,18 +624,18 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloProgressBar.SetPosition
-//** Parametri di ingresso: AValue: Single
+//** Parametri di ingresso: dAValue: Single
 //** Parametri di uscita: nessuno
 //** Scopo: Impostare l'avanzamento (0..1) e ridisegnare la barra.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloProgressBar.SetPosition(AValue: Single);
+procedure THoloProgressBar.SetPosition(dAValue: Single);
 begin
-    AValue := EnsureRange(AValue, 0, 1);
-    if SameValue(AValue, FPosition, 0.001) then
+    dAValue := EnsureRange(dAValue, 0, 1);
+    if SameValue(dAValue, dFPosition, 0.001) then
         Exit;
-    FPosition := AValue;
+    dFPosition := dAValue;
     Repaint;
 end;
 
@@ -607,31 +652,31 @@ end;
 //***********************************************************************************************************
 procedure THoloProgressBar.Paint;
 var
-    R, F: TRectF;
-    P: TPathData;
+    rRect, rFillRect: TRectF;
+    oPath: TPathData;
 begin
-    R := LocalRect;
-    R.Inflate(-1, -1);
-    P := ChamferPath(R, 6);
+    rRect := LocalRect;
+    rRect.Inflate(-1, -1);
+    oPath := oChamferPath(rRect, 6);
     try
         Canvas.Fill.Kind := TBrushKind.Solid;
-        Canvas.Fill.Color := WithAlpha(FColors.Primary, $18);
-        Canvas.FillPath(P, AbsoluteOpacity);
+        Canvas.Fill.Color := iWithAlpha(rFColors.iPrimary, $18);
+        Canvas.FillPath(oPath, AbsoluteOpacity);
         Canvas.Stroke.Kind := TBrushKind.Solid;
         Canvas.Stroke.Dash := TStrokeDash.Solid;
         Canvas.Stroke.Thickness := 1;
-        Canvas.Stroke.Color := FColors.PanelBorder;
-        Canvas.DrawPath(P, AbsoluteOpacity);
+        Canvas.Stroke.Color := rFColors.iPanelBorder;
+        Canvas.DrawPath(oPath, AbsoluteOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
-    if FPosition > 0 then
+    if dFPosition > 0 then
     begin
-        F := R;
-        F.Inflate(-3, -3);
-        F.Right := F.Left + F.Width * FPosition;
-        Canvas.Fill.Color := WithAlpha(FColors.Primary, $D0);
-        Canvas.FillRect(F, 0, 0, [], AbsoluteOpacity);
+        rFillRect := rRect;
+        rFillRect.Inflate(-3, -3);
+        rFillRect.Right := rFillRect.Left + rFillRect.Width * dFPosition;
+        Canvas.Fill.Color := iWithAlpha(rFColors.iPrimary, $D0);
+        Canvas.FillRect(rFillRect, 0, 0, [], AbsoluteOpacity);
     end;
 end;
 
@@ -641,17 +686,17 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TUpdateWorker.SetStage
-//** Parametri di ingresso: AStage: TUpdateStage
+//** Parametri di ingresso: eAStage: TUpdateStage
 //** Parametri di uscita: nessuno
 //** Scopo: Passare a una nuova fase e mostrarla nella finestra.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TUpdateWorker.SetStage(AStage: TUpdateStage);
+procedure TUpdateWorker.SetStage(eAStage: TUpdateStage);
 begin
-    FStage := AStage;
-    FDone := 0;
-    FTotal := 0;
+    eFStage := eAStage;
+    iFDone := 0;
+    iFTotal := 0;
     Synchronize(ShowProgress);
 end;
 
@@ -667,35 +712,44 @@ end;
 //***********************************************************************************************************
 procedure TUpdateWorker.ShowProgress;
 begin
-    FForm.ShowStage(FStage, FDone, FTotal);
+    oFForm.ShowStage(eFStage, iFDone, iFTotal);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TUpdateWorker.ReceiveData
-//** Parametri di ingresso: Sender: TObject; AContentLength, AReadCount: Int64; AAbort: Boolean (var)
-//** Parametri di uscita: AAbort: Boolean (var)
+//** Parametri di ingresso: oSender: TObject; iAContentLength, iAReadCount: Int64; bAAbort: Boolean (var)
+//** Parametri di uscita: bAAbort: Boolean (var)
 //** Scopo: Avanzamento del download: aggiorna la barra (al massimo ogni UPD_UI_INTERVAL_MS) e
 //**        interrompe il download se l'utente ha annullato.
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//** Funzionamento: se il download supera iFLimit (o lo annuncia) viene
+//** interrotto e bFTooBig diventa True.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TUpdateWorker.ReceiveData(const Sender: TObject; AContentLength: Int64; AReadCount: Int64;
-    var AAbort: Boolean);
+procedure TUpdateWorker.ReceiveData(const oSender: TObject; iAContentLength: Int64; iAReadCount: Int64;
+    var bAAbort: Boolean);
 begin
-    AAbort := FCancel or Terminated;
-    if FStage <> usDownload then
-        Exit;
-    FDone := AReadCount;
-    if AContentLength > 0 then
-        FTotal := AContentLength
-    else
-        FTotal := FInfo.ZipSize;
-    if (FClock.ElapsedMilliseconds - FLastUi >= UPD_UI_INTERVAL_MS) or
-        ((FTotal > 0) and (FDone >= FTotal)) then
+    bAAbort := bFCancel or Terminated;
+    if (iAReadCount > iFLimit) or (iAContentLength > iFLimit) then
     begin
-        FLastUi := FClock.ElapsedMilliseconds;
+        bFTooBig := True;
+        bAAbort := True;
+        Exit;
+    end;
+    if eFStage <> usDownload then
+        Exit;
+    iFDone := iAReadCount;
+    if iAContentLength > 0 then
+        iFTotal := iAContentLength
+    else
+        iFTotal := rFInfo.iZipSize;
+    if (rFClock.ElapsedMilliseconds - iFLastUi >= UPD_UI_INTERVAL_MS) or
+        ((iFTotal > 0) and (iFDone >= iFTotal)) then
+    begin
+        iFLastUi := rFClock.ElapsedMilliseconds;
         Synchronize(ShowProgress);
     end;
 end;
@@ -703,26 +757,63 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TUpdateWorker.DownloadText
-//** Parametri di ingresso: AUrl: string
+//** Nome funzione: sTooBigMessage
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: Result: string
+//** Scopo: Messaggio mostrato quando un file della release supera la dimensione massima.
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//***********************************************************************************************************
+function sTooBigMessage: string;
+begin
+    Result := sTr('update.err.size', 'Un file della release e'' troppo grande: aggiornamento annullato.');
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome procedura: TUpdateWorker.RaiseTooBig
+//** Parametri di ingresso: nessuno
+//** Parametri di uscita: nessuno
+//** Scopo: Annullare l'aggiornamento perche' un file della release e' troppo grande.
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//***********************************************************************************************************
+procedure TUpdateWorker.RaiseTooBig;
+begin
+    raise Exception.Create(sTooBigMessage);
+end;
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//** Autore: Citizen GattoMatto
+//** Nome funzione: TUpdateWorker.sDownloadText
+//** Parametri di ingresso: sAUrl: string
 //** Parametri di uscita: Result: string
 //** Scopo: Scaricare un file di testo piccolo (il codice di verifica).
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function TUpdateWorker.DownloadText(const AUrl: string): string;
+function TUpdateWorker.sDownloadText(const sAUrl: string): string;
 var
-    Client: THTTPClient;
-    Resp: IHTTPResponse;
+    oClient: THTTPClient;
+    xResp: IHTTPResponse;
 begin
-    Client := NewClient;
+    oClient := oNewClient;
     try
-        Resp := Client.Get(AUrl);
-        if Resp.StatusCode <> 200 then
-            raise Exception.CreateFmt('HTTP %d %s', [Resp.StatusCode, Resp.StatusText]);
-        Result := Resp.ContentAsString(TEncoding.UTF8);
+        iFLimit := UPD_MAX_TEXT;
+        bFTooBig := False;
+        oClient.OnReceiveData := ReceiveData;
+        xResp := oClient.Get(sAUrl);
+        if bFTooBig then
+            RaiseTooBig;
+        if bFCancel then
+            Abort;
+        if xResp.StatusCode <> 200 then
+            raise Exception.CreateFmt('HTTP %d %s', [xResp.StatusCode, xResp.StatusText]);
+        Result := xResp.ContentAsString(TEncoding.UTF8);
     finally
-        Client.Free;
+        oClient.Free;
     end;
 end;
 
@@ -730,33 +821,37 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TUpdateWorker.DownloadFile
-//** Parametri di ingresso: AUrl, AFileName: string
+//** Parametri di ingresso: sAUrl, sAFileName: string
 //** Parametri di uscita: nessuno
-//** Scopo: Scaricare lo zip in AFileName mostrando l'avanzamento.
-//** Data Ultima Modifica: 06/11/2026
+//** Scopo: Scaricare lo zip in sAFileName mostrando l'avanzamento.
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TUpdateWorker.DownloadFile(const AUrl, AFileName: string);
+procedure TUpdateWorker.DownloadFile(const sAUrl, sAFileName: string);
 var
-    Client: THTTPClient;
-    Resp: IHTTPResponse;
-    FS: TFileStream;
+    oClient: THTTPClient;
+    xResp: IHTTPResponse;
+    oStream: TFileStream;
 begin
-    Client := NewClient;
+    oClient := oNewClient;
     try
-        Client.OnReceiveData := ReceiveData;
-        FS := TFileStream.Create(AFileName, fmCreate);
+        iFLimit := UPD_MAX_ZIP;
+        bFTooBig := False;
+        oClient.OnReceiveData := ReceiveData;
+        oStream := TFileStream.Create(sAFileName, fmCreate);
         try
-            Resp := Client.Get(AUrl, FS);
+            xResp := oClient.Get(sAUrl, oStream);
         finally
-            FS.Free;
+            oStream.Free;
         end;
-        if FCancel then
+        if bFTooBig then
+            RaiseTooBig;
+        if bFCancel then
             Abort;
-        if Resp.StatusCode <> 200 then
-            raise Exception.CreateFmt('HTTP %d %s', [Resp.StatusCode, Resp.StatusText]);
+        if xResp.StatusCode <> 200 then
+            raise Exception.CreateFmt('HTTP %d %s', [xResp.StatusCode, xResp.StatusText]);
     finally
-        Client.Free;
+        oClient.Free;
     end;
 end;
 
@@ -764,7 +859,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: TUpdateWorker.Install
-//** Parametri di ingresso: ASourceDir: string
+//** Parametri di ingresso: sASourceDir: string
 //** Parametri di uscita: nessuno
 //** Scopo: Sostituire l'exe in uso con quello estratto e copiare i documenti dello zip.
 //** Data Ultima Modifica: 06/11/2026
@@ -776,39 +871,39 @@ end;
 //** della stessa cartella dello zip (LICENSE, README, CHANGELOG), tranne il .ini.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure TUpdateWorker.Install(const ASourceDir: string);
+procedure TUpdateWorker.Install(const sASourceDir: string);
 var
-    Found: TArray<string>;
-    NewExe, Exe, Old, AppDir, SrcDir, F: string;
+    aFound: TArray<string>;
+    sNewExe, sExe, sOld, sAppDir, sSrcDir, sFileName: string;
 begin
-    Found := TDirectory.GetFiles(ASourceDir, 'HoloInput.exe', TSearchOption.soAllDirectories);
-    if Length(Found) = 0 then
-        raise Exception.Create(Tr('update.err.noexe', 'Lo zip non contiene HoloInput.exe.'));
-    NewExe := Found[0];
-    SrcDir := ExtractFilePath(NewExe);
-    Exe := ParamStr(0);
-    AppDir := ExtractFilePath(Exe);
+    aFound := TDirectory.GetFiles(sASourceDir, 'HoloInput.exe', TSearchOption.soAllDirectories);
+    if Length(aFound) = 0 then
+        raise Exception.Create(sTr('update.err.noexe', 'Lo zip non contiene HoloInput.exe.'));
+    sNewExe := aFound[0];
+    sSrcDir := ExtractFilePath(sNewExe);
+    sExe := ParamStr(0);
+    sAppDir := ExtractFilePath(sExe);
 
-    Old := Exe + '.old';
-    if FileExists(Old) and not System.SysUtils.DeleteFile(Old) then
-        Old := Exe + '.' + IntToStr(GetTickCount) + '.old';
-    if not RenameFile(Exe, Old) then
-        raise Exception.Create(Format(Tr('update.err.write', 'Impossibile sostituire HoloInput.exe ' +
+    sOld := sExe + '.old';
+    if FileExists(sOld) and not System.SysUtils.DeleteFile(sOld) then
+        sOld := sExe + '.' + IntToStr(GetTickCount) + '.old';
+    if not RenameFile(sExe, sOld) then
+        raise Exception.Create(Format(sTr('update.err.write', 'Impossibile sostituire HoloInput.exe ' +
             '(la cartella non e'' scrivibile?): %s'), [SysErrorMessage(GetLastError)]));
-    if not CopyFile(PChar(NewExe), PChar(Exe), False) then
+    if not CopyFile(PChar(sNewExe), PChar(sExe), False) then
     begin
-        F := SysErrorMessage(GetLastError);
-        RenameFile(Old, Exe);
-        raise Exception.Create(Format(Tr('update.err.write', 'Impossibile sostituire HoloInput.exe ' +
-            '(la cartella non e'' scrivibile?): %s'), [F]));
+        sFileName := SysErrorMessage(GetLastError);
+        RenameFile(sOld, sExe);
+        raise Exception.Create(Format(sTr('update.err.write', 'Impossibile sostituire HoloInput.exe ' +
+            '(la cartella non e'' scrivibile?): %s'), [sFileName]));
     end;
 
     // documenti dello zip (best effort: un errore qui non annulla l'aggiornamento)
-    for F in TDirectory.GetFiles(SrcDir) do
-        if not SameText(ExtractFileName(F), 'HoloInput.exe') and
-            not SameText(ExtractFileExt(F), '.ini') then
+    for sFileName in TDirectory.GetFiles(sSrcDir) do
+        if not SameText(ExtractFileName(sFileName), 'HoloInput.exe') and
+            not SameText(ExtractFileExt(sFileName), '.ini') then
         try
-            TFile.Copy(F, TPath.Combine(AppDir, ExtractFileName(F)), True);
+            TFile.Copy(sFileName, TPath.Combine(sAppDir, ExtractFileName(sFileName)), True);
         except
         end;
 end;
@@ -820,10 +915,11 @@ end;
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: nessuno
 //** Scopo: Eseguire tutte le fasi dell'aggiornamento.
-//** Data Ultima Modifica: 06/11/2026
+//** Data Ultima Modifica: 11/11/2026
 //***********************************************************************************************************
 //** Funzionamento: svuota la cartella temporanea; scarica il file .sha256
-//** (obbligatorio) e ne legge l'impronta; scarica lo zip con l'avanzamento;
+//** (obbligatorio) e ne legge l'impronta; scarica lo zip con l'avanzamento
+//** (salvato come UPD_TEMP_FILE, al massimo UPD_MAX_ZIP byte);
 //** confronta lo SHA-256 dello zip con l'impronta; estrae lo zip e installa.
 //** Ogni errore (o l'annullamento) interrompe l'aggiornamento senza toccare
 //** l'exe in uso, salvo nella fase di installazione, che lo ripristina da sola.
@@ -831,65 +927,69 @@ end;
 //***********************************************************************************************************
 procedure TUpdateWorker.Execute;
 var
-    Dir, ZipFile, ExtractDir, Expected, Actual: string;
-    Parts: TArray<string>;
+    sDir, sZipFile, sExtractDir, sExpected, sActual: string;
+    aParts: TArray<string>;
 begin
-    if FCancel then
+    if bFCancel then
         Exit;   // thread mai avviato (finestra distrutta prima di comparire)
-    FClock := TStopwatch.StartNew;
+    rFClock := TStopwatch.StartNew;
     try
-        Dir := UpdateTempDir;
-        if TDirectory.Exists(Dir) then
-            TDirectory.Delete(Dir, True);
-        TDirectory.CreateDirectory(Dir);
+        sDir := sUpdateTempDir;
+        if TDirectory.Exists(sDir) then
+            TDirectory.Delete(sDir, True);
+        TDirectory.CreateDirectory(sDir);
 
         // 1. codice di verifica (obbligatorio)
         SetStage(usHash);
-        if FInfo.HashUrl = '' then
-            raise Exception.Create(Tr('update.err.nohash', 'Nella release manca il file di verifica ' +
+        if rFInfo.sHashUrl = '' then
+            raise Exception.Create(sTr('update.err.nohash', 'Nella release manca il file di verifica ' +
                 '(.sha256): aggiornamento annullato.'));
-        Parts := Trim(DownloadText(FInfo.HashUrl)).Split([' ', #9, #13, #10],
+        aParts := Trim(sDownloadText(rFInfo.sHashUrl)).Split([' ', #9, #13, #10],
             TStringSplitOptions.ExcludeEmpty);
-        if (Length(Parts) = 0) or (Length(Parts[0]) <> 64) then
-            raise Exception.Create(Tr('update.err.nohash', 'Nella release manca il file di verifica ' +
+        if (Length(aParts) = 0) or (Length(aParts[0]) <> 64) then
+            raise Exception.Create(sTr('update.err.nohash', 'Nella release manca il file di verifica ' +
                 '(.sha256): aggiornamento annullato.'));
-        Expected := LowerCase(Parts[0]);
-        if FCancel then
+        sExpected := LowerCase(aParts[0]);
+        if bFCancel then
             Abort;
 
-        // 2. download dello zip
+        // 2. download dello zip (la dimensione dichiarata da GitHub e' controllata subito)
+        if rFInfo.iZipSize > UPD_MAX_ZIP then
+            RaiseTooBig;
         SetStage(usDownload);
-        ZipFile := TPath.Combine(Dir, FInfo.ZipName);
-        DownloadFile(FInfo.ZipUrl, ZipFile);
+        sZipFile := TPath.Combine(sDir, UPD_TEMP_FILE);
+        DownloadFile(rFInfo.sZipUrl, sZipFile);
 
         // 3. verifica dello SHA-256
         SetStage(usVerify);
-        Actual := LowerCase(THashSHA2.GetHashStringFromFile(ZipFile));
-        if Actual <> Expected then
-            raise Exception.Create(Tr('update.err.hash', 'Il file scaricato non corrisponde al codice ' +
+        sActual := LowerCase(THashSHA2.GetHashStringFromFile(sZipFile));
+        if sActual <> sExpected then
+            raise Exception.Create(sTr('update.err.hash', 'Il file scaricato non corrisponde al codice ' +
                 'di verifica (SHA-256): aggiornamento annullato.'));
-        if FCancel then
+        if bFCancel then
             Abort;
 
         // 4. estrazione
         SetStage(usExtract);
-        ExtractDir := TPath.Combine(Dir, 'files');
-        TZipFile.ExtractZipFile(ZipFile, ExtractDir);
-        if FCancel then
+        sExtractDir := TPath.Combine(sDir, 'files');
+        TZipFile.ExtractZipFile(sZipFile, sExtractDir);
+        if bFCancel then
             Abort;
 
         // 5. installazione (da qui in poi non si annulla piu')
         SetStage(usInstall);
-        Install(ExtractDir);
-        FSuccess := True;
+        Install(sExtractDir);
+        bFSuccess := True;
     except
-        on E: EAbort do
-            FError := '';
-        on E: Exception do
-            if FCancel then
-                FError := ''
+        on oError: EAbort do
+            sFError := '';
+        on oError: Exception do
+            if bFTooBig then
+                sFError := sTooBigMessage   // il client HTTP puo' segnalare l'interruzione come errore
+            else if bFCancel then
+                sFError := ''
             else
-                FError := E.Message;
+                sFError := oError.Message;
     end;
 end;
 
@@ -908,10 +1008,10 @@ end;
 procedure THoloUpdateForm.DoShow;
 begin
     inherited;
-    if (FWorker <> nil) and not FStarted then
+    if (oFWorker <> nil) and not bFStarted then
     begin
-        FStarted := True;
-        FWorker.Start;
+        bFStarted := True;
+        oFWorker.Start;
     end;
 end;
 
@@ -919,7 +1019,7 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloUpdateForm.ShowStage
-//** Parametri di ingresso: AStage: TUpdateStage; ADone, ATotal: Int64
+//** Parametri di ingresso: eAStage: TUpdateStage; iADone, iATotal: Int64
 //** Parametri di uscita: nessuno
 //** Scopo: Mostrare la fase in corso, la barra di progresso e i MB scaricati.
 //** Data Ultima Modifica: 06/11/2026
@@ -928,40 +1028,41 @@ end;
 //** piena. Durante l'installazione il pulsante Annulla viene disattivato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloUpdateForm.ShowStage(AStage: TUpdateStage; ADone, ATotal: Int64);
+procedure THoloUpdateForm.ShowStage(eAStage: TUpdateStage; iADone, iATotal: Int64);
 begin
-    case AStage of
+    case eAStage of
         usHash:
-            FStatus.Text := Tr('update.stage.hash', 'Lettura del codice di verifica...');
+            oFStatus.Text := sTr('update.stage.hash', 'Lettura del codice di verifica...');
         usDownload:
-            FStatus.Text := Format(Tr('update.stage.download', 'Download di HoloInput %s...'), [FVersion]);
+            oFStatus.Text := Format(sTr('update.stage.download', 'Download di HoloInput %s...'),
+                [sFVersion]);
         usVerify:
-            FStatus.Text := Tr('update.stage.verify', 'Verifica del file scaricato (SHA-256)...');
+            oFStatus.Text := sTr('update.stage.verify', 'Verifica del file scaricato (SHA-256)...');
         usExtract:
-            FStatus.Text := Tr('update.stage.extract', 'Estrazione dei file...');
+            oFStatus.Text := sTr('update.stage.extract', 'Estrazione dei file...');
         usInstall:
-            FStatus.Text := Tr('update.stage.install', 'Installazione...');
+            oFStatus.Text := sTr('update.stage.install', 'Installazione...');
     end;
-    if AStage = usDownload then
+    if eAStage = usDownload then
     begin
-        if ATotal > 0 then
+        if iATotal > 0 then
         begin
-            FBar.Position := ADone / ATotal;
-            FDetail.Text := Format(Tr('update.size', '%.1f / %.1f MB'),
-                [ADone / 1048576, ATotal / 1048576]);
+            oFBar.dPosition := iADone / iATotal;
+            oFDetail.Text := Format(sTr('update.size', '%.1f / %.1f MB'),
+                [iADone / 1048576, iATotal / 1048576]);
         end
         else
-            FDetail.Text := Format(Tr('update.size.unknown', '%.1f MB'), [ADone / 1048576]);
+            oFDetail.Text := Format(sTr('update.size.unknown', '%.1f MB'), [iADone / 1048576]);
     end
-    else if AStage > usDownload then
+    else if eAStage > usDownload then
     begin
-        FBar.Position := 1;
-        FDetail.Text := '';
+        oFBar.dPosition := 1;
+        oFDetail.Text := '';
     end;
-    if AStage = usInstall then
+    if eAStage = usInstall then
     begin
-        FCancelBtn.Enabled := False;
-        FCancelBtn.Opacity := 0.35;
+        oFCancelBtn.Enabled := False;
+        oFCancelBtn.Opacity := 0.35;
     end;
 end;
 
@@ -969,35 +1070,35 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloUpdateForm.CancelClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Chiedere l'annullamento: la finestra si chiude quando il thread si e' fermato.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloUpdateForm.CancelClick(Sender: TObject);
+procedure THoloUpdateForm.CancelClick(oSender: TObject);
 begin
-    if (FWorker = nil) or not FCancelBtn.Enabled then
+    if (oFWorker = nil) or not oFCancelBtn.Enabled then
         Exit;
-    FWorker.FCancel := True;
-    FCancelBtn.Enabled := False;
-    FCancelBtn.Opacity := 0.35;
-    FStatus.Text := Tr('update.stage.cancel', 'Annullamento in corso...');
+    oFWorker.bFCancel := True;
+    oFCancelBtn.Enabled := False;
+    oFCancelBtn.Opacity := 0.35;
+    oFStatus.Text := sTr('update.stage.cancel', 'Annullamento in corso...');
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloUpdateForm.WorkerDone
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Chiudere la finestra al termine del thread (OnTerminate, nel thread principale).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloUpdateForm.WorkerDone(Sender: TObject);
+procedure THoloUpdateForm.WorkerDone(oSender: TObject);
 begin
-    if FWorker.FSuccess then
+    if oFWorker.bFSuccess then
         ModalResult := mrOk
     else
         ModalResult := mrCancel;
@@ -1036,59 +1137,62 @@ end;
 //***********************************************************************************************************
 destructor THoloUpdateForm.Destroy;
 begin
-    if FWorker <> nil then
+    if oFWorker <> nil then
     begin
-        FWorker.FCancel := True;
-        FWorker.OnTerminate := nil;
-        if FStarted and not FWorker.Finished then
-            FWorker.WaitFor;
-        FreeAndNil(FWorker);
+        oFWorker.bFCancel := True;
+        oFWorker.OnTerminate := nil;
+        if bFStarted and not oFWorker.Finished then
+            oFWorker.WaitFor;
+        FreeAndNil(oFWorker);
     end;
     inherited;
 end;
 
-//** AskUpdate **********************************************************************************************
+//** bAskUpdate
+//** **********************************************************************************************
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: MakeText
-//** Parametri di ingresso: AParent: TFmxObject; X, Y, W, H, ASize: Single; ABold: Boolean; AColor:
-//**                        TAlphaColor; AText: string
+//** Nome funzione: oMakeText
+//** Parametri di ingresso: oAParent: TFmxObject; dAPosX, dAPosY, dAWidth, dAHeight, dASize: Single; bABold:
+//**                        Boolean; iAColor:
+//**                        TAlphaColor; sAText: string
 //** Parametri di uscita: Result: TLabel
 //** Scopo: Creare un testo della finestra con il font dell'app.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function MakeText(AParent: TFmxObject; X, Y, W, H, ASize: Single; ABold: Boolean; AColor: TAlphaColor;
-    const AText: string): TLabel;
+function oMakeText(oAParent: TFmxObject; dAPosX, dAPosY, dAWidth, dAHeight, dASize: Single; bABold: Boolean;
+    iAColor: TAlphaColor;
+    const sAText: string): TLabel;
 begin
-    Result := TLabel.Create(AParent);
-    Result.Parent := AParent;
-    Result.SetBounds(X, Y, W, H);
+    Result := TLabel.Create(oAParent);
+    Result.Parent := oAParent;
+    Result.SetBounds(dAPosX, dAPosY, dAWidth, dAHeight);
     Result.StyledSettings := Result.StyledSettings - [TStyledSetting.Family,
         TStyledSetting.Size, TStyledSetting.Style, TStyledSetting.FontColor];
     Result.TextSettings.Font.Family := HOLO_FONT;
-    Result.TextSettings.Font.Size := ASize;
-    if ABold then
+    Result.TextSettings.Font.Size := dASize;
+    if bABold then
         Result.TextSettings.Font.Style := [TFontStyle.fsBold];
-    Result.TextSettings.FontColor := AColor;
+    Result.TextSettings.FontColor := iAColor;
     Result.TextSettings.VertAlign := TTextAlign.Leading;
     Result.WordWrap := True;
-    Result.Text := AText;
+    Result.Text := sAText;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloAskUpdateForm.OkClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Scegliere Aggiorna.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloAskUpdateForm.OkClick(Sender: TObject);
+procedure THoloAskUpdateForm.OkClick(oSender: TObject);
 begin
     ModalResult := mrOk;
 end;
@@ -1097,13 +1201,13 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloAskUpdateForm.LaterClick
-//** Parametri di ingresso: Sender: TObject
+//** Parametri di ingresso: oSender: TObject
 //** Parametri di uscita: nessuno
 //** Scopo: Scegliere Piu' tardi.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloAskUpdateForm.LaterClick(Sender: TObject);
+procedure THoloAskUpdateForm.LaterClick(oSender: TObject);
 begin
     ModalResult := mrCancel;
 end;
@@ -1137,98 +1241,100 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: AskUpdate
-//** Parametri di ingresso: AInfo: TUpdateInfo; ACurrentVersion: string; AColors: TSkinColors
+//** Nome funzione: bAskUpdate
+//** Parametri di ingresso: rAInfo: TUpdateInfo; sACurrentVersion: string; rAColors: TSkinColors
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Chiedere se aggiornare, mostrando le novita' della nuova versione.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //** Funzionamento: finestra senza bordi nello stile degli avvisi, piu' grande:
 //** titolo, versione nuova e in uso, riquadro scorrevole con le novita'
-//** (AInfo.Notes; se mancano un rimando alla pagina della release) e i pulsanti
+//** (rAInfo.Notes; se mancano un rimando alla pagina della release) e i pulsanti
 //** Aggiorna e Piu' tardi. Invio = Aggiorna, Esc = Piu' tardi.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function AskUpdate(const AInfo: TUpdateInfo; const ACurrentVersion: string;
-    const AColors: TSkinColors): Boolean;
+function bAskUpdate(const rAInfo: TUpdateInfo; const sACurrentVersion: string;
+    const rAColors: TSkinColors): Boolean;
 const
     ASK_W = 680;
     ASK_H = 520;
 var
-    F: THoloAskUpdateForm;
-    Panel: THoloUpdatePanel;
-    Box: TVertScrollBox;
-    Notes: TLabel;
-    BOk, BLater: THoloButton;
-    Txt: string;
+    oForm: THoloAskUpdateForm;
+    oPanel: THoloUpdatePanel;
+    oBox: TVertScrollBox;
+    oNotes: TLabel;
+    oBOk, oBLater: THoloButton;
+    sTxt: string;
 begin
-    F := THoloAskUpdateForm.CreateNew(nil);
+    oForm := THoloAskUpdateForm.CreateNew(nil);
     try
-        F.BorderStyle := TFmxFormBorderStyle.None;
-        F.Transparency := True;
-        F.FormStyle := TFormStyle.StayOnTop;
-        F.Position := TFormPosition.ScreenCenter;
-        F.Caption := Tr('update.found.title', 'Aggiornamento disponibile');
-        F.Width := ASK_W;
-        F.Height := ASK_H;
+        oForm.BorderStyle := TFmxFormBorderStyle.None;
+        oForm.Transparency := True;
+        oForm.FormStyle := TFormStyle.StayOnTop;
+        oForm.Position := TFormPosition.ScreenCenter;
+        oForm.Caption := sTr('update.found.title', 'Aggiornamento disponibile');
+        oForm.Width := ASK_W;
+        oForm.Height := ASK_H;
 
-        Panel := THoloUpdatePanel.Create(F);
-        Panel.FColors := AColors;
-        Panel.Parent := F;
-        Panel.Align := TAlignLayout.Client;
-        Panel.HitTest := False;
+        oPanel := THoloUpdatePanel.Create(oForm);
+        oPanel.rFColors := rAColors;
+        oPanel.Parent := oForm;
+        oPanel.Align := TAlignLayout.Client;
+        oPanel.HitTest := False;
 
-        MakeText(Panel, UPD_PAD, 16, ASK_W - 2 * UPD_PAD, 32, 16, True, AColors.Accent,
-            UpperCase(Tr('update.found.title', 'Aggiornamento disponibile')));
-        MakeText(Panel, UPD_PAD, UPD_TITLE_LINE_Y + 12, ASK_W - 2 * UPD_PAD, 44, 12, False, AColors.Text,
-            Format(Tr('update.found.text', 'E'' disponibile HoloInput %s (versione in uso: %s).' +
+        oMakeText(oPanel, UPD_PAD, 16, ASK_W - 2 * UPD_PAD, 32, 16, True, rAColors.iAccent,
+            UpperCase(sTr('update.found.title', 'Aggiornamento disponibile')));
+        oMakeText(oPanel, UPD_PAD, UPD_TITLE_LINE_Y + 12, ASK_W - 2 * UPD_PAD, 44, 12, False, rAColors.iText,
+            Format(sTr('update.found.text', 'E'' disponibile HoloInput %s (versione in uso: %s).' +
             sLineBreak + sLineBreak + 'Scaricarla e installarla ora? Al termine HoloInput si riavvia ' +
-            'da solo.'), [AInfo.Version, ACurrentVersion]));
-        MakeText(Panel, UPD_PAD, UPD_TITLE_LINE_Y + 70, ASK_W - 2 * UPD_PAD, 20, 11, True,
-            WithAlpha(AColors.Primary, $D0), UpperCase(Tr('update.notes.title', 'Novita''')));
+            'da solo.'), [rAInfo.sVersion, sACurrentVersion]));
+        oMakeText(oPanel, UPD_PAD, UPD_TITLE_LINE_Y + 70, ASK_W - 2 * UPD_PAD, 20, 11, True,
+            iWithAlpha(rAColors.iPrimary, $D0), UpperCase(sTr('update.notes.title', 'Novita''')));
 
         // riquadro scorrevole con le novita'
-        Box := TVertScrollBox.Create(F);
-        Box.Parent := Panel;
-        Box.SetBounds(UPD_PAD, UPD_TITLE_LINE_Y + 94, ASK_W - 2 * UPD_PAD,
+        oBox := TVertScrollBox.Create(oForm);
+        oBox.Parent := oPanel;
+        oBox.SetBounds(UPD_PAD, UPD_TITLE_LINE_Y + 94, ASK_W - 2 * UPD_PAD,
             ASK_H - (UPD_TITLE_LINE_Y + 94) - UPD_BTN_H - 2 * UPD_PAD);
-        Txt := AInfo.Notes;
-        if Txt = '' then
-            Txt := Format(Tr('update.notes.none', 'Le novita'' sono descritte nella pagina della ' +
-                'release: %s'), [AInfo.PageUrl]);
-        Notes := MakeText(Box, 4, 4, Box.Width - 28, 20, 11, False, WithAlpha(AColors.Text, $E0), Txt);
-        Notes.TextSettings.Font.Family := 'Segoe UI';
-        Notes.AutoSize := True;
+        sTxt := rAInfo.sNotes;
+        if sTxt = '' then
+            sTxt := Format(sTr('update.notes.none', 'Le novita'' sono descritte nella pagina della ' +
+                'release: %s'), [rAInfo.sPageUrl]);
+        oNotes := oMakeText(oBox, 4, 4, oBox.Width - 28, 20, 11, False, iWithAlpha(rAColors.iText, $E0),
+            sTxt);
+        oNotes.TextSettings.Font.Family := 'Segoe UI';
+        oNotes.AutoSize := True;
 
-        BLater := THoloButton.Create(F);
-        BLater.Parent := Panel;
-        BLater.SetBounds(ASK_W - UPD_PAD - UPD_BTN_W, ASK_H - UPD_PAD - UPD_BTN_H, UPD_BTN_W, UPD_BTN_H);
-        BLater.Text := Tr('update.found.later', 'Piu'' tardi');
-        BLater.SetColors(AColors);
-        BLater.OnClick := F.LaterClick;
+        oBLater := THoloButton.Create(oForm);
+        oBLater.Parent := oPanel;
+        oBLater.SetBounds(ASK_W - UPD_PAD - UPD_BTN_W, ASK_H - UPD_PAD - UPD_BTN_H, UPD_BTN_W, UPD_BTN_H);
+        oBLater.sText := sTr('update.found.later', 'Piu'' tardi');
+        oBLater.SetColors(rAColors);
+        oBLater.OnClick := oForm.LaterClick;
 
-        BOk := THoloButton.Create(F);
-        BOk.Parent := Panel;
-        BOk.SetBounds(ASK_W - UPD_PAD - 2 * UPD_BTN_W - 12, ASK_H - UPD_PAD - UPD_BTN_H, UPD_BTN_W,
+        oBOk := THoloButton.Create(oForm);
+        oBOk.Parent := oPanel;
+        oBOk.SetBounds(ASK_W - UPD_PAD - 2 * UPD_BTN_W - 12, ASK_H - UPD_PAD - UPD_BTN_H, UPD_BTN_W,
             UPD_BTN_H);
-        BOk.Text := Tr('update.found.ok', 'Aggiorna');
-        BOk.SetColors(AColors);
-        BOk.OnClick := F.OkClick;
+        oBOk.sText := sTr('update.found.ok', 'Aggiorna');
+        oBOk.SetColors(rAColors);
+        oBOk.OnClick := oForm.OkClick;
 
-        Result := F.ShowModal = mrOk;
+        Result := oForm.ShowModal = mrOk;
     finally
-        F.Free;
+        oForm.Free;
     end;
 end;
 
-//** RunUpdate **********************************************************************************************
+//** bRunUpdate
+//** **********************************************************************************************
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: RunUpdate
-//** Parametri di ingresso: AInfo: TUpdateInfo; AColors: TSkinColors
-//** Parametri di uscita: AError: string; Result: Boolean
+//** Nome funzione: bRunUpdate
+//** Parametri di ingresso: rAInfo: TUpdateInfo; rAColors: TSkinColors
+//** Parametri di uscita: sAError: string; Result: Boolean
 //** Scopo: Mostrare la finestra con la barra di progresso ed eseguire l'aggiornamento.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
@@ -1236,71 +1342,73 @@ end;
 //** primo piano e centrata sullo schermo: titolo, fase in corso, barra di
 //** progresso, MB scaricati e pulsante Annulla. Il thread parte quando la
 //** finestra compare e la chiude al termine. True se l'aggiornamento e' stato
-//** installato; False con AError = '' se l'utente ha annullato.
+//** installato; False con sAError = '' se l'utente ha annullato.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function RunUpdate(const AInfo: TUpdateInfo; const AColors: TSkinColors; out AError: string): Boolean;
+function bRunUpdate(const rAInfo: TUpdateInfo; const rAColors: TSkinColors; out sAError: string): Boolean;
 var
-    F: THoloUpdateForm;
-    Panel: THoloUpdatePanel;
+    oForm: THoloUpdateForm;
+    oPanel: THoloUpdatePanel;
 begin
-    AError := '';
-    F := THoloUpdateForm.CreateNew(nil);
+    sAError := '';
+    oForm := THoloUpdateForm.CreateNew(nil);
     try
-        F.BorderStyle := TFmxFormBorderStyle.None;
-        F.Transparency := True;
-        F.FormStyle := TFormStyle.StayOnTop;
-        F.Position := TFormPosition.ScreenCenter;
-        F.Caption := Tr('update.title', 'Aggiornamento di HoloInput');
-        F.Width := UPD_W;
-        F.Height := UPD_H;
-        F.FVersion := AInfo.Version;
+        oForm.BorderStyle := TFmxFormBorderStyle.None;
+        oForm.Transparency := True;
+        oForm.FormStyle := TFormStyle.StayOnTop;
+        oForm.Position := TFormPosition.ScreenCenter;
+        oForm.Caption := sTr('update.title', 'Aggiornamento di HoloInput');
+        oForm.Width := UPD_W;
+        oForm.Height := UPD_H;
+        oForm.sFVersion := rAInfo.sVersion;
 
-        Panel := THoloUpdatePanel.Create(F);
-        Panel.FColors := AColors;
-        Panel.Parent := F;
-        Panel.Align := TAlignLayout.Client;
-        Panel.HitTest := False;
+        oPanel := THoloUpdatePanel.Create(oForm);
+        oPanel.rFColors := rAColors;
+        oPanel.Parent := oForm;
+        oPanel.Align := TAlignLayout.Client;
+        oPanel.HitTest := False;
 
-        MakeText(Panel, UPD_PAD, 16, UPD_W - 2 * UPD_PAD, 32, 16, True, AColors.Accent,
-            UpperCase(Tr('update.title', 'Aggiornamento di HoloInput')));
-        F.FStatus := MakeText(Panel, UPD_PAD, UPD_TITLE_LINE_Y + 16, UPD_W - 2 * UPD_PAD, 22, 12, False,
-            AColors.Text, '');
-        F.FBar := THoloProgressBar.Create(F);
-        F.FBar.Parent := Panel;
-        F.FBar.FColors := AColors;
-        F.FBar.SetBounds(UPD_PAD, UPD_TITLE_LINE_Y + 46, UPD_W - 2 * UPD_PAD, 20);
-        F.FDetail := MakeText(Panel, UPD_PAD, UPD_TITLE_LINE_Y + 72, UPD_W - 2 * UPD_PAD, 20, 11, False,
-            WithAlpha(AColors.Text, $B0), '');
+        oMakeText(oPanel, UPD_PAD, 16, UPD_W - 2 * UPD_PAD, 32, 16, True, rAColors.iAccent,
+            UpperCase(sTr('update.title', 'Aggiornamento di HoloInput')));
+        oForm.oFStatus := oMakeText(oPanel, UPD_PAD, UPD_TITLE_LINE_Y + 16, UPD_W - 2 * UPD_PAD, 22, 12,
+            False,
+            rAColors.iText, '');
+        oForm.oFBar := THoloProgressBar.Create(oForm);
+        oForm.oFBar.Parent := oPanel;
+        oForm.oFBar.rFColors := rAColors;
+        oForm.oFBar.SetBounds(UPD_PAD, UPD_TITLE_LINE_Y + 46, UPD_W - 2 * UPD_PAD, 20);
+        oForm.oFDetail := oMakeText(oPanel, UPD_PAD, UPD_TITLE_LINE_Y + 72, UPD_W - 2 * UPD_PAD, 20, 11,
+            False,
+            iWithAlpha(rAColors.iText, $B0), '');
 
-        F.FCancelBtn := THoloButton.Create(F);
-        F.FCancelBtn.Parent := Panel;
-        F.FCancelBtn.SetBounds(UPD_W - UPD_PAD - UPD_BTN_W, UPD_H - UPD_PAD - UPD_BTN_H,
+        oForm.oFCancelBtn := THoloButton.Create(oForm);
+        oForm.oFCancelBtn.Parent := oPanel;
+        oForm.oFCancelBtn.SetBounds(UPD_W - UPD_PAD - UPD_BTN_W, UPD_H - UPD_PAD - UPD_BTN_H,
             UPD_BTN_W, UPD_BTN_H);
-        F.FCancelBtn.Text := Tr('dialog.cancel', 'Annulla');
-        F.FCancelBtn.SetColors(AColors);
-        F.FCancelBtn.OnClick := F.CancelClick;
+        oForm.oFCancelBtn.sText := sTr('dialog.cancel', 'Annulla');
+        oForm.oFCancelBtn.SetColors(rAColors);
+        oForm.oFCancelBtn.OnClick := oForm.CancelClick;
 
-        F.FWorker := TUpdateWorker.Create(True);
-        F.FWorker.FreeOnTerminate := False;
-        F.FWorker.FForm := F;
-        F.FWorker.FInfo := AInfo;
-        F.FWorker.OnTerminate := F.WorkerDone;
+        oForm.oFWorker := TUpdateWorker.Create(True);
+        oForm.oFWorker.FreeOnTerminate := False;
+        oForm.oFWorker.oFForm := oForm;
+        oForm.oFWorker.rFInfo := rAInfo;
+        oForm.oFWorker.OnTerminate := oForm.WorkerDone;
 
-        Result := F.ShowModal = mrOk;
-        if not Result and (F.FWorker <> nil) then
+        Result := oForm.ShowModal = mrOk;
+        if not Result and (oForm.oFWorker <> nil) then
         begin
             // finestra chiusa in altro modo (es. Alt+F4): si ferma il thread, a meno che
             // non stia gia' installando (in quel caso l'installazione si completa)
-            F.FWorker.FCancel := True;
-            if F.FStarted and not F.FWorker.Finished then
-                F.FWorker.WaitFor;
-            Result := F.FWorker.FSuccess;
+            oForm.oFWorker.bFCancel := True;
+            if oForm.bFStarted and not oForm.oFWorker.Finished then
+                oForm.oFWorker.WaitFor;
+            Result := oForm.oFWorker.bFSuccess;
             if not Result then
-                AError := F.FWorker.FError;
+                sAError := oForm.oFWorker.sFError;
         end;
     finally
-        F.Free;
+        oForm.Free;
     end;
 end;
 
@@ -1309,7 +1417,7 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: RestartAfterUpdate
+//** Nome funzione: bRestartAfterUpdate
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: Avviare il nuovo exe passando il pid di questo processo.
@@ -1319,13 +1427,13 @@ end;
 //** partire davvero (FinishPendingUpdate); il chiamante deve poi chiudere l'app.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function RestartAfterUpdate: Boolean;
+function bRestartAfterUpdate: Boolean;
 var
-    Exe, Params: string;
+    sExe, sParams: string;
 begin
-    Exe := ParamStr(0);
-    Params := OPT_AFTER_UPDATE + ' ' + IntToStr(GetCurrentProcessId);
-    Result := ShellExecute(0, 'open', PChar(Exe), PChar(Params), PChar(ExtractFilePath(Exe)),
+    sExe := ParamStr(0);
+    sParams := OPT_AFTER_UPDATE + ' ' + IntToStr(GetCurrentProcessId);
+    Result := ShellExecute(0, 'open', PChar(sExe), PChar(sParams), PChar(ExtractFilePath(sExe)),
         SW_SHOWNORMAL) > 32;
 end;
 
@@ -1341,47 +1449,47 @@ end;
 //** Funzionamento: se l'exe e' stato avviato con "--after-update <pid>"
 //** aspetta (al massimo 20 secondi) che il vecchio processo sia chiuso, poi
 //** cancella i vecchi exe "HoloInput.exe*.old" (riprovando per qualche istante)
-//** e la cartella temporanea, e segna l'aggiornamento (JustUpdated). Senza il
+//** e la cartella temporanea, e segna l'aggiornamento (bJustUpdated). Senza il
 //** parametro cancella comunque eventuali .old rimasti da un aggiornamento
 //** precedente.
 //***********************************************************************************************************
 //***********************************************************************************************************
 procedure FinishPendingUpdate;
 var
-    I, Pid, Try_: Integer;
-    H: THandle;
-    Exe, F: string;
-    Left: Boolean;
+    iParam, iPid, iTry_: Integer;
+    hProcess: THandle;
+    sExe, sOldFile: string;
+    bLeft: Boolean;
 begin
-    Pid := 0;
-    for I := 1 to ParamCount - 1 do
-        if SameText(ParamStr(I), OPT_AFTER_UPDATE) then
-            Pid := StrToIntDef(ParamStr(I + 1), 0);
-    if Pid > 0 then
+    iPid := 0;
+    for iParam := 1 to ParamCount - 1 do
+        if SameText(ParamStr(iParam), OPT_AFTER_UPDATE) then
+            iPid := StrToIntDef(ParamStr(iParam + 1), 0);
+    if iPid > 0 then
     begin
-        GJustUpdated := True;
-        H := OpenProcess(SYNCHRONIZE, False, DWORD(Pid));
-        if H <> 0 then
+        bGJustUpdated := True;
+        hProcess := OpenProcess(SYNCHRONIZE, False, DWORD(iPid));
+        if hProcess <> 0 then
         try
-            WaitForSingleObject(H, 20000);
+            WaitForSingleObject(hProcess, 20000);
         finally
-            CloseHandle(H);
+            CloseHandle(hProcess);
         end;
     end;
-    Exe := ParamStr(0);
+    sExe := ParamStr(0);
     try
-        for Try_ := 1 to 10 do
+        for iTry_ := 1 to 10 do
         begin
-            Left := False;
-            for F in TDirectory.GetFiles(ExtractFilePath(Exe), ExtractFileName(Exe) + '*.old') do
-                if not System.SysUtils.DeleteFile(F) then
-                    Left := True;
-            if not Left or (Pid = 0) then
+            bLeft := False;
+            for sOldFile in TDirectory.GetFiles(ExtractFilePath(sExe), ExtractFileName(sExe) + '*.old') do
+                if not System.SysUtils.DeleteFile(sOldFile) then
+                    bLeft := True;
+            if not bLeft or (iPid = 0) then
                 Break;
             Sleep(200);
         end;
-        if (Pid > 0) and TDirectory.Exists(UpdateTempDir) then
-            TDirectory.Delete(UpdateTempDir, True);
+        if (iPid > 0) and TDirectory.Exists(sUpdateTempDir) then
+            TDirectory.Delete(sUpdateTempDir, True);
     except
         // pulizia best effort: i file rimasti verranno cancellati al prossimo avvio
     end;
@@ -1390,16 +1498,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: JustUpdated
+//** Nome funzione: bJustUpdated
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: Boolean
 //** Scopo: True se questo avvio segue un aggiornamento appena installato.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-function JustUpdated: Boolean;
+function bJustUpdated: Boolean;
 begin
-    Result := GJustUpdated;
+    Result := bGJustUpdated;
 end;
 
 end.

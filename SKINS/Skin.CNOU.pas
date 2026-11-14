@@ -21,9 +21,9 @@ uses
 type
     TSkinCNOU = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCNOU.Id: string;
+class function TSkinCNOU.sId: string;
 begin
     Result := 'cnou';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinCNOU.DisplayName
+//** Nome funzione: TSkinCNOU.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Consolidated Outland" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCNOU.DisplayName: string;
+class function TSkinCNOU.sDisplayName: string;
 begin
-    Result := Tr('skin.cnou', 'Consolidated Outland');
+    Result := sTr('skin.cnou', 'Consolidated Outland');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 12/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCNOU.Colors: TSkinColors;
+class function TSkinCNOU.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FFE8493B), TAlphaColor($FFF2F2F2), TAlphaColor($FF140C0C));
+    Result := rMakeSkinColors(TAlphaColor($FFE8493B), TAlphaColor($FFF2F2F2), TAlphaColor($FF140C0C));
 end;
 
 initialization

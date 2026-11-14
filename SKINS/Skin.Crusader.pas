@@ -21,9 +21,9 @@ uses
 type
     TSkinCrusader = class(TSkin)
     public
-        class function Id: string; override;
-        class function DisplayName: string; override;
-        class function Colors: TSkinColors; override;
+        class function sId: string; override;
+        class function sDisplayName: string; override;
+        class function rColors: TSkinColors; override;
     end;
 
 //***********************************************************************************************************
@@ -36,7 +36,7 @@ type
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCrusader.Id: string;
+class function TSkinCrusader.sId: string;
 begin
     Result := 'crusader';
 end;
@@ -44,16 +44,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TSkinCrusader.DisplayName
+//** Nome funzione: TSkinCrusader.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome della skin "Crusader Industries" mostrato nel menu del Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCrusader.DisplayName: string;
+class function TSkinCrusader.sDisplayName: string;
 begin
-    Result := Tr('skin.crusader', 'Crusader Industries');
+    Result := sTr('skin.crusader', 'Crusader Industries');
 end;
 
 //***********************************************************************************************************
@@ -66,9 +66,9 @@ end;
 //** Data Ultima Modifica: 11/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TSkinCrusader.Colors: TSkinColors;
+class function TSkinCrusader.rColors: TSkinColors;
 begin
-    Result := MakeSkinColors(TAlphaColor($FF7CC6FF), TAlphaColor($FFFFFFFF), TAlphaColor($FF0A1422));
+    Result := rMakeSkinColors(TAlphaColor($FF7CC6FF), TAlphaColor($FFFFFFFF), TAlphaColor($FF0A1422));
 end;
 
 initialization

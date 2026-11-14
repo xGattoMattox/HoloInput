@@ -3,11 +3,26 @@
 All notable changes to HoloInput are listed here, newest first.
 Versions follow the exe's version info (`Major.Year.Month.Day`).
 
-## [Unreleased]
+## [0.2026.11.13] - 2026-11-13
 
 ### Added
 
 - **Throttles.** Two new widgets, *Left throttle* and *Right throttle* (hidden by default, turn them on in *Setup → Devices*), with a generic 3D throttle: the lever moves forward and back with the main axis, the mini-stick tilts with its two axes, the hat lights up in the pressed direction and 6 buttons press and light up. In *XYZ axes* the first number is the lever and the other two the mini-stick (default `2,0,1`); *Setup → Range* has a new *Throttles* box for the lever and mini-stick ranges and their *Invert* options.
+
+### Changed
+
+- **Code: unified naming style.** Internal clean-up of the source code: names across the whole project now follow a single, consistent convention. Nothing changes in how HoloInput works.
+
+### Security
+
+- **OBS service: only OBS can connect.** The local OBS server now answers only requests addressed to `127.0.0.1` or `localhost` on its own port, and accepts a WebSocket connection only from its own overlay page. Before, any website open in your browser while the service was running could connect to it and receive the overlay frames (and so see which keys you were pressing). Nothing changes in OBS: keep using the Browser source URL shown in *Setup → OBS*.
+- **OBS service: one connection only.** The service now accepts a single overlay connection at a time (the one from OBS); any other is refused until it closes, and the page retries on its own every second. To allow a second connection (for example to check the overlay in a browser while OBS is connected) start HoloInput with the `SecondConnection` option, e.g. `HoloInput.exe -o SecondConnection`. Opening `/frame.png` in a browser is not affected by this limit.
+- **Updates: official downloads only.** The updater now downloads only files whose address starts with `https://github.com/xGattoMattox/HoloInput/releases/download/`, opens only release pages of the official repository, and saves the downloaded zip under a fixed name in the temporary folder instead of the name given by GitHub.
+- **Updates: size limits.** A release zip larger than 200 MB, or a checksum file larger than 64 KB, cancels the update instead of being downloaded.
+- **OBS service: stricter message checks.** Malformed WebSocket messages (unmasked, with an invalid length, or control messages longer than the protocol allows) now close the connection.
+- **System DLLs only.** HoloInput now loads XInput, `hid.dll` and `winmm.dll` only from the Windows system folder, and no longer looks for DLLs next to the executable or in the current folder first, so a DLL with the same name placed there is not loaded.
+- **Safer file names.** The language name read from `HoloInput.ini` and the names of the 3D model files can no longer point outside the `LANG` and `OBJ` folders (a name containing a path falls back to the default language or to the built-in model).
+- **Links and controller data.** HoloInput opens only `https://` web addresses, and ignores a controller data packet whose declared size does not match the data actually received.
 
 ## [0.2026.11.8] - 2026-11-08
 

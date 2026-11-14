@@ -19,9 +19,9 @@ uses
 type
     TBtnSxPanel = class(TBtnDxPanel)
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
-        class function Mirrored: Boolean; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
+        class function bMirrored: Boolean; override;
     end;
 
 implementation
@@ -32,7 +32,7 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnSxPanel.ModelId
+//** Nome funzione: TBtnSxPanel.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Pannello levette + encoder (SX)" (chiave salvata nel file
@@ -40,7 +40,7 @@ uses
 //** Data Ultima Modifica: 09/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxPanel.ModelId: string;
+class function TBtnSxPanel.sModelId: string;
 begin
     Result := 'btnsx.panel';
 end;
@@ -48,16 +48,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TBtnSxPanel.DisplayName
+//** Nome funzione: TBtnSxPanel.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Pannello levette + encoder (SX)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxPanel.DisplayName: string;
+class function TBtnSxPanel.sDisplayName: string;
 begin
-    Result := Tr('model.btnsx.panel', 'Pannello levette + encoder (SX)');
+    Result := sTr('model.btnsx.panel', 'Pannello levette + encoder (SX)');
 end;
 
 //***********************************************************************************************************
@@ -70,7 +70,7 @@ end;
 //** Data Ultima Modifica: 09/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TBtnSxPanel.Mirrored: Boolean;
+class function TBtnSxPanel.bMirrored: Boolean;
 begin
     Result := True;
 end;

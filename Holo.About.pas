@@ -15,9 +15,9 @@
 //**                     tecnologie, tasti rapidi, nota legale).
 //** I contenuti di questa pagina non sono modificabili senza ricompilare:
 //** l'avatar viene solo dalla risorsa incorporata e i testi passano da
-//** TrBuiltin (solo le lingue incorporate, non i file della cartella LANG).
+//** sTrBuiltin (solo le lingue incorporate, non i file della cartella LANG).
 //** OpenUrl apre un indirizzo nel browser predefinito.
-//** AppVersion legge la versione dalle Version Info dell'eseguibile (quelle
+//** sAppVersion legge la versione dalle Version Info dell'eseguibile (quelle
 //** impostate in Project > Options > Application > Version Info).
 //***********************************************************************************************************
 //***********************************************************************************************************
@@ -52,13 +52,13 @@ type
     /// Base comune: pannello smussato con colori della skin.
     THoloCard = class(TControl)
     protected
-        FColors: TSkinColors;
-        procedure PaintFrame(const ATitle, ARight: string);
-        procedure Txt(const R: TRectF; const S: string; ASize: Single; ABold: Boolean;
-            AColor: TAlphaColor; AAlign: TTextAlign = TTextAlign.Leading; AWrap: Boolean = False);
+        rFColors: TSkinColors;
+        procedure PaintFrame(const sATitle, sARight: string);
+        procedure Txt(const rARect: TRectF; const sAText: string; dASize: Single; bABold: Boolean;
+            iAColor: TAlphaColor; eAAlign: TTextAlign = TTextAlign.Leading; bAWrap: Boolean = False);
     public
         constructor Create(AOwner: TComponent); override;
-        procedure SetColors(const AColors: TSkinColors);
+        procedure SetColors(const rAColors: TSkinColors);
     end;
 
     /// Scheda "Citizen Dossier".
@@ -74,10 +74,10 @@ type
     end;
 
 /// Apre un indirizzo web nel browser predefinito.
-procedure OpenUrl(const AUrl: string);
+procedure OpenUrl(const sAUrl: string);
 /// Versione dell'eseguibile (es. "1.0.0.0") letta dalle Version Info del
 /// progetto; se mancano restituisce HOLO_VERSION.
-function AppVersion: string;
+function sAppVersion: string;
 
 implementation
 
@@ -85,14 +85,14 @@ uses
     Holo.Lang;
 
 var
-    GAppVersion: string;
-    GAvatar: TBitmap = nil;
-    GAvatarTried: Boolean = False;
+    sGAppVersion: string;
+    oGAvatar: TBitmap = nil;
+    bGAvatarTried: Boolean = False;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: Avatar
+//** Nome funzione: oAvatar
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TBitmap
 //** Scopo: Immagine dell'avatar (caricata una volta sola).
@@ -103,35 +103,35 @@ var
 //** nil se manca (la scheda mostra allora le iniziali).
 //***********************************************************************************************************
 //***********************************************************************************************************
-function Avatar: TBitmap;
+function oAvatar: TBitmap;
 var
-    RS: TResourceStream;
+    oStream: TResourceStream;
 begin
-    if not GAvatarTried then
+    if not bGAvatarTried then
     begin
-        GAvatarTried := True;
+        bGAvatarTried := True;
         try
             if FindResource(HInstance, 'AVATAR_PNG', RT_RCDATA) <> 0 then
             begin
-                RS := TResourceStream.Create(HInstance, 'AVATAR_PNG', RT_RCDATA);
+                oStream := TResourceStream.Create(HInstance, 'AVATAR_PNG', RT_RCDATA);
                 try
-                    GAvatar := TBitmap.Create;
-                    GAvatar.LoadFromStream(RS);
+                    oGAvatar := TBitmap.Create;
+                    oGAvatar.LoadFromStream(oStream);
                 finally
-                    RS.Free;
+                    oStream.Free;
                 end;
             end;
         except
-            FreeAndNil(GAvatar);
+            FreeAndNil(oGAvatar);
         end;
     end;
-    Result := GAvatar;
+    Result := oGAvatar;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: AppVersion
+//** Nome funzione: sAppVersion
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Leggere la versione del file dalla risorsa VERSIONINFO dell'exe.
@@ -142,47 +142,52 @@ end;
 //** (Major.Minor.Release.Build). Il risultato viene letto una volta sola.
 //***********************************************************************************************************
 //***********************************************************************************************************
-function AppVersion: string;
+function sAppVersion: string;
 var
-    FileName: string;
-    Size, Dummy: DWORD;
-    Buf: TBytes;
-    Info: PVSFixedFileInfo;
-    Len: UINT;
+    sFileName: string;
+    iSize, iDummy: DWORD;
+    aBuf: TBytes;
+    pInfo: PVSFixedFileInfo;
+    iLen: UINT;
 begin
-    if GAppVersion <> '' then
-        Exit(GAppVersion);
+    if sGAppVersion <> '' then
+        Exit(sGAppVersion);
     Result := '';
-    FileName := ParamStr(0);
-    Size := GetFileVersionInfoSize(PChar(FileName), Dummy);
-    if Size > 0 then
+    sFileName := ParamStr(0);
+    iSize := GetFileVersionInfoSize(PChar(sFileName), iDummy);
+    if iSize > 0 then
     begin
-        SetLength(Buf, Size);
-        if GetFileVersionInfo(PChar(FileName), 0, Size, @Buf[0]) and
-            VerQueryValue(@Buf[0], '\', Pointer(Info), Len) and
-            (Len >= SizeOf(TVSFixedFileInfo)) then
-            Result := Format('%d.%d.%d.%d', [HiWord(Info^.dwFileVersionMS),
-                LoWord(Info^.dwFileVersionMS), HiWord(Info^.dwFileVersionLS),
-                LoWord(Info^.dwFileVersionLS)]);
+        SetLength(aBuf, iSize);
+        if GetFileVersionInfo(PChar(sFileName), 0, iSize, @aBuf[0]) and
+            VerQueryValue(@aBuf[0], '\', Pointer(pInfo), iLen) and
+            (iLen >= SizeOf(TVSFixedFileInfo)) then
+            Result := Format('%d.%d.%d.%d', [HiWord(pInfo^.dwFileVersionMS),
+                LoWord(pInfo^.dwFileVersionMS), HiWord(pInfo^.dwFileVersionLS),
+                LoWord(pInfo^.dwFileVersionLS)]);
     end;
     if Result = '' then
         Result := HOLO_VERSION;
-    GAppVersion := Result;
+    sGAppVersion := Result;
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: OpenUrl
-//** Parametri di ingresso: AUrl: string
+//** Parametri di ingresso: sAUrl: string
 //** Parametri di uscita: nessuno
 //** Scopo: Aprire un indirizzo web (es. il Citizen Dossier) nel browser predefinito di Windows.
-//** Data Ultima Modifica: 25/10/2026
+//** Data Ultima Modifica: 11/11/2026
+//***********************************************************************************************************
+//** Funzionamento: apre solo indirizzi "https://": qualsiasi altra cosa (un
+//** file, un programma, "file://") viene ignorata, perche' ShellExecute la
+//** aprirebbe o la eseguirebbe.
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure OpenUrl(const AUrl: string);
+procedure OpenUrl(const sAUrl: string);
 begin
-    ShellExecute(0, 'open', PChar(AUrl), nil, nil, SW_SHOWNORMAL);
+    if sAUrl.StartsWith('https://', True) then
+        ShellExecute(0, 'open', PChar(sAUrl), nil, nil, SW_SHOWNORMAL);
 end;
 
 //** THoloCard **********************************************************************************************
@@ -201,7 +206,7 @@ end;
 constructor THoloCard.Create(AOwner: TComponent);
 begin
     inherited;
-    FColors := DefaultSkinColors;
+    rFColors := rDefaultSkinColors;
     HitTest := False;
 end;
 
@@ -209,15 +214,15 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloCard.SetColors
-//** Parametri di ingresso: AColors: TSkinColors
+//** Parametri di ingresso: rAColors: TSkinColors
 //** Parametri di uscita: nessuno
 //** Scopo: Applicare i colori della skin corrente alla scheda e ridisegnarla.
 //** Data Ultima Modifica: 26/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloCard.SetColors(const AColors: TSkinColors);
+procedure THoloCard.SetColors(const rAColors: TSkinColors);
 begin
-    FColors := AColors;
+    rFColors := rAColors;
     Repaint;
 end;
 
@@ -225,89 +230,95 @@ end;
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloCard.Txt
-//** Parametri di ingresso: R: TRectF; S: string; ASize: Single; ABold: Boolean; AColor:
-//**                        TAlphaColor; AAlign: TTextAlign; AWrap: Boolean
+//** Parametri di ingresso: rARect: TRectF; sAText: string; dASize: Single; bABold: Boolean; iAColor:
+//**                        TAlphaColor; eAAlign: TTextAlign; bAWrap: Boolean
 //** Parametri di uscita: nessuno
 //** Scopo: Scrivere un testo con il font dell'app.
 //** Data Ultima Modifica: 26/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloCard.Txt(const R: TRectF; const S: string; ASize: Single; ABold: Boolean;
-    AColor: TAlphaColor; AAlign: TTextAlign; AWrap: Boolean);
+procedure THoloCard.Txt(const rARect: TRectF; const sAText: string; dASize: Single; bABold: Boolean;
+    iAColor: TAlphaColor; eAAlign: TTextAlign; bAWrap: Boolean);
 begin
     Canvas.Font.Family := HOLO_FONT;
-    Canvas.Font.Size := ASize;
-    if ABold then
+    Canvas.Font.Size := dASize;
+    if bABold then
         Canvas.Font.Style := [TFontStyle.fsBold]
     else
         Canvas.Font.Style := [];
     Canvas.Fill.Kind := TBrushKind.Solid;
-    Canvas.Fill.Color := AColor;
-    Canvas.FillText(R, S, AWrap, AbsoluteOpacity, [], AAlign, TTextAlign.Leading);
+    Canvas.Fill.Color := iAColor;
+    Canvas.FillText(rARect, sAText, bAWrap, AbsoluteOpacity, [], eAAlign, TTextAlign.Leading);
 end;
 
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
 //** Nome procedura: THoloCard.PaintFrame
-//** Parametri di ingresso: ATitle, ARight: string
+//** Parametri di ingresso: sATitle, sARight: string
 //** Parametri di uscita: nessuno
 //** Scopo: Disegnare il pannello comune: fondo smussato, bordo, staffe agli angoli, scanline
 //**        leggere, intestazione con titolo a sinistra e testo a destra.
 //** Data Ultima Modifica: 26/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-procedure THoloCard.PaintFrame(const ATitle, ARight: string);
+procedure THoloCard.PaintFrame(const sATitle, sARight: string);
 const
     L = 22;
 var
-    R: TRectF;
-    P: TPathData;
-    Y: Single;
-    Op: Single;
+    rRect: TRectF;
+    oPath: TPathData;
+    dPosY: Single;
+    dOpacity: Single;
 begin
-    Op := AbsoluteOpacity;
-    R := LocalRect;
-    R.Inflate(-1.5, -1.5);
-    P := ChamferPath(R, 20);
+    dOpacity := AbsoluteOpacity;
+    rRect := LocalRect;
+    rRect.Inflate(-1.5, -1.5);
+    oPath := oChamferPath(rRect, 20);
     try
         Canvas.Fill.Kind := TBrushKind.Solid;
-        Canvas.Fill.Color := WithAlpha(MixColors(FColors.PanelBack, TAlphaColors.Black, 0.25), $F0);
-        Canvas.FillPath(P, Op);
+        Canvas.Fill.Color := iWithAlpha(iMixColors(rFColors.iPanelBack, TAlphaColors.Black, 0.25), $F0);
+        Canvas.FillPath(oPath, dOpacity);
         Canvas.Stroke.Kind := TBrushKind.Solid;
         Canvas.Stroke.Dash := TStrokeDash.Solid;
         Canvas.Stroke.Thickness := 1.5;
-        Canvas.Stroke.Color := FColors.PanelBorder;
-        Canvas.DrawPath(P, Op);
+        Canvas.Stroke.Color := rFColors.iPanelBorder;
+        Canvas.DrawPath(oPath, dOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
 
     // scanline
     Canvas.Stroke.Thickness := 1;
-    Canvas.Stroke.Color := WithAlpha(FColors.Primary, $0E);
-    Y := R.Top + 4;
-    while Y < R.Bottom - 4 do
+    Canvas.Stroke.Color := iWithAlpha(rFColors.iPrimary, $0E);
+    dPosY := rRect.Top + 4;
+    while dPosY < rRect.Bottom - 4 do
     begin
-        Canvas.DrawLine(PointF(R.Left + 6, Y), PointF(R.Right - 6, Y), Op);
-        Y := Y + 4;
+        Canvas.DrawLine(PointF(rRect.Left + 6, dPosY), PointF(rRect.Right - 6, dPosY), dOpacity);
+        dPosY := dPosY + 4;
     end;
 
     // staffe agli angoli (colore accento)
     Canvas.Stroke.Thickness := 2.5;
-    Canvas.Stroke.Color := FColors.Accent;
-    Canvas.DrawLine(PointF(R.Right - L, R.Top + 1), PointF(R.Right - 1, R.Top + 1), Op);
-    Canvas.DrawLine(PointF(R.Right - 1, R.Top + 1), PointF(R.Right - 1, R.Top + L), Op);
-    Canvas.DrawLine(PointF(R.Left + 1, R.Bottom - L), PointF(R.Left + 1, R.Bottom - 1), Op);
-    Canvas.DrawLine(PointF(R.Left + 1, R.Bottom - 1), PointF(R.Left + L, R.Bottom - 1), Op);
+    Canvas.Stroke.Color := rFColors.iAccent;
+    Canvas.DrawLine(PointF(rRect.Right - L, rRect.Top + 1), PointF(rRect.Right - 1, rRect.Top + 1),
+        dOpacity);
+    Canvas.DrawLine(PointF(rRect.Right - 1, rRect.Top + 1), PointF(rRect.Right - 1, rRect.Top + L),
+        dOpacity);
+    Canvas.DrawLine(PointF(rRect.Left + 1, rRect.Bottom - L), PointF(rRect.Left + 1, rRect.Bottom - 1),
+        dOpacity);
+    Canvas.DrawLine(PointF(rRect.Left + 1, rRect.Bottom - 1), PointF(rRect.Left + L, rRect.Bottom - 1),
+        dOpacity);
 
     // intestazione
-    Txt(RectF(R.Left + 24, R.Top + 12, R.Right - 20, R.Top + 38), ATitle, 16, True, FColors.Accent);
-    Txt(RectF(R.Left + 24, R.Top + 15, R.Right - 22, R.Top + 38), ARight, 10, True,
-        FColors.Primary, TTextAlign.Trailing);
+    Txt(RectF(rRect.Left + 24, rRect.Top + 12, rRect.Right - 20, rRect.Top + 38), sATitle, 16, True,
+        rFColors.iAccent);
+    Txt(RectF(rRect.Left + 24, rRect.Top + 15, rRect.Right - 22, rRect.Top + 38), sARight, 10, True,
+        rFColors.iPrimary, TTextAlign.Trailing);
     Canvas.Stroke.Thickness := 1;
-    Canvas.Stroke.Color := WithAlpha(FColors.Primary, $70);
-    Canvas.DrawLine(PointF(R.Left + 20, R.Top + 44), PointF(R.Right - 20, R.Top + 44), Op);
+    Canvas.Stroke.Color := iWithAlpha(rFColors.iPrimary, $70);
+    Canvas.DrawLine(PointF(rRect.Left + 20, rRect.Top + 44), PointF(rRect.Right - 20, rRect.Top + 44),
+        dOpacity);
 end;
 
 //** THoloDossierCard ***************************************************************************************
@@ -334,133 +345,137 @@ procedure THoloDossierCard.Paint;
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Field
-    //** Parametri di ingresso: X, Y, W: Single; ALabel, AValue: string
+    //** Parametri di ingresso: dAPosX, dAPosY, dAWidth: Single; sALabel, sAValue: string
     //** Parametri di uscita: nessuno
     //** Scopo: Disegnare un campo del dossier: etichetta piccola in maiuscolo e valore sotto in
     //**        grassetto.
     //** Data Ultima Modifica: 26/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Field(X, Y, W: Single; const ALabel, AValue: string);
+    procedure Field(dAPosX, dAPosY, dAWidth: Single; const sALabel, sAValue: string);
     begin
-        Txt(RectF(X, Y, X + W, Y + 14), UpperCase(ALabel), 9, True, WithAlpha(FColors.Primary, $B0));
-        Txt(RectF(X, Y + 14, X + W, Y + 36), AValue, 14, True, FColors.Text);
+        Txt(RectF(dAPosX, dAPosY, dAPosX + dAWidth, dAPosY + 14), UpperCase(sALabel), 9, True,
+            iWithAlpha(rFColors.iPrimary, $B0));
+        Txt(RectF(dAPosX, dAPosY + 14, dAPosX + dAWidth, dAPosY + 36), sAValue, 14, True, rFColors.iText);
     end;
 
 var
-    R, OrgR, SidR, AR: TRectF;
-    P: TPathData;
-    B: TBitmap;
-    CX, CY, X, Y: Single;
-    Op: Single;
-    I, D: Integer;
+    rRect, rOrgR, rSidR, rAvatarRect: TRectF;
+    oPath: TPathData;
+    oBitmap: TBitmap;
+    dCenterX, dCenterY, dPosX, dPosY: Single;
+    dOpacity: Single;
+    iPos, iDigit: Integer;
 begin
-    PaintFrame(TrBuiltin('about.dossier.title', 'CITIZEN DOSSIER'),
-        TrBuiltin('about.dossier.record', 'UEE CITIZEN RECORD  #') + DOSSIER_RECORD);
-    Op := AbsoluteOpacity;
-    R := LocalRect;
+    PaintFrame(sTrBuiltin('about.dossier.title', 'CITIZEN DOSSIER'),
+        sTrBuiltin('about.dossier.record', 'UEE CITIZEN RECORD  #') + DOSSIER_RECORD);
+    dOpacity := AbsoluteOpacity;
+    rRect := LocalRect;
 
     // --- avatar: ritratto (risorsa AVATAR_PNG) in una cornice smussata
-    CX := R.Left + 110;
-    CY := R.Top + 138;
-    AR := RectF(CX - 75, CY - 75, CX + 75, CY + 75);
-    P := ChamferPath(AR, 14);
+    dCenterX := rRect.Left + 110;
+    dCenterY := rRect.Top + 138;
+    rAvatarRect := RectF(dCenterX - 75, dCenterY - 75, dCenterX + 75, dCenterY + 75);
+    oPath := oChamferPath(rAvatarRect, 14);
     try
         Canvas.Fill.Kind := TBrushKind.Solid;
-        Canvas.Fill.Color := WithAlpha(FColors.Primary, $22);
-        Canvas.FillPath(P, Op);
-        B := Avatar;
-        if B <> nil then
-            Canvas.DrawBitmap(B, RectF(0, 0, B.Width, B.Height), AR, Op, False)
+        Canvas.Fill.Color := iWithAlpha(rFColors.iPrimary, $22);
+        Canvas.FillPath(oPath, dOpacity);
+        oBitmap := oAvatar;
+        if oBitmap <> nil then
+            Canvas.DrawBitmap(oBitmap, RectF(0, 0, oBitmap.Width, oBitmap.Height), rAvatarRect, dOpacity,
+                False)
         else
-            Txt(RectF(CX - 60, CY - 26, CX + 60, CY + 20), 'GM', 36, True, FColors.Primary,
+            Txt(RectF(dCenterX - 60, dCenterY - 26, dCenterX + 60, dCenterY + 20), 'GM', 36, True,
+                rFColors.iPrimary,
                 TTextAlign.Center);
         Canvas.Stroke.Kind := TBrushKind.Solid;
         Canvas.Stroke.Dash := TStrokeDash.Solid;
         Canvas.Stroke.Thickness := 2;
-        Canvas.Stroke.Color := FColors.Primary;
-        Canvas.DrawPath(P, Op);
+        Canvas.Stroke.Color := rFColors.iPrimary;
+        Canvas.DrawPath(oPath, dOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
     // seconda cornice tratteggiata, leggermente piu' grande (effetto ologramma)
-    AR.Inflate(6, 6);
-    P := ChamferPath(AR, 18);
+    rAvatarRect.Inflate(6, 6);
+    oPath := oChamferPath(rAvatarRect, 18);
     try
         Canvas.Stroke.Thickness := 1;
         Canvas.Stroke.Dash := TStrokeDash.Dash;
-        Canvas.Stroke.Color := WithAlpha(FColors.Primary, $A0);
-        Canvas.DrawPath(P, Op);
+        Canvas.Stroke.Color := iWithAlpha(rFColors.iPrimary, $A0);
+        Canvas.DrawPath(oPath, dOpacity);
         Canvas.Stroke.Dash := TStrokeDash.Solid;
     finally
-        P.Free;
+        oPath.Free;
     end;
-    Txt(RectF(CX - 80, CY + 88, CX + 80, CY + 108), UpperCase(DOSSIER_MONIKER), 13, True,
-        FColors.Accent, TTextAlign.Center);
+    Txt(RectF(dCenterX - 80, dCenterY + 88, dCenterX + 80, dCenterY + 108), UpperCase(DOSSIER_MONIKER), 13,
+        True,
+        rFColors.iAccent, TTextAlign.Center);
 
     // "codice a barre" dal numero di record
-    X := CX - 64;
-    Y := CY + 116;
-    Canvas.Stroke.Color := WithAlpha(FColors.Primary, $C0);
-    for I := 1 to Length(DOSSIER_RECORD) do
+    dPosX := dCenterX - 64;
+    dPosY := dCenterY + 116;
+    Canvas.Stroke.Color := iWithAlpha(rFColors.iPrimary, $C0);
+    for iPos := 1 to Length(DOSSIER_RECORD) do
     begin
-        D := Ord(DOSSIER_RECORD[I]) - Ord('0');
-        Canvas.Stroke.Thickness := 1 + (D mod 3);
-        Canvas.DrawLine(PointF(X, Y), PointF(X, Y + 18), Op);
-        X := X + 4 + D mod 4;
+        iDigit := Ord(DOSSIER_RECORD[iPos]) - Ord('0');
+        Canvas.Stroke.Thickness := 1 + (iDigit mod 3);
+        Canvas.DrawLine(PointF(dPosX, dPosY), PointF(dPosX, dPosY + 18), dOpacity);
+        dPosX := dPosX + 4 + iDigit mod 4;
         Canvas.Stroke.Thickness := 1;
-        Canvas.DrawLine(PointF(X, Y), PointF(X, Y + 18), Op);
-        X := X + 5;
+        Canvas.DrawLine(PointF(dPosX, dPosY), PointF(dPosX, dPosY + 18), dOpacity);
+        dPosX := dPosX + 5;
     end;
-    Txt(RectF(CX - 70, Y + 20, CX + 70, Y + 34), DOSSIER_RECORD, 9, False,
-        WithAlpha(FColors.Primary, $B0), TTextAlign.Center);
+    Txt(RectF(dCenterX - 70, dPosY + 20, dCenterX + 70, dPosY + 34), DOSSIER_RECORD, 9, False,
+        iWithAlpha(rFColors.iPrimary, $B0), TTextAlign.Center);
 
     // --- campi del dossier
-    X := R.Left + 220;
-    Y := R.Top + 58;
-    Field(X, Y, 180, TrBuiltin('about.dossier.handle', 'Handle'), DOSSIER_HANDLE);
-    Field(X + 190, Y, 180, TrBuiltin('about.dossier.moniker', 'Moniker'), DOSSIER_MONIKER);
-    Field(X, Y + 46, 180, TrBuiltin('about.dossier.enlisted', 'Arruolato'),
-        TrBuiltin('about.dossier.enlisted.value', DOSSIER_ENLISTED));
-    Field(X + 190, Y + 46, 180, TrBuiltin('about.dossier.fluency', 'Lingua'),
-        TrBuiltin('about.dossier.fluency.value', DOSSIER_FLUENCY));
-    Field(X, Y + 92, 370, TrBuiltin('about.dossier.titlefield', 'Titolo'), DOSSIER_TITLE);
+    dPosX := rRect.Left + 220;
+    dPosY := rRect.Top + 58;
+    Field(dPosX, dPosY, 180, sTrBuiltin('about.dossier.handle', 'Handle'), DOSSIER_HANDLE);
+    Field(dPosX + 190, dPosY, 180, sTrBuiltin('about.dossier.moniker', 'Moniker'), DOSSIER_MONIKER);
+    Field(dPosX, dPosY + 46, 180, sTrBuiltin('about.dossier.enlisted', 'Arruolato'),
+        sTrBuiltin('about.dossier.enlisted.value', DOSSIER_ENLISTED));
+    Field(dPosX + 190, dPosY + 46, 180, sTrBuiltin('about.dossier.fluency', 'Lingua'),
+        sTrBuiltin('about.dossier.fluency.value', DOSSIER_FLUENCY));
+    Field(dPosX, dPosY + 92, 370, sTrBuiltin('about.dossier.titlefield', 'Titolo'), DOSSIER_TITLE);
 
     // --- organizzazione
-    OrgR := RectF(X - 6, Y + 144, R.Right - 22, Y + 216);
-    P := ChamferPath(OrgR, 10);
+    rOrgR := RectF(dPosX - 6, dPosY + 144, rRect.Right - 22, dPosY + 216);
+    oPath := oChamferPath(rOrgR, 10);
     try
-        Canvas.Fill.Color := WithAlpha(FColors.Primary, $14);
-        Canvas.FillPath(P, Op);
+        Canvas.Fill.Color := iWithAlpha(rFColors.iPrimary, $14);
+        Canvas.FillPath(oPath, dOpacity);
         Canvas.Stroke.Thickness := 1;
-        Canvas.Stroke.Color := WithAlpha(FColors.Primary, $90);
-        Canvas.DrawPath(P, Op);
+        Canvas.Stroke.Color := iWithAlpha(rFColors.iPrimary, $90);
+        Canvas.DrawPath(oPath, dOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
-    Txt(RectF(OrgR.Left + 12, OrgR.Top + 8, OrgR.Right - 90, OrgR.Top + 22),
-        TrBuiltin('about.dossier.mainorg', 'ORGANIZZAZIONE PRINCIPALE'), 9, True, WithAlpha(FColors.Primary, $B0));
-    Txt(RectF(OrgR.Left + 12, OrgR.Top + 22, OrgR.Right - 90, OrgR.Top + 44),
-        DOSSIER_ORG, 15, True, FColors.Text);
-    Txt(RectF(OrgR.Left + 12, OrgR.Top + 46, OrgR.Right - 90, OrgR.Top + 64),
-        TrBuiltin('about.dossier.rank', 'Grado: ') + TrBuiltin('about.dossier.rank.value', DOSSIER_ORG_RANK), 11, False,
-        FColors.Text);
+    Txt(RectF(rOrgR.Left + 12, rOrgR.Top + 8, rOrgR.Right - 90, rOrgR.Top + 22),
+        sTrBuiltin('about.dossier.mainorg', 'ORGANIZZAZIONE PRINCIPALE'), 9, True, iWithAlpha(rFColors.iPrimary, $B0));
+    Txt(RectF(rOrgR.Left + 12, rOrgR.Top + 22, rOrgR.Right - 90, rOrgR.Top + 44),
+        DOSSIER_ORG, 15, True, rFColors.iText);
+    Txt(RectF(rOrgR.Left + 12, rOrgR.Top + 46, rOrgR.Right - 90, rOrgR.Top + 64),
+        sTrBuiltin('about.dossier.rank', 'Grado: ') + sTrBuiltin('about.dossier.rank.value', DOSSIER_ORG_RANK), 11, False,
+        rFColors.iText);
 
-    SidR := RectF(OrgR.Right - 82, OrgR.Top + 14, OrgR.Right - 12, OrgR.Bottom - 14);
-    P := ChamferPath(SidR, 7);
+    rSidR := RectF(rOrgR.Right - 82, rOrgR.Top + 14, rOrgR.Right - 12, rOrgR.Bottom - 14);
+    oPath := oChamferPath(rSidR, 7);
     try
-        Canvas.Fill.Color := WithAlpha(FColors.Accent, $40);
-        Canvas.FillPath(P, Op);
+        Canvas.Fill.Color := iWithAlpha(rFColors.iAccent, $40);
+        Canvas.FillPath(oPath, dOpacity);
         Canvas.Stroke.Thickness := 1.5;
-        Canvas.Stroke.Color := FColors.Accent;
-        Canvas.DrawPath(P, Op);
+        Canvas.Stroke.Color := rFColors.iAccent;
+        Canvas.DrawPath(oPath, dOpacity);
     finally
-        P.Free;
+        oPath.Free;
     end;
-    Txt(RectF(SidR.Left, SidR.Top + 2, SidR.Right, SidR.Top + 14), TrBuiltin('about.dossier.sid', 'SID'), 8, True,
-        FColors.Accent, TTextAlign.Center);
-    Txt(RectF(SidR.Left, SidR.Top + 14, SidR.Right, SidR.Bottom), DOSSIER_ORG_SID, 15, True,
-        FColors.Text, TTextAlign.Center);
+    Txt(RectF(rSidR.Left, rSidR.Top + 2, rSidR.Right, rSidR.Top + 14), sTrBuiltin('about.dossier.sid', 'SID'), 8, True,
+        rFColors.iAccent, TTextAlign.Center);
+    Txt(RectF(rSidR.Left, rSidR.Top + 14, rSidR.Right, rSidR.Bottom), DOSSIER_ORG_SID, 15, True,
+        rFColors.iText, TTextAlign.Center);
 end;
 
 //** THoloInfoCard ******************************************************************************************
@@ -477,66 +492,67 @@ end;
 //***********************************************************************************************************
 procedure THoloInfoCard.Paint;
 var
-    R: TRectF;
-    X, Y, W: Single;
+    rRect: TRectF;
+    dPosX, dPosY, dWidth: Single;
 
     //***********************************************************************************************************
     //***********************************************************************************************************
     //** Autore: Citizen GattoMatto
     //** Nome procedura: Line
-    //** Parametri di ingresso: S: string; ASize: Single; ABold: Boolean; AColor: TAlphaColor;
-    //**                        AHeight: Single
+    //** Parametri di ingresso: sAText: string; dASize: Single; bABold: Boolean; iAColor: TAlphaColor;
+    //**                        dAHeight: Single
     //** Parametri di uscita: nessuno
     //** Scopo: Scrivere una riga di testo della scheda informazioni e avanzare alla riga
     //**        successiva.
     //** Data Ultima Modifica: 26/10/2026
     //***********************************************************************************************************
     //***********************************************************************************************************
-    procedure Line(const S: string; ASize: Single; ABold: Boolean; AColor: TAlphaColor;
-        AHeight: Single);
+    procedure Line(const sAText: string; dASize: Single; bABold: Boolean; iAColor: TAlphaColor;
+        dAHeight: Single);
     begin
-        Txt(RectF(X, Y, X + W, Y + AHeight), S, ASize, ABold, AColor, TTextAlign.Leading, True);
-        Y := Y + AHeight;
+        Txt(RectF(dPosX, dPosY, dPosX + dWidth, dPosY + dAHeight), sAText, dASize, bABold, iAColor,
+            TTextAlign.Leading, True);
+        dPosY := dPosY + dAHeight;
     end;
 
 begin
-    PaintFrame(TrBuiltin('about.info.title', 'INFORMAZIONI'),
-        TrBuiltin('about.info.version', 'VERSIONE ') + AppVersion);
-    R := LocalRect;
-    X := R.Left + 24;
-    W := R.Width - 48;
-    Y := R.Top + 54;
+    PaintFrame(sTrBuiltin('about.info.title', 'INFORMAZIONI'),
+        sTrBuiltin('about.info.version', 'VERSIONE ') + sAppVersion);
+    rRect := LocalRect;
+    dPosX := rRect.Left + 24;
+    dWidth := rRect.Width - 48;
+    dPosY := rRect.Top + 54;
 
-    Line(UpperCase(HOLO_APP_NAME), 20, True, FColors.Primary, 28);
-    Line(TrBuiltin('about.info.by', 'by ') + HOLO_AUTHOR, 12, True, FColors.Accent, 24);
-    Line(TrBuiltin('about.info.description', 'Overlay olografico che mostra in tempo reale tastiera, mouse, ' +
+    Line(UpperCase(HOLO_APP_NAME), 20, True, rFColors.iPrimary, 28);
+    Line(sTrBuiltin('about.info.by', 'by ') + HOLO_AUTHOR, 12, True, rFColors.iAccent, 24);
+    Line(sTrBuiltin('about.info.description', 'Overlay olografico che mostra in tempo reale tastiera, mouse, ' +
         'gamepad, joystick, manette e pulsantiere mentre giochi, con modelli 3D e skin ispirate ai ' +
-        'costruttori di Star Citizen.'), 11, False, FColors.Text, 52);
+        'costruttori di Star Citizen.'), 11, False, rFColors.iText, 52);
 
-    Line(TrBuiltin('about.info.tech', 'TECNOLOGIA'), 9, True, WithAlpha(FColors.Primary, $B0), 15);
-    Line(TrBuiltin('about.info.tech.line1', 'Delphi 13  ' + #$00B7 + '  FireMonkey 3D  ' + #$00B7 +
-        '  Raw Input (HID), XInput, WinMM'), 11, False, FColors.Text, 18);
-    Line(TrBuiltin('about.info.tech.line2', 'Modelli 3D da foto con IA locale (ComfyUI + Pixal3D)'), 11, False,
-        FColors.Text, 24);
+    Line(sTrBuiltin('about.info.tech', 'TECNOLOGIA'), 9, True, iWithAlpha(rFColors.iPrimary, $B0), 15);
+    Line(sTrBuiltin('about.info.tech.line1', 'Delphi 13  ' + #$00B7 + '  FireMonkey 3D  ' + #$00B7 +
+        '  Raw Input (HID), XInput, WinMM'), 11, False, rFColors.iText, 18);
+    Line(sTrBuiltin('about.info.tech.line2', 'Modelli 3D da foto con IA locale (ComfyUI + Pixal3D)'), 11, False,
+        rFColors.iText, 24);
 
-    Line(TrBuiltin('about.info.hotkeys', 'TASTI RAPIDI'), 9, True, WithAlpha(FColors.Primary, $B0), 15);
-    Line(TrBuiltin('about.info.hotkeys.line1', 'Ctrl+Alt+F12 blocca/sblocca layout   ' + #$00B7 +
-        '   Ctrl+Alt+F11 setup'), 11, False, FColors.Text, 18);
-    Line(TrBuiltin('about.info.hotkeys.line2', 'Ctrl+Alt+F10 mostra/nasconde   ' + #$00B7 +
-        '   Ctrl+Alt+F9 modalita'' streamer'), 11, False, FColors.Text, 24);
+    Line(sTrBuiltin('about.info.hotkeys', 'TASTI RAPIDI'), 9, True, iWithAlpha(rFColors.iPrimary, $B0), 15);
+    Line(sTrBuiltin('about.info.hotkeys.line1', 'Ctrl+Alt+F12 blocca/sblocca layout   ' + #$00B7 +
+        '   Ctrl+Alt+F11 setup'), 11, False, rFColors.iText, 18);
+    Line(sTrBuiltin('about.info.hotkeys.line2', 'Ctrl+Alt+F10 mostra/nasconde   ' + #$00B7 +
+        '   Ctrl+Alt+F9 modalita'' streamer'), 11, False, rFColors.iText, 24);
 
-    Line(TrBuiltin('about.info.disclaimer', 'Progetto amatoriale non affiliato a Cloud Imperium Games, ' +
+    Line(sTrBuiltin('about.info.disclaimer', 'Progetto amatoriale non affiliato a Cloud Imperium Games, ' +
         'Roberts Space Industries o produttori di hardware. Star Citizen' + #$00AE + ' e Roberts Space ' +
         'Industries' + #$00AE + ' sono marchi di Cloud Imperium Rights LLC; tutti gli altri marchi ' +
-        'appartengono ai rispettivi proprietari.'), 9, False, WithAlpha(FColors.Text, $A0), 40);
-    Line(TrBuiltin('about.info.license', #$00A9 + ' 2026 Citizen GattoMatto  ' + #$00B7 +
+        'appartengono ai rispettivi proprietari.'), 9, False, iWithAlpha(rFColors.iText, $A0), 40);
+    Line(sTrBuiltin('about.info.license', #$00A9 + ' 2026 Citizen GattoMatto  ' + #$00B7 +
         '  Licenza GNU GPL v3 con termini aggiuntivi (file LICENSE)'), 9, False,
-        WithAlpha(FColors.Text, $A0), 16);
+        iWithAlpha(rFColors.iText, $A0), 16);
 end;
 
 initialization
 
 finalization
-    FreeAndNil(GAvatar);
+    FreeAndNil(oGAvatar);
 
 end.

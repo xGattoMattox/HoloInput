@@ -18,8 +18,8 @@ type
     protected
         procedure Layout; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -30,14 +30,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdTklIso.ModelId
+//** Nome funzione: TKbdTklIso.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Tastiera TKL ISO (IT)" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 05/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdTklIso.ModelId: string;
+class function TKbdTklIso.sModelId: string;
 begin
     Result := 'kbd.tkliso';
 end;
@@ -45,16 +45,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdTklIso.DisplayName
+//** Nome funzione: TKbdTklIso.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Tastiera TKL ISO (IT)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdTklIso.DisplayName: string;
+class function TKbdTklIso.sDisplayName: string;
 begin
-    Result := Tr('model.kbd.tkliso', 'Tastiera TKL ISO (IT)');
+    Result := sTr('model.kbd.tkliso', 'Tastiera TKL ISO (IT)');
 end;
 
 //***********************************************************************************************************

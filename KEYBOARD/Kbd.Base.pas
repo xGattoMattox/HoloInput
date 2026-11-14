@@ -68,8 +68,8 @@ type
     public
         destructor Destroy; override;
         procedure Update(const S: TInputSnapshot; const B: TWidgetConfig; ADeltaT: Single); override;
-        class function Kind: TDeviceKind; override;
-        class function DefaultView: TModelView; override;
+        class function eKind: TDeviceKind; override;
+        class function rDefaultView: TModelView; override;
     end;
 
 implementation
@@ -103,7 +103,7 @@ end;
 //** Data Ultima Modifica: 02/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKeyboardModel.Kind: TDeviceKind;
+class function TKeyboardModel.eKind: TDeviceKind;
 begin
     Result := dkKeyboard;
 end;
@@ -111,16 +111,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKeyboardModel.DefaultView
+//** Nome funzione: TKeyboardModel.rDefaultView
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: TModelView
 //** Scopo: Vista di default: tastiera "appoggiata" e vista da davanti-alto.
 //** Data Ultima Modifica: 03/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKeyboardModel.DefaultView: TModelView;
+class function TKeyboardModel.rDefaultView: TModelView;
 begin
-    Result := MakeView(-50, 0);
+    Result := rMakeView(-50, 0);
 end;
 
 //***********************************************************************************************************
@@ -139,12 +139,12 @@ end;
 procedure TKeyboardModel.Build;
 begin
     FCaps := TObjectList<TKeyCap>.Create(True);
-    FKeysRoot := Kit.Pivot(Root, 0, 0, 0);
+    FKeysRoot := oKit.oPivot(oRoot, 0, 0, 0);
     FMaxX := 0;
     FMaxY := 0;
     Layout;
     FKeysRoot.Position.Point := Point3D(-FMaxX / 2, -FMaxY / 2, 0);
-    Kit.RBox(Root, 0, 0, KEY_DEPTH / 2 + 0.18, FMaxX + 0.5, FMaxY + 0.5, 0.3, hsDim, axZ, 0, 40, 6);
+    oKit.oRBox(oRoot, 0, 0, KEY_DEPTH / 2 + 0.18, FMaxX + 0.5, FMaxY + 0.5, 0.3, hsDim, axZ, 0, 40, 6);
     SetExtent(FMaxX + 0.5, FMaxY + 0.5, KEY_DEPTH + 0.6);
 end;
 
@@ -251,12 +251,12 @@ begin
     Cap := TKeyCap.Create;
     Cap.Id := AId;
     // copritasto arrotondato e rastremato verso l'alto (16 lati per sezione)
-    Cap.Shape := Kit.RBox(FKeysRoot, AX + AW / 2, AY + AH / 2, 0, AW - KEY_GAP, AH - KEY_GAP,
+    Cap.Shape := oKit.oRBox(FKeysRoot, AX + AW / 2, AY + AH / 2, 0, AW - KEY_GAP, AH - KEY_GAP,
         KEY_DEPTH, hsNormal, axZ, 0.16, 16);
     if ALegend <> '' then
     begin
         Sz := Min(LEGEND_SIZE, (AW - 0.3) / (Max(1, Length(ALegend)) * 0.6));
-        Kit.Text(Cap.Shape, 0, 0, -KEY_DEPTH / 2 - 0.02, Sz, ALegend);
+        oKit.oText(Cap.Shape, 0, 0, -KEY_DEPTH / 2 - 0.02, Sz, ALegend);
     end;
     FCaps.Add(Cap);
     FMaxX := Max(FMaxX, AX + AW);
@@ -281,7 +281,7 @@ var
     I: Integer;
 begin
     Row(0);
-    K(Tr('kbd.esc', 'ESC'), SC_ESC);
+    K(sTr('kbd.esc', 'ESC'), SC_ESC);
     Gap(1);
     for I := 1 to 12 do
     begin
@@ -303,15 +303,15 @@ end;
 //***********************************************************************************************************
 procedure TKeyboardModel.NavCluster(AX: Single);
 begin
-    KBox(AX, 0, 1, 1, SC_PRTSC, Tr('kbd.prt', 'PRT'));
-    KBox(AX + 1, 0, 1, 1, SC_SCROLL, Tr('kbd.scr', 'SCR'));
-    KBox(AX + 2, 0, 1, 1, SC_PAUSE, Tr('kbd.pau', 'PAU'));
-    KBox(AX, 1.25, 1, 1, SC_INS, Tr('kbd.ins', 'INS'));
-    KBox(AX + 1, 1.25, 1, 1, SC_HOME, Tr('kbd.home', 'HOM'));
-    KBox(AX + 2, 1.25, 1, 1, SC_PGUP, Tr('kbd.pgup', 'PGU'));
-    KBox(AX, 2.25, 1, 1, SC_DEL, Tr('kbd.del', 'DEL'));
-    KBox(AX + 1, 2.25, 1, 1, SC_END, Tr('kbd.end', 'END'));
-    KBox(AX + 2, 2.25, 1, 1, SC_PGDN, Tr('kbd.pgdn', 'PGD'));
+    KBox(AX, 0, 1, 1, SC_PRTSC, sTr('kbd.prt', 'PRT'));
+    KBox(AX + 1, 0, 1, 1, SC_SCROLL, sTr('kbd.scr', 'SCR'));
+    KBox(AX + 2, 0, 1, 1, SC_PAUSE, sTr('kbd.pau', 'PAU'));
+    KBox(AX, 1.25, 1, 1, SC_INS, sTr('kbd.ins', 'INS'));
+    KBox(AX + 1, 1.25, 1, 1, SC_HOME, sTr('kbd.home', 'HOM'));
+    KBox(AX + 2, 1.25, 1, 1, SC_PGUP, sTr('kbd.pgup', 'PGU'));
+    KBox(AX, 2.25, 1, 1, SC_DEL, sTr('kbd.del', 'DEL'));
+    KBox(AX + 1, 2.25, 1, 1, SC_END, sTr('kbd.end', 'END'));
+    KBox(AX + 2, 2.25, 1, 1, SC_PGDN, sTr('kbd.pgdn', 'PGD'));
 end;
 
 //***********************************************************************************************************
@@ -344,7 +344,7 @@ end;
 //***********************************************************************************************************
 procedure TKeyboardModel.Numpad(AX: Single);
 begin
-    KBox(AX, 1.25, 1, 1, SC_NUMLOCK, Tr('kbd.num', 'NUM'));
+    KBox(AX, 1.25, 1, 1, SC_NUMLOCK, sTr('kbd.num', 'NUM'));
     KBox(AX + 1, 1.25, 1, 1, SC_NUMDIV, '/');
     KBox(AX + 2, 1.25, 1, 1, SC_NUMMUL, '*');
     KBox(AX + 3, 1.25, 1, 1, SC_NUMSUB, '-');
@@ -358,7 +358,7 @@ begin
     KBox(AX, 4.25, 1, 1, SC_NUM1, '1');
     KBox(AX + 1, 4.25, 1, 1, SC_NUM2, '2');
     KBox(AX + 2, 4.25, 1, 1, SC_NUM3, '3');
-    KBox(AX + 3, 4.25, 1, 2, SC_NUMENTER, Tr('kbd.numenter', 'ENT'));
+    KBox(AX + 3, 4.25, 1, 2, SC_NUMENTER, sTr('kbd.numenter', 'ENT'));
     KBox(AX, 5.25, 2, 1, SC_NUM0, '0');
     KBox(AX + 2, 5.25, 1, 1, SC_NUMDEL, '.');
 end;
@@ -376,14 +376,14 @@ end;
 procedure TKeyboardModel.BottomRow(const ARightAlt: string);
 begin
     Row(5.25);
-    K(Tr('kbd.ctrl', 'CTRL'), SC_LCTRL, 1.25);
-    K(Tr('kbd.win', 'WIN'), SC_LWIN, 1.25);
-    K(Tr('kbd.alt', 'ALT'), SC_LALT, 1.25);
+    K(sTr('kbd.ctrl', 'CTRL'), SC_LCTRL, 1.25);
+    K(sTr('kbd.win', 'WIN'), SC_LWIN, 1.25);
+    K(sTr('kbd.alt', 'ALT'), SC_LALT, 1.25);
     K('', SC_SPACE, 6.25);
     K(ARightAlt, SC_RALT, 1.25);
-    K(Tr('kbd.win', 'WIN'), SC_RWIN, 1.25);
-    K(Tr('kbd.menu', 'MNU'), SC_MENU, 1.25);
-    K(Tr('kbd.ctrl', 'CTRL'), SC_RCTRL, 1.25);
+    K(sTr('kbd.win', 'WIN'), SC_RWIN, 1.25);
+    K(sTr('kbd.menu', 'MNU'), SC_MENU, 1.25);
+    K(sTr('kbd.ctrl', 'CTRL'), SC_RCTRL, 1.25);
 end;
 
 //***********************************************************************************************************
@@ -403,31 +403,31 @@ begin
     Keys('1234567890', SC_1);
     K('-', SC_MINUS);
     K('=', SC_EQUAL);
-    K(Tr('kbd.bksp', 'BKSP'), SC_BKSP, 2);
+    K(sTr('kbd.bksp', 'BKSP'), SC_BKSP, 2);
 
     Row(2.25);
-    K(Tr('kbd.tab', 'TAB'), SC_TAB, 1.5);
+    K(sTr('kbd.tab', 'TAB'), SC_TAB, 1.5);
     Keys('QWERTYUIOP', SC_Q);
     K('[', SC_LBR);
     K(']', SC_RBR);
     K('\', SC_BSLASH, 1.5);
 
     Row(3.25);
-    K(Tr('kbd.caps', 'CAPS'), SC_CAPS, 1.75);
+    K(sTr('kbd.caps', 'CAPS'), SC_CAPS, 1.75);
     Keys('ASDFGHJKL', SC_A);
     K(';', SC_SEMI);
     K('''', SC_QUOTE);
-    K(Tr('kbd.enter', 'ENTER'), SC_ENTER, 2.25);
+    K(sTr('kbd.enter', 'ENTER'), SC_ENTER, 2.25);
 
     Row(4.25);
-    K(Tr('kbd.shift', 'SHIFT'), SC_LSHIFT, 2.25);
+    K(sTr('kbd.shift', 'SHIFT'), SC_LSHIFT, 2.25);
     Keys('ZXCVBNM', SC_Z);
     K(',', SC_COMMA);
     K('.', SC_DOT);
     K('/', SC_SLASH);
-    K(Tr('kbd.shift', 'SHIFT'), SC_RSHIFT, 2.75);
+    K(sTr('kbd.shift', 'SHIFT'), SC_RSHIFT, 2.75);
 
-    BottomRow(Tr('kbd.alt', 'ALT'));
+    BottomRow(sTr('kbd.alt', 'ALT'));
 end;
 
 //***********************************************************************************************************
@@ -447,17 +447,17 @@ begin
     Keys('1234567890', SC_1);
     K('''', SC_MINUS);
     K(#$00EC, SC_EQUAL);            // ì
-    K(Tr('kbd.bksp', 'BKSP'), SC_BKSP, 2);
+    K(sTr('kbd.bksp', 'BKSP'), SC_BKSP, 2);
 
     Row(2.25);
-    K(Tr('kbd.tab', 'TAB'), SC_TAB, 1.5);
+    K(sTr('kbd.tab', 'TAB'), SC_TAB, 1.5);
     Keys('QWERTYUIOP', SC_Q);
     K(#$00E8, SC_LBR);              // è
     K('+', SC_RBR);
-    KBox(13.5, 2.25, 1.5, 1.05, SC_ENTER, Tr('kbd.enter.iso', 'INV'));
+    KBox(13.5, 2.25, 1.5, 1.05, SC_ENTER, sTr('kbd.enter.iso', 'INV'));
 
     Row(3.25);
-    K(Tr('kbd.caps', 'CAPS'), SC_CAPS, 1.75);
+    K(sTr('kbd.caps', 'CAPS'), SC_CAPS, 1.75);
     Keys('ASDFGHJKL', SC_A);
     K(#$00F2, SC_SEMI);             // ò
     K(#$00E0, SC_QUOTE);            // à
@@ -465,15 +465,15 @@ begin
     KBox(13.75, 3.2, 1.25, 1.05, SC_ENTER, '');
 
     Row(4.25);
-    K(Tr('kbd.shift', 'SHIFT'), SC_LSHIFT, 1.25);
+    K(sTr('kbd.shift', 'SHIFT'), SC_LSHIFT, 1.25);
     K('<', SC_ISO102);
     Keys('ZXCVBNM', SC_Z);
     K(',', SC_COMMA);
     K('.', SC_DOT);
     K('-', SC_SLASH);
-    K(Tr('kbd.shift', 'SHIFT'), SC_RSHIFT, 2.75);
+    K(sTr('kbd.shift', 'SHIFT'), SC_RSHIFT, 2.75);
 
-    BottomRow(Tr('kbd.altgr', 'ALTGR'));
+    BottomRow(sTr('kbd.altgr', 'ALTGR'));
 end;
 
 //***********************************************************************************************************
@@ -496,11 +496,11 @@ var
 begin
     for Cap in FCaps do
     begin
-        P := (Cap.Id < KEY_IDS) and S.Keys[Cap.Id];
+        P := (Cap.Id < KEY_IDS) and S.aKeys[Cap.Id];
         if P <> Cap.Pressed then
         begin
             Cap.Pressed := P;
-            Cap.Shape.Active := P;
+            Cap.Shape.bActive := P;
             if P then
                 Cap.Shape.Position.Z := PRESS_TRAVEL
             else

@@ -23,8 +23,8 @@ type
         function BodyWidth: Single; override;
         function BodyLength: Single; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -35,14 +35,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseStd.ModelId
+//** Nome funzione: TMouseStd.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Mouse standard 3 tasti" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 06/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseStd.ModelId: string;
+class function TMouseStd.sModelId: string;
 begin
     Result := 'mouse.std';
 end;
@@ -50,16 +50,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TMouseStd.DisplayName
+//** Nome funzione: TMouseStd.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Mouse standard 3 tasti" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TMouseStd.DisplayName: string;
+class function TMouseStd.sDisplayName: string;
 begin
-    Result := Tr('model.mouse.std', 'Mouse standard 3 tasti');
+    Result := sTr('model.mouse.std', 'Mouse standard 3 tasti');
 end;
 
 //***********************************************************************************************************

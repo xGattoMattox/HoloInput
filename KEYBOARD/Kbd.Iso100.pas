@@ -20,8 +20,8 @@ type
     protected
         procedure Layout; override;
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -32,14 +32,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdIso100.ModelId
+//** Nome funzione: TKbdIso100.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Tastiera 100% ISO (IT)" (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 05/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdIso100.ModelId: string;
+class function TKbdIso100.sModelId: string;
 begin
     Result := 'kbd.iso100';
 end;
@@ -47,16 +47,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TKbdIso100.DisplayName
+//** Nome funzione: TKbdIso100.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello "Tastiera 100% ISO (IT)" mostrato nel Setup.
 //** Data Ultima Modifica: 30/10/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TKbdIso100.DisplayName: string;
+class function TKbdIso100.sDisplayName: string;
 begin
-    Result := Tr('model.kbd.iso100', 'Tastiera 100% ISO (IT)');
+    Result := sTr('model.kbd.iso100', 'Tastiera 100% ISO (IT)');
 end;
 
 //***********************************************************************************************************

@@ -20,8 +20,8 @@ uses
 type
     TThrDxGeneric = class(TThrottleModel)
     public
-        class function ModelId: string; override;
-        class function DisplayName: string; override;
+        class function sModelId: string; override;
+        class function sDisplayName: string; override;
     end;
 
 implementation
@@ -32,14 +32,14 @@ uses
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrDxGeneric.ModelId
+//** Nome funzione: TThrDxGeneric.sModelId
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Identificativo del modello "Manetta generica" destra (chiave salvata nel file .ini).
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrDxGeneric.ModelId: string;
+class function TThrDxGeneric.sModelId: string;
 begin
     Result := 'thrdx.generic';
 end;
@@ -47,16 +47,16 @@ end;
 //***********************************************************************************************************
 //***********************************************************************************************************
 //** Autore: Citizen GattoMatto
-//** Nome funzione: TThrDxGeneric.DisplayName
+//** Nome funzione: TThrDxGeneric.sDisplayName
 //** Parametri di ingresso: nessuno
 //** Parametri di uscita: Result: string
 //** Scopo: Nome del modello mostrato nel Setup.
 //** Data Ultima Modifica: 06/11/2026
 //***********************************************************************************************************
 //***********************************************************************************************************
-class function TThrDxGeneric.DisplayName: string;
+class function TThrDxGeneric.sDisplayName: string;
 begin
-    Result := Tr('model.thrdx.generic', 'Manetta generica (leva, mini-stick, hat, 6 pulsanti)');
+    Result := sTr('model.thrdx.generic', 'Manetta generica (leva, mini-stick, hat, 6 pulsanti)');
 end;
 
 initialization
